@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Manrope', 'Pretendard', sans-serif; }
+        h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-dim": "#d5dae3",
+                      "on-error": "#ffffff",
+                      "surface-variant": "#dde3ec",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-high": "#e3e8f2",
+                      "on-background": "#161c23",
+                      "secondary-fixed": "#8af7c9",
+                      "secondary-fixed-dim": "#6ddaae",
+                      "surface": "#f7f9ff",
+                      "primary-fixed": "#cde5ff",
+                      "on-primary-fixed-variant": "#004b74",
+                      "tertiary-container": "#6a7587",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-fixed": "#111c2b",
+                      "on-primary": "#ffffff",
+                      "primary-container": "#007aba",
+                      "on-secondary-container": "#007151",
+                      "surface-container-highest": "#dde3ec",
+                      "on-tertiary-container": "#fdfcff",
+                      "on-tertiary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "error": "#ba1a1a",
+                      "primary": "#006195",
+                      "tertiary": "#525d6d",
+                      "inverse-on-surface": "#ecf1fa",
+                      "surface-tint": "#006398",
+                      "on-surface": "#161c23",
+                      "surface-container": "#e9eef7",
+                      "tertiary-fixed": "#d8e3f7",
+                      "secondary": "#006c4d",
+                      "on-surface-variant": "#3f4850",
+                      "on-primary-fixed": "#001d32",
+                      "surface-container-low": "#eff4fd",
+                      "outline-variant": "#bfc7d2",
+                      "on-secondary-fixed": "#002115",
+                      "on-primary-container": "#fdfcff",
+                      "background": "#f7f9ff",
+                      "inverse-primary": "#94ccff",
+                      "on-secondary-fixed-variant": "#005139",
+                      "inverse-surface": "#2b3138",
+                      "secondary-container": "#87f4c6",
+                      "on-secondary": "#ffffff",
+                      "surface-bright": "#f7f9ff",
+                      "outline": "#6f7881",
+                      "on-tertiary-fixed-variant": "#3c4758",
+                      "tertiary-fixed-dim": "#bcc7db",
+                      "primary-fixed-dim": "#94ccff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Plus Jakarta Sans"],
+                      "body": ["Manrope"],
+                      "label": ["Manrope"]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface min-h-screen">
+<!-- TOP NAVIGATION SHELL (Inactive during modal) -->
+<nav class="flex justify-between items-center px-8 w-full sticky top-0 z-40 bg-white/80 backdrop-blur-md h-16 shadow-sm">
+<div class="flex items-center gap-2">
+<span class="text-xl font-black text-primary-container tracking-tighter">Chatsio</span>
+<span class="text-xs px-2 py-0.5 bg-secondary-container text-on-secondary-container rounded-full font-bold">PRO</span>
+</div>
+<div class="flex items-center gap-6">
+<span class="text-sm font-semibold text-primary tracking-wider">Optimization</span>
+<span class="text-sm font-semibold text-slate-400 tracking-wider">Start</span>
+<div class="flex items-center gap-3 ml-4">
+<span class="material-symbols-outlined text-on-surface-variant">dark_mode</span>
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest" data-alt="minimalist user avatar placeholder with geometric pattern"></div>
+</div>
+</div>
+</nav>
+<main class="relative p-8 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-8">
+<!-- BACKGROUND CONTENT (SIMULATED SCREEN_22) -->
+<aside class="md:col-span-3 flex flex-col gap-4">
+<div class="h-screen w-64 p-4 gap-2 flex flex-col bg-surface-container-low rounded-2xl opacity-40">
+<div class="p-3 bg-white text-primary font-bold shadow-sm rounded-lg flex items-center gap-3">
+<span class="material-symbols-outlined">inventory_2</span>
+<span>Product Management</span>
+</div>
+<div class="p-3 text-on-surface-variant flex items-center gap-3">
+<span class="material-symbols-outlined">auto_awesome</span>
+<span>Optimization</span>
+</div>
+</div>
+</aside>
+<section class="md:col-span-9 space-y-6 opacity-40">
+<header class="flex justify-between items-end">
+<div>
+<h2 class="text-3xl font-extrabold tracking-tight text-on-surface">Optimization Selection</h2>
+<p class="text-on-surface-variant mt-1">Select products to enhance with AI engine.</p>
+</div>
+</header>
+<div class="grid grid-cols-3 gap-6">
+<div class="h-48 bg-surface-container rounded-2xl"></div>
+<div class="h-48 bg-surface-container rounded-2xl"></div>
+<div class="h-48 bg-surface-container rounded-2xl"></div>
+</div>
+</section>
+<!-- LOADING OVERLAY MODAL -->
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-on-background/10 backdrop-blur-sm p-4">
+<div class="bg-surface-container-lowest max-w-[720px] w-full rounded-2xl shadow-[0_10px_30px_-5px_rgba(0,97,149,0.15),0_4px_12px_-2px_rgba(0,0,0,0.05)] overflow-hidden">
+<!-- Modal Header -->
+<div class="p-8 pb-6 border-b-0">
+<div class="flex items-center gap-4 mb-4">
+<div class="w-12 h-12 rounded-xl bg-primary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-3xl">auto_awesome</span>
+</div>
+<div>
+<h1 class="text-2xl font-bold tracking-tight text-on-surface">AI 최적화 진행 중</h1>
+<p class="text-on-surface-variant">선택하신 상품들의 데이터 구조화가 진행 중입니다</p>
+</div>
+</div>
+</div>
+<!-- Progress Content -->
+<div class="px-8 pb-8">
+<div class="bg-surface-container-low rounded-xl overflow-hidden">
+<!-- Table Header -->
+<div class="grid grid-cols-12 gap-4 px-6 py-3 bg-surface-variant/50 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+<div class="col-span-5">Product Details</div>
+<div class="col-span-4">Optimization Stage</div>
+<div class="col-span-3 text-right">Status</div>
+</div>
+<!-- Progress Rows -->
+<div class="divide-y divide-surface-variant/30">
+<!-- Row 1: Completed -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 items-center">
+<div class="col-span-5 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest flex-shrink-0 overflow-hidden shadow-sm" data-alt="professional product photography of high-end skincare bottle on clean white surface with soft shadows" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAyy25Rzi4xJpi_w-vMljsvLCrIzq73yjLIPdA6ghy2y3zBMKMBQ_DSa-Aezsfp8rd785D-qvf27N29ZahDhA-FKYykuOqgTlPx_gsl6OfNYo4CkLZb5l_oOnDnx-6vazHa4-VI2QGXvtivPmrDQb0arpKKf86vK8YpisK9vzHX9g3wsCzjSzLbVd2gaVb78Pb1xkc8VcgzvmlYa2Amfz4j8-JzqtIdeI7qO1EAoaJpyHpdZaqnCJ5ivOIw5AahAdNKEenLyrSPmIV2'); background-size: cover;"></div>
+<span class="font-semibold text-sm truncate text-on-surface">Premium Hydrating Serum</span>
+</div>
+<div class="col-span-4">
+<div class="w-full h-1.5 bg-secondary-fixed rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-full"></div>
+</div>
+</div>
+<div class="col-span-3 text-right flex justify-end items-center gap-2">
+<span class="text-xs font-bold text-secondary">최적화 완료!</span>
+<span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+<!-- Row 2: Active -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 items-center bg-white/50">
+<div class="col-span-5 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest flex-shrink-0 overflow-hidden shadow-sm" data-alt="macro close-up of a high-tech mechanical keyboard switch with vibrant RGB backlighting" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCRzydf0mx0qLwyUTJ3i5RXXx7ZL9FldNCRBbXVRGZI7W6qh0w2CFE_Hz307oCLTEf16KcX9r6-YlL5mABMVlcyl8KTEDlpUFVlCwVfMrE-M1EdeJHaB-SNIQOpoWi_c268LEip-j1282DcVLr7L0gW1k6RPy6UpW3tyT2yQAfhpDljBEnFnZqxwrpk0SKyP2QUIpJs1xGNvwtZLBoidjA7uCBy0C33_7w02X3cUVFH4M95bsedEFb8YwfGRhht94TpXwl2tvyYp7QB'); background-size: cover;"></div>
+<span class="font-semibold text-sm truncate text-on-surface">Mechanical Gaming Keyboard v2</span>
+</div>
+<div class="col-span-4">
+<div class="w-full h-1.5 bg-primary-fixed rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-[65%]"></div>
+</div>
+</div>
+<div class="col-span-3 text-right">
+<span class="text-xs font-bold text-primary">📋 FAQ를 생성하고 있습니다...</span>
+</div>
+</div>
+<!-- Row 3: Pending -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 items-center">
+<div class="col-span-5 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest flex-shrink-0 overflow-hidden shadow-sm" data-alt="sleek modern wireless noise canceling headphones in matte black finish on a wooden desk" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBY6WtN1vfLJh3ii8j1OiVhZMznY2Qj4Z85qmncU0dhwXf2Kp-Ljjdyha6_liGvVxsS6jll5A58Av62f1MiUyDjZdr2AKzuzo4YeJ0P-YU41vXVtbxjIUWTEKfIHmrYA_6O_uHeoKjrJ4R256CMJfhEvJeIMBzMhXj28uq9ZP6LqqLEvtgrzxi8AE6n01YpBQz2Jxb0Snqeia-eOR-upk-BeLBz3QRJyqk0bKSrNej9iXi5WyaY5gvSNQHfevBAHLkbVGAZZUNGiIAj'); background-size: cover;"></div>
+<span class="font-semibold text-sm truncate text-on-surface-variant">Wireless Noise Canceling Pro</span>
+</div>
+<div class="col-span-4">
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-0"></div>
+</div>
+</div>
+<div class="col-span-3 text-right">
+<span class="text-xs font-medium text-outline">🔍 대기 중...</span>
+</div>
+</div>
+<!-- Row 4: Pending -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 items-center">
+<div class="col-span-5 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest flex-shrink-0 overflow-hidden shadow-sm" data-alt="organic bamboo fiber towel set neatly folded in a bright spa environment with soft natural lighting" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAZ0ZTUGGUpwpd8N01UIAdgHNF8hAdPBTM9mUuV0SKu45w0F9Nnt18r_EZUwFy24MCiAyF-Ii47eNmujBNy0U4Yby6aZ98LJeG8xW_mKA53eXXoTMfS6hFD6TERQVfVKhpR1VIhM0j6Jn1piXH5hQP3nq4V3H6vHyayognD0P6-Fn7C8j1kKoQcc4OeqVb9YgvNfKO_cd0KnGTZUs-xLBzNlWQW2BFRLb0NPmrVN3n0icgGobFZ0bytNCCwS23qUoluMrlZgkjC8yjk'); background-size: cover;"></div>
+<span class="font-semibold text-sm truncate text-on-surface-variant">Eco-Friendly Bamboo Set</span>
+</div>
+<div class="col-span-4">
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-0"></div>
+</div>
+</div>
+<div class="col-span-3 text-right">
+<span class="text-xs font-medium text-outline">🔍 대기 중...</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Info -->
+<div class="mt-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+<div class="flex items-center gap-3">
+<div class="flex items-center justify-center w-8 h-8 rounded-full border-2 border-primary-fixed border-t-primary-container"></div>
+<span class="text-sm font-bold text-on-surface">약 25초 남음</span>
+</div>
+<!-- CTA (In this static state, it is preparing but visible for UI demonstration) -->
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary px-8 py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-primary-container/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+<span>결과 확인하기</span>
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Subtle Decorative Accent -->
+<div class="h-1 w-full bg-gradient-to-r from-primary-container via-secondary to-primary-container opacity-30"></div>
+</div>
+</div>
+</main>
+<!-- FAB Suppression Rule Active: Not rendered on focus screen -->
+</body></html>

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chatsio - 새 상품 등록</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed": "#001d32",
+                        "secondary-fixed": "#8af7c9",
+                        "primary-fixed": "#cde5ff",
+                        "on-error-container": "#93000a",
+                        "on-surface-variant": "#3f4850",
+                        "surface-variant": "#dde3ec",
+                        "secondary": "#006c4d",
+                        "on-primary-fixed-variant": "#004b74",
+                        "background": "#f7f9ff",
+                        "surface-container-low": "#eff4fd",
+                        "on-secondary-container": "#007151",
+                        "surface-container-high": "#e3e8f2",
+                        "primary-fixed-dim": "#94ccff",
+                        "on-tertiary-fixed": "#111c2b",
+                        "outline": "#6f7881",
+                        "on-tertiary-fixed-variant": "#3c4758",
+                        "surface-container-highest": "#dde3ec",
+                        "surface-bright": "#f7f9ff",
+                        "surface": "#f7f9ff",
+                        "secondary-container": "#87f4c6",
+                        "tertiary-container": "#6a7587",
+                        "inverse-on-surface": "#ecf1fa",
+                        "surface-container": "#e9eef7",
+                        "on-tertiary-container": "#fdfcff",
+                        "on-secondary-fixed": "#002115",
+                        "on-primary-container": "#fdfcff",
+                        "outline-variant": "#bfc7d2",
+                        "tertiary-fixed": "#d8e3f7",
+                        "on-background": "#161c23",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#94ccff",
+                        "surface-dim": "#d5dae3",
+                        "on-primary": "#ffffff",
+                        "on-surface": "#161c23",
+                        "error": "#ba1a1a",
+                        "on-error": "#ffffff",
+                        "inverse-surface": "#2b3138",
+                        "secondary-fixed-dim": "#6ddaae",
+                        "tertiary-fixed-dim": "#bcc7db",
+                        "surface-tint": "#006398",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#007aba",
+                        "primary": "#006195",
+                        "error-container": "#ffdad6",
+                        "tertiary": "#525d6d",
+                        "on-secondary-fixed-variant": "#005139"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                },
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', 'Pretendard', sans-serif; }
+        .font-plus-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .shadow-level-3 { box-shadow: 0 10px 30px -5px rgba(0, 97, 149, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03); }
+    </style>
+</head>
+<body class="bg-background text-on-background">
+<!-- SideNavBar (Authority: JSON) -->
+<aside class="h-screen w-[260px] fixed left-0 top-0 bg-slate-50 flex flex-col p-4 z-50">
+<div class="mb-8 px-4 flex items-center gap-3">
+<div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-lg">edit_note</span>
+</div>
+<div>
+<h1 class="text-xl font-bold text-sky-900 font-plus-jakarta">Editorial Tech</h1>
+<p class="text-xs text-slate-500">Product Admin</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<!-- Dashboard (Inactive) -->
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-sky-600 transition-colors rounded-lg hover:bg-slate-200/50" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-medium text-sm">Dashboard</span>
+</a>
+<!-- Product Management (Active State Logic applied) -->
+<a class="flex items-center gap-3 px-4 py-3 bg-sky-100 text-sky-700 rounded-lg font-bold translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-medium text-sm">Product Management</span>
+</a>
+<!-- Inventory -->
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-sky-600 transition-colors rounded-lg hover:bg-slate-200/50" href="#">
+<span class="material-symbols-outlined">warehouse</span>
+<span class="font-medium text-sm">Inventory</span>
+</a>
+<!-- Marketing -->
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-sky-600 transition-colors rounded-lg hover:bg-slate-200/50" href="#">
+<span class="material-symbols-outlined">campaign</span>
+<span class="font-medium text-sm">Marketing</span>
+</a>
+<!-- Settings -->
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-sky-600 transition-colors rounded-lg hover:bg-slate-200/50" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-medium text-sm">Settings</span>
+</a>
+</nav>
+<button class="mt-auto mx-2 py-3 px-4 bg-gradient-to-br from-primary to-primary-container text-white rounded-xl font-bold text-sm shadow-md flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+            Add New Product
+        </button>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-[260px] min-h-screen">
+<!-- TopNavBar (Authority: JSON) -->
+<header class="fixed top-0 right-0 w-[calc(100%-260px)] h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 flex justify-between items-center px-8 z-40">
+<div class="flex items-center gap-4">
+<nav class="flex items-center gap-2 text-sm">
+<span class="text-slate-500">Product Management</span>
+<span class="material-symbols-outlined text-xs text-slate-400">chevron_right</span>
+<span class="text-sky-700 font-semibold">Add New</span>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4">
+<button class="text-slate-500 hover:text-sky-600 transition-opacity duration-200">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+<button class="text-slate-500 hover:text-sky-600 transition-opacity duration-200 relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
+</button>
+</div>
+<div class="flex items-center gap-3 pl-4 border-l border-slate-100">
+<img alt="User Avatar" class="w-8 h-8 rounded-full bg-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCY6qEs_OKkRwCupvibxKuzWYTSUTExM5iD5wj_DmWjI6WuAX2ZWG1LtwezIVMUtItESHDxeIQXcXxBYFjqRePrdS5saBa3hgMyaemqgoj5n4w2oXaPSrnSKXvGx9ArMVWtGHjKDaotmUkOGIKCO0tmCRzoGyJp55ANgzdtJvLww25OecfQ4zCY6ctqaRe48f2MzcN-1gUavK62Emub9-URMIdvdVeHk5h5I51qOvyzg-gdenPnJytXxhhoM8wFVAzUYMU-cj1Xn_D7"/>
+<span class="text-sm font-medium text-slate-700">Admin User</span>
+</div>
+</div>
+</header>
+<!-- Page Content Canvas -->
+<div class="pt-24 pb-12 px-8 flex justify-center">
+<div class="w-full max-w-[720px] space-y-8">
+<!-- Back Link -->
+<a class="inline-flex items-center gap-1 text-outline hover:text-on-surface transition-colors" href="#">
+<span class="material-symbols-outlined text-sm">arrow_back</span>
+<span class="text-sm font-medium">상품 목록으로</span>
+</a>
+<!-- Title Section -->
+<div class="space-y-2">
+<h2 class="text-3xl font-bold font-plus-jakarta text-on-surface tracking-tight">새 상품 등록</h2>
+<p class="text-on-surface-variant">상품 URL, 이미지, 또는 CSV 파일로 등록하세요</p>
+</div>
+<!-- Main Content Card (Shadow Level 3) -->
+<div class="bg-surface-container-lowest rounded-[20px] p-8 shadow-level-3">
+<!-- Segmented Control Tabs -->
+<div class="flex p-1 bg-surface-container rounded-xl mb-8">
+<button class="flex-1 py-2.5 px-4 bg-white text-primary font-bold rounded-lg shadow-sm text-sm">🔗 URL 입력</button>
+<button class="flex-1 py-2.5 px-4 text-outline font-medium rounded-lg text-sm hover:text-on-surface transition-colors">📷 이미지 업로드</button>
+<button class="flex-1 py-2.5 px-4 text-outline font-medium rounded-lg text-sm hover:text-on-surface transition-colors">📄 CSV 일괄 등록</button>
+</div>
+<!-- URL Input Section (Active) -->
+<div class="space-y-6">
+<div class="space-y-4">
+<label class="text-sm font-bold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-lg text-primary">link</span>
+                                상품 페이지 URL
+                            </label>
+<div class="relative">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="w-full pl-12 pr-32 py-4 bg-surface-container-highest border-none rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-on-surface placeholder:text-outline/60" placeholder="상품 상세 페이지 URL을 붙여넣으세요" type="text"/>
+<button class="absolute right-2 top-2 bottom-2 px-6 bg-primary text-white rounded-lg font-bold text-sm shadow-sm hover:brightness-110 transition-all">
+                                    상품 가져오기
+                                </button>
+</div>
+</div>
+<!-- Preview Placeholder (Manual Spacing vs Borders) -->
+<div class="mt-10 p-6 bg-surface-container-low rounded-2xl">
+<div class="flex gap-6 items-start">
+<div class="w-32 h-32 bg-surface-container rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+<img class="w-full h-full object-cover opacity-40 mix-blend-multiply" data-alt="Minimalist luxury watch on a clean white surface with soft studio lighting and elegant shadows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTeIro79pr4Fhgl9xZ2V6aQzO0Uv52EydfzC5Hldv5Bwv_aLY_7wcQUYo8RchIgkvV_SFKn-nGChN2mDPTeJ3jckBE41CXQbvKoA2zcfAwKBJNuQk2wtjJMMClQ6Qul1iYTEp7WdSYMYFQ1bYTinIO3sQQwES1ABJvgdGobE1_EDU8ij-LCLGj8KPlEivWHWy1fu54Ydh-r0du5XuK474OMbAq_sZMLNBzCHQZYByJn8MKmPEvppM4E7baK6onyILlOqH5xtvw2Ock"/>
+</div>
+<div class="flex-1 space-y-4">
+<div class="space-y-1">
+<div class="h-4 w-2/3 bg-surface-container rounded animate-pulse"></div>
+<div class="h-6 w-full bg-surface-container rounded animate-pulse"></div>
+</div>
+<div class="h-4 w-1/3 bg-surface-container rounded animate-pulse"></div>
+<div class="flex gap-2">
+<div class="px-3 py-1 bg-secondary-container text-on-secondary-container text-xs font-bold rounded-full">상태 대기중</div>
+<div class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-xs font-bold rounded-full">미분류</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex items-center justify-end gap-3 pt-4">
+<button class="px-8 py-3 text-outline font-bold hover:text-on-surface transition-colors">다시 입력</button>
+<button class="px-10 py-3 bg-gradient-to-br from-primary to-primary-container text-white rounded-full font-extrabold shadow-md hover:scale-[1.02] transition-transform">등록하기</button>
+</div>
+</div>
+</div>
+<!-- Additional Info / Bento Section (Subtle) -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-6 rounded-2xl space-y-3">
+<div class="w-10 h-10 bg-secondary-fixed rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-fixed">bolt</span>
+</div>
+<h4 class="font-bold text-on-surface">빠른 대량 등록</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">CSV 파일을 업로드하여 수백 개의 상품을 한 번에 시스템에 연동할 수 있습니다.</p>
+</div>
+<div class="bg-surface-container-low p-6 rounded-2xl space-y-3">
+<div class="w-10 h-10 bg-primary-fixed rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-fixed">auto_awesome</span>
+</div>
+<h4 class="font-bold text-on-surface">AI 자동 태깅</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">URL 입력 시 상품 이미지를 분석하여 자동으로 카테고리와 키워드를 추출합니다.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Badge for Live Status (The "Pulse" Indicator) -->
+<div class="fixed bottom-6 right-6 bg-white shadow-lg rounded-full px-4 py-2 flex items-center gap-2 border border-outline-variant/10">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+</span>
+<span class="text-xs font-bold text-on-surface-variant">System Live Sync</span>
+</div>
+</body></html>

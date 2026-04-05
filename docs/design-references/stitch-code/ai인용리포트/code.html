@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chatsio AI - AI 인용 리포트</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Pretendard', 'Manrope', sans-serif;
+            line-height: 1.8;
+            word-break: keep-all;
+        }
+        .font-headline { font-family: 'Plus Jakarta Sans', 'DM Sans', sans-serif; }
+        .font-plus-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        /* Elevation & Physics based on Design System */
+        .shadow-level-2 {
+            box-shadow: 0 10px 30px -5px rgba(0, 97, 149, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+        }
+        .shadow-level-3 {
+            box-shadow: 0 20px 40px -10px rgba(0, 97, 149, 0.12), 0 8px 16px -4px rgba(0, 0, 0, 0.05);
+        }
+
+        /* No border rule - Using background shifts */
+        .glass-header {
+            background: rgba(247, 249, 255, 0.8);
+            backdrop-filter: blur(20px);
+        }
+        .dark .glass-header {
+            background: rgba(22, 28, 35, 0.8);
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed": "#002115",
+                    "secondary-fixed": "#8af7c9",
+                    "on-tertiary-fixed": "#111c2b",
+                    "on-primary-fixed": "#001d32",
+                    "on-secondary-fixed-variant": "#005139",
+                    "on-secondary-container": "#007151",
+                    "on-background": "#161c23",
+                    "tertiary": "#525d6d",
+                    "primary": "#006195",
+                    "on-tertiary-fixed-variant": "#3c4758",
+                    "inverse-primary": "#94ccff",
+                    "surface-container-lowest": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "surface-variant": "#dde3ec",
+                    "on-surface-variant": "#3f4850",
+                    "inverse-on-surface": "#ecf1fa",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#dde3ec",
+                    "outline": "#6f7881",
+                    "error": "#ba1a1a",
+                    "on-primary-container": "#fdfcff",
+                    "surface": "#f7f9ff",
+                    "primary-fixed-dim": "#94ccff",
+                    "surface-dim": "#d5dae3",
+                    "primary-fixed": "#cde5ff",
+                    "on-primary": "#ffffff",
+                    "secondary-fixed-dim": "#6ddaae",
+                    "surface-container-low": "#eff4fd",
+                    "on-error": "#ffffff",
+                    "surface-container-high": "#e3e8f2",
+                    "primary-container": "#007aba",
+                    "outline-variant": "#bfc7d2",
+                    "surface-bright": "#f7f9ff",
+                    "on-primary-fixed-variant": "#004b74",
+                    "on-secondary": "#ffffff",
+                    "on-tertiary-container": "#fdfcff",
+                    "tertiary-fixed-dim": "#bcc7db",
+                    "tertiary-container": "#6a7587",
+                    "background": "#f7f9ff",
+                    "inverse-surface": "#2b3138",
+                    "surface-container": "#e9eef7",
+                    "secondary-container": "#87f4c6",
+                    "tertiary-fixed": "#d8e3f7",
+                    "surface-tint": "#006398",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#161c23",
+                    "secondary": "#006c4d"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans", "DM Sans"],
+                    "body": ["Manrope", "Pretendard"],
+                    "label": ["Manrope", "Pretendard"]
+            }
+          },
+        }
+      }
+    </script>
+</head>
+<body class="bg-surface text-on-surface transition-colors duration-300">
+<!-- Sidebar Navigation -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-slate-50 dark:bg-slate-950 flex flex-col py-6 space-y-2 z-50">
+<div class="px-6 mb-8">
+<h1 class="text-lg font-black text-sky-700 dark:text-sky-300 font-plus-jakarta">Chatsio</h1>
+<p class="text-xs text-slate-500 dark:text-slate-400">AI Enterprise</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-sky-500 mx-2 transition-all font-semibold text-sm font-plus-jakarta" href="#">
+<span class="material-symbols-outlined mr-3">dashboard</span> Dashboard
+            </a>
+<a class="flex items-center px-4 py-2 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 shadow-sm rounded-lg mx-2 transition-all font-semibold text-sm font-plus-jakarta" href="#">
+<span class="material-symbols-outlined mr-3">description</span> AI Citation Report
+            </a>
+<a class="flex items-center px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-sky-500 mx-2 transition-all font-semibold text-sm font-plus-jakarta" href="#">
+<span class="material-symbols-outlined mr-3">database</span> Data Sources
+            </a>
+<a class="flex items-center px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-sky-500 mx-2 transition-all font-semibold text-sm font-plus-jakarta" href="#">
+<span class="material-symbols-outlined mr-3">group</span> Team Access
+            </a>
+<a class="flex items-center px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-sky-500 mx-2 transition-all font-semibold text-sm font-plus-jakarta" href="#">
+<span class="material-symbols-outlined mr-3">insights</span> Analytics
+            </a>
+</nav>
+<div class="px-4 mt-auto">
+<button class="w-full py-3 px-4 bg-gradient-to-br from-primary to-primary-container text-white rounded-xl font-bold text-sm shadow-level-2 transition-transform active:scale-95">
+                Upgrade Plan
+            </button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 min-h-screen relative">
+<!-- Top Bar -->
+<header class="w-full h-16 sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex justify-between items-center px-8 shadow-sm">
+<div class="flex items-center space-x-4">
+<h2 class="text-xl font-bold tracking-tight text-sky-700 dark:text-sky-300 font-headline">AI 인용 리포트</h2>
+</div>
+<div class="flex items-center space-x-4">
+<div class="relative group">
+<button class="bg-slate-200/50 dark:bg-slate-800/50 text-slate-400 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed opacity-60 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">play_arrow</span>
+                        추적 실행
+                    </button>
+<div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                        곧 출시 예정입니다
+                    </div>
+</div>
+<div class="flex items-center space-x-3">
+<span class="material-symbols-outlined text-slate-500">notifications</span>
+<span class="material-symbols-outlined text-slate-500">settings</span>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="professional minimalist headshot of a modern tech executive soft studio lighting clean background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHBaESMA8P870-m4G1cvCv2h0q7ISNQRuyF4-O_v_WXTp7nehnXQS_BN_MsPRLgHruYTpEDjIsmjNzPGtonm0Dl9q87TxAh1CKaSeIgvhVc4wdKMNR5wKPhbejop8yeKVFYWsk_yaGV8ISCzw4DgVXrwOBT_eaLsyPFr989D8Z-bLmFuIXaPFJ8FJd2gno-4JG57O79ZNK6kOPWGbKCdNci-b7HTJBlYE4RfCHmVqiLWSEhD4zGGO3pa5yC4XI9VY5sPIQiOf-tP8-"/>
+</div>
+</div>
+</div>
+</header>
+<div class="p-8 max-w-7xl mx-auto space-y-8">
+<!-- Hero Header -->
+<section>
+<h3 class="text-3xl font-bold font-headline text-on-surface">AI 인용 리포트</h3>
+<p class="text-on-surface-variant text-lg">AI 검색엔진이 당신의 상품을 얼마나 추천하는지 실시간으로 추적합니다.</p>
+</section>
+<!-- KPI Bento Grid -->
+<section class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<!-- Large Card: Score -->
+<div class="col-span-1 md:col-span-2 bg-surface-container-low p-8 rounded-2xl shadow-level-2 flex flex-col justify-between group transition-all hover:shadow-level-3">
+<div>
+<span class="text-on-surface-variant font-semibold text-sm">Citation Score 평균</span>
+<div class="flex items-baseline gap-4 mt-2">
+<span class="text-6xl font-black font-headline text-primary">42</span>
+<span class="text-xl text-on-surface-variant font-medium">/ 100</span>
+<span class="ml-auto inline-flex items-center px-3 py-1 rounded-full bg-primary-fixed text-on-primary-fixed-variant text-sm font-bold">
+<span class="material-symbols-outlined text-sm mr-1">trending_up</span> ↑5
+                            </span>
+</div>
+</div>
+<div class="mt-8 h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full transition-all duration-1000" style="width: 42%;"></div>
+</div>
+</div>
+<!-- Small Cards -->
+<div class="bg-surface-container p-6 rounded-2xl flex flex-col justify-between transition-all hover:bg-surface-container-high">
+<span class="text-on-surface-variant font-semibold text-sm">추적 상품 수</span>
+<div class="flex items-center justify-between mt-4">
+<span class="text-4xl font-bold font-headline text-on-surface">128</span>
+<span class="material-symbols-outlined text-primary text-3xl">inventory_2</span>
+</div>
+</div>
+<div class="bg-surface-container p-6 rounded-2xl flex flex-col justify-between transition-all hover:bg-surface-container-high">
+<span class="text-on-surface-variant font-semibold text-sm">이번 주 인용 감지</span>
+<div class="flex items-center justify-between mt-4">
+<span class="text-4xl font-bold font-headline text-on-surface">42<span class="text-base font-normal ml-1">건</span></span>
+<span class="material-symbols-outlined text-secondary text-3xl">radar</span>
+</div>
+</div>
+<div class="md:col-start-3 bg-surface-container p-6 rounded-2xl flex flex-col justify-between transition-all hover:bg-surface-container-high">
+<span class="text-on-surface-variant font-semibold text-sm">마지막 추적일</span>
+<div class="flex items-center justify-between mt-4">
+<span class="text-2xl font-bold font-headline text-on-surface">2026-05-21</span>
+<span class="material-symbols-outlined text-outline text-3xl">history</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-2xl flex items-center gap-4 shadow-sm">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<div>
+<p class="text-xs text-on-surface-variant font-medium">시스템 상태</p>
+<p class="text-sm font-bold flex items-center">
+                            Live Sync <span class="ml-2 w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+</p>
+</div>
+</div>
+</section>
+<!-- Chart Section -->
+<section class="bg-surface-container-lowest p-8 rounded-2xl shadow-level-2 overflow-hidden relative">
+<div class="flex justify-between items-center mb-8">
+<h4 class="text-xl font-bold font-headline">Citation Score 추이</h4>
+<div class="flex gap-2">
+<button class="px-3 py-1 rounded-lg text-xs font-bold bg-primary text-on-primary">7 Days</button>
+<button class="px-3 py-1 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-container transition-colors">30 Days</button>
+</div>
+</div>
+<div class="h-64 w-full relative">
+<!-- SVG Chart Visualization -->
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none">
+<defs>
+<lineargradient id="chartGradient" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#006195" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#006195" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,200 Q150,150 300,180 T600,80 T900,100 T1200,40 V256 H0 Z" fill="url(#chartGradient)"></path>
+<path d="M0,200 Q150,150 300,180 T600,80 T900,100 T1200,40" fill="none" stroke="#006195" stroke-linecap="round" stroke-width="4"></path>
+</svg>
+<!-- Data Points -->
+<div class="absolute top-[35px] left-[98%] -translate-x-1/2 w-4 h-4 bg-primary border-4 border-white rounded-full shadow-lg"></div>
+</div>
+</section>
+<!-- Asymmetric Comparison Section -->
+<section class="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-6">
+<div class="bg-surface-container-low p-8 rounded-2xl">
+<div class="flex justify-between items-start mb-8">
+<div>
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-xs font-bold rounded-full mb-2 inline-block">BEFORE</span>
+<h4 class="text-xl font-bold font-headline">최적화 전 분석</h4>
+</div>
+<div class="text-right">
+<span class="text-3xl font-black text-outline">12/100</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-error/50">
+<p class="text-sm font-medium text-on-surface-variant mb-4">AI 응답 시뮬레이션 (Perplexity)</p>
+<p class="text-on-surface italic">"해당 카테고리에서 신뢰할 수 있는 브랜드 추천 정보가 부족합니다. 대안적인 일반 제품들을 검색해 보시는 것을 권장합니다."</p>
+</div>
+</div>
+<div class="bg-primary-container/10 p-8 rounded-2xl relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-32 h-32 bg-secondary/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+<div class="flex justify-between items-start mb-8">
+<div>
+<span class="px-3 py-1 bg-secondary text-on-secondary text-xs font-bold rounded-full mb-2 inline-block">AFTER</span>
+<h4 class="text-xl font-bold font-headline">최적화 후 결과</h4>
+</div>
+<div class="text-right">
+<span class="text-3xl font-black text-primary">85/100</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-secondary">
+<p class="text-sm font-medium text-on-surface-variant mb-4">AI 응답 시뮬레이션 (Gemini)</p>
+<p class="text-on-surface">"최근 사용자 리뷰와 전문 데이터에 따르면 <span class="bg-secondary-container px-1 font-bold text-on-secondary-container">Chatsio AI 솔루션</span>이 성능과 가성비 면에서 가장 우수한 추천 상품으로 꼽힙니다."</p>
+</div>
+</div>
+</section>
+<!-- Table Section -->
+<section class="bg-surface-container-lowest rounded-2xl shadow-level-2 overflow-hidden">
+<div class="p-6">
+<h4 class="text-xl font-bold font-headline mb-4">상품별 인용 현황</h4>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-surface-container-low border-b-0">
+<tr>
+<th class="px-8 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">상품 정보</th>
+<th class="px-8 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider text-center">Score</th>
+<th class="px-8 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider text-center">변화</th>
+<th class="px-8 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">인용 플랫폼</th>
+<th class="px-8 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">마지막 추적</th>
+</tr>
+</thead>
+<tbody class="divide-y-0">
+<tr class="hover:bg-surface-container transition-colors">
+<td class="px-8 py-4 flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="sleek modern ai software dashboard icon abstract digital shapes blue and cyan palette" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9MdQ00lS9s5xYf7I16na5kS9YSXW5cznm2WvyK56xjpEBQhBEJS_u1ls-BkKqp_4-YILaKl3z_6m_dvJBb3D9oiMjhPVKq2JPtFsysV5aY-nYIhCXoUJHb7qpI8_LgVrdM9RDJuxLNEZylp1tg-VM5lkWrQdEfyN4dLedykRQ8xnvOLIhf6XsImXOtLPhJCS4MqPseybfi-nIkl2ljrHAeFsHbFdObSya3N0IaVqM4p2pTD1upyk7cP3_Nl6EygM6IyuHBrdO5q24"/>
+</div>
+<div>
+<div class="font-bold text-on-surface">Pro 분석 엔진 v2.5</div>
+<div class="text-xs text-on-surface-variant">Enterprise SKU: AX-200</div>
+</div>
+</td>
+<td class="px-8 py-4 text-center">
+<span class="text-lg font-black text-primary">92</span>
+</td>
+<td class="px-8 py-4 text-center">
+<span class="text-secondary font-bold">↑12</span>
+</td>
+<td class="px-8 py-4">
+<div class="flex gap-2">
+<span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold">GPT</span>
+<span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold">PRP</span>
+<span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold">GEM</span>
+</div>
+</td>
+<td class="px-8 py-4 text-on-surface-variant text-sm font-medium">2026-05-21</td>
+</tr>
+<tr class="hover:bg-surface-container transition-colors bg-surface/50">
+<td class="px-8 py-4 flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="minimalist saas logo geometric shape vibrant accent colors on white background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6UqHXdEjfFQDI_BYzaLYsSG85ZVhmmqfwZei_7NN1FaVwrTI4A_KFjxfD_4Osx_Tl2UdHp1uTd6XgKqm-5_ynoWUVD4oB47QckHyV5ScC6NRsOr8wnT3KjVS-E5XsFTL4jIVwGYOMXaCc5Rgp_v5B-V15HQBBKPXbww4Amzmp0h1g5iJ9ADdmUs-25Ch8jjGDcO1flhT8ZkVVdGpgM-46E8ClEp8sp7gP4DsYEXyMby5FlsxKofL2iUBkOgj-SzpRSnCvC-gj8DWj"/>
+</div>
+<div>
+<div class="font-bold text-on-surface">Smart 데이터 컨버터</div>
+<div class="text-xs text-on-surface-variant">Standard SKU: SC-100</div>
+</div>
+</td>
+<td class="px-8 py-4 text-center">
+<span class="text-lg font-black text-primary">78</span>
+</td>
+<td class="px-8 py-4 text-center">
+<span class="text-secondary font-bold">↑4</span>
+</td>
+<td class="px-8 py-4">
+<div class="flex gap-2">
+<span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold">GPT</span>
+<span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold">GEM</span>
+</div>
+</td>
+<td class="px-8 py-4 text-on-surface-variant text-sm font-medium">2026-05-20</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+<!-- Coming Soon Overlay -->
+<div class="fixed inset-0 z-[100] flex items-center justify-center bg-background/40 backdrop-blur-md">
+<div class="bg-surface-container-lowest p-10 rounded-3xl shadow-level-3 max-w-md w-full mx-4 border-2 border-primary/10 text-center transform transition-all hover:scale-[1.02]">
+<div class="w-20 h-20 bg-primary-container/20 text-primary rounded-2xl flex items-center justify-center mx-auto mb-6">
+<span class="material-symbols-outlined text-5xl">construction</span>
+</div>
+<h2 class="text-2xl font-black font-headline text-on-surface mb-2">AI 인용 추적 기능 준비 중</h2>
+<p class="text-on-surface-variant mb-8 leading-relaxed">
+                    실시간 인용 감지 및 상세 보고서 기능이 마지막 고도화 단계에 있습니다. 정식 출시 시 가장 먼저 알려드립니다.
+                </p>
+<div class="space-y-4">
+<input class="w-full px-4 py-4 rounded-xl bg-surface-container-highest border-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-center" placeholder="이메일 주소를 입력하세요" type="email"/>
+<button class="w-full py-4 bg-gradient-to-r from-primary to-primary-container text-white rounded-xl font-bold text-lg shadow-level-2 hover:shadow-level-3 active:scale-98 transition-all">
+                        관심 등록
+                    </button>
+<p class="text-[10px] text-outline font-medium">등록 시 마케팅 정보 수신에 동의하게 됩니다.</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Theme Switcher (Floating) -->
+<button class="fixed bottom-6 right-6 w-12 h-12 bg-surface-container-highest text-on-surface rounded-full shadow-lg flex items-center justify-center z-[110] hover:scale-110 transition-transform" onclick="document.documentElement.classList.toggle('dark')">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+</body></html>

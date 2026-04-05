@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chatsio Admin - 최적화 모니터링</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=Pretendard:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-dim": "#d5dae3",
+                        "tertiary": "#525d6d",
+                        "secondary-fixed-dim": "#6ddaae",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#dde3ec",
+                        "on-primary-fixed-variant": "#004b74",
+                        "outline": "#6f7881",
+                        "on-tertiary-fixed": "#111c2b",
+                        "surface-container-high": "#e3e8f2",
+                        "on-tertiary-fixed-variant": "#3c4758",
+                        "on-surface": "#161c23",
+                        "on-primary-fixed": "#001d32",
+                        "primary-container": "#007aba",
+                        "background": "#f7f9ff",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#6a7587",
+                        "inverse-on-surface": "#ecf1fa",
+                        "on-secondary-fixed-variant": "#005139",
+                        "outline-variant": "#bfc7d2",
+                        "tertiary-fixed": "#d8e3f7",
+                        "secondary-container": "#87f4c6",
+                        "on-background": "#161c23",
+                        "surface-variant": "#dde3ec",
+                        "on-secondary-fixed": "#002115",
+                        "primary-fixed-dim": "#94ccff",
+                        "surface": "#f7f9ff",
+                        "on-surface-variant": "#3f4850",
+                        "surface-bright": "#f7f9ff",
+                        "secondary-fixed": "#8af7c9",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#2b3138",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#006398",
+                        "secondary": "#006c4d",
+                        "primary-fixed": "#cde5ff",
+                        "on-primary-container": "#fdfcff",
+                        "on-tertiary-container": "#fdfcff",
+                        "surface-container-low": "#eff4fd",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "inverse-primary": "#94ccff",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#e9eef7",
+                        "tertiary-fixed-dim": "#bcc7db",
+                        "primary": "#006195",
+                        "on-secondary-container": "#007151"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans", "Pretendard"],
+                        "body": ["Manrope", "Pretendard"],
+                        "label": ["Manrope", "Pretendard"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', 'Pretendard', sans-serif; }
+        .font-headline { font-family: 'Plus Jakarta Sans', 'Pretendard', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-nav { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        .shadow-layer-3 { box-shadow: 0 10px 30px -5px rgba(0, 97, 149, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03); }
+    </style>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary-fixed-dim">
+<!-- SideNavBar Shell -->
+<aside class="h-screen w-64 fixed left-0 top-0 overflow-y-auto bg-slate-900 dark:bg-black shadow-xl z-50 flex flex-col py-6 px-4">
+<div class="flex items-center gap-2 mb-10 px-2">
+<div class="w-8 h-8 bg-gradient-to-br from-primary to-primary-container rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xl">terminal</span>
+</div>
+<div class="text-xl font-bold text-white tracking-tight flex items-center gap-2 font-headline">Chatsio</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="text-slate-400 hover:text-white px-4 py-3 transition-colors flex items-center gap-3 rounded-lg font-plus-jakarta text-sm font-medium" href="#">
+<span class="material-symbols-outlined">dashboard</span> 서비스 현황
+            </a>
+<a class="text-slate-400 hover:text-white px-4 py-3 transition-colors flex items-center gap-3 rounded-lg font-plus-jakarta text-sm font-medium" href="#">
+<span class="material-symbols-outlined">group</span> 고객 관리
+            </a>
+<a class="text-white font-bold bg-sky-600/20 rounded-lg px-4 py-3 transition-colors flex items-center gap-3 font-plus-jakarta text-sm font-medium" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">query_stats</span> 최적화 모니터링
+            </a>
+<a class="text-slate-400 hover:text-white px-4 py-3 transition-colors flex items-center gap-3 rounded-lg font-plus-jakarta text-sm font-medium" href="#">
+<span class="material-symbols-outlined">terminal</span> 프롬프트 관리
+            </a>
+<a class="text-slate-400 hover:text-white px-4 py-3 transition-colors flex items-center gap-3 rounded-lg font-plus-jakarta text-sm font-medium" href="#">
+<span class="material-symbols-outlined">payments</span> AI 비용
+            </a>
+<a class="text-slate-400 hover:text-white px-4 py-3 transition-colors flex items-center gap-3 rounded-lg font-plus-jakarta text-sm font-medium" href="#">
+<span class="material-symbols-outlined">history_edu</span> 인용 추적 관리
+            </a>
+</nav>
+<div class="mt-auto p-4 bg-slate-800 rounded-xl flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden border border-slate-600">
+<img class="w-full h-full object-cover" data-alt="professional portrait of a tech administrator in a clean office setting with soft backlighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6FoO0x-S1j2x47gM9FaN4by4F53ejhDqwCnVP-OLxa8-RfXpQrTvAxulG7tLp_prT-Xa1rNkVyC49q85Dw3zQUho9UKW1mZnr3claAW5F3verutXLXLLwT75jMF5vBTpk3DWgsBj5S4Wy7sJRc_CpcUbded4RScvgsOONR7UNbbTvtbEyR7yjexGU8JCGvm7Fd1Az3oFjaKSQZY-NGmTHtqH6HPeAZXk4g4QB-T67AVNHASzrSsjLcU2xyPcrwEjhgx-fHlOUW9Zl"/>
+</div>
+<div>
+<p class="text-white text-xs font-bold">Admin Console</p>
+<p class="text-slate-400 text-[10px]">v2.4.0 Active</p>
+</div>
+</div>
+</aside>
+<!-- TopAppBar Shell -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] z-40 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md h-16 flex justify-between items-center px-8 ml-64">
+<div class="flex items-center gap-4">
+<h1 class="text-on-surface font-headline font-extrabold text-xl tracking-tight">최적화 모니터링</h1>
+<div class="flex items-center gap-2 bg-secondary-container/30 px-3 py-1 rounded-full border border-secondary-container/20">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="text-[11px] font-bold text-on-secondary-container">LIVE SYNC</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container border-none rounded-full text-sm focus:ring-2 focus:ring-primary/20 w-64 transition-all" placeholder="고객사 또는 로그 검색..." type="text"/>
+</div>
+<button class="bg-primary hover:bg-primary-container text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg transition-transform active:scale-95">
+<span class="material-symbols-outlined text-sm">download</span> CSV 내보내기
+            </button>
+<div class="flex items-center gap-1">
+<button class="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 transition-all"><span class="material-symbols-outlined text-on-surface-variant">notifications</span></button>
+<button class="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 transition-all"><span class="material-symbols-outlined text-on-surface-variant">settings</span></button>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 mt-16 p-8 min-h-screen">
+<!-- [상단 KPI] 비대칭 3칸 그리드 -->
+<div class="grid grid-cols-12 gap-6 mb-8">
+<!-- 오늘 실행 -->
+<div class="col-span-4 bg-surface-container-lowest rounded-[20px] p-6 shadow-layer-3 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4">
+<span class="material-symbols-outlined text-primary/10 text-6xl">rocket_launch</span>
+</div>
+<p class="text-on-surface-variant text-sm font-semibold mb-2">오늘 실행 건수</p>
+<div class="flex items-end gap-3">
+<h2 class="text-4xl font-headline font-extrabold text-on-surface">1,429</h2>
+<span class="text-secondary font-bold text-sm mb-1.5 flex items-center gap-0.5">
+<span class="material-symbols-outlined text-sm">arrow_upward</span> 12
+                    </span>
+</div>
+<div class="mt-4 h-1 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-3/4 rounded-full"></div>
+</div>
+</div>
+<!-- 성공률 (미니 도넛 포함) -->
+<div class="col-span-5 bg-surface-container-lowest rounded-[20px] p-6 shadow-layer-3 flex items-center justify-between border border-primary/5">
+<div>
+<p class="text-on-surface-variant text-sm font-semibold mb-2">오늘의 성공률</p>
+<h2 class="text-4xl font-headline font-extrabold text-primary">96.5%</h2>
+<p class="text-on-surface-variant text-xs mt-2 font-medium tracking-tight">전일 대비 <span class="text-primary font-bold">+1.2%</span> 개선되었습니다</p>
+</div>
+<div class="relative w-24 h-24">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-surface-container-highest" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-primary" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" stroke-dasharray="251.2" stroke-dashoffset="8.8" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+</div>
+<!-- 평균 소요시간 -->
+<div class="col-span-3 bg-gradient-to-br from-primary to-primary-container rounded-[20px] p-6 shadow-layer-3 text-white">
+<p class="text-white text-sm font-semibold mb-2">평균 소요시간</p>
+<div class="flex items-end gap-2">
+<h2 class="text-4xl font-headline font-extrabold">42<span class="text-xl ml-1 font-medium">초</span></h2>
+</div>
+<div class="mt-6 flex items-center gap-2 text-white/80 text-xs">
+<span class="material-symbols-outlined text-sm">timer</span>
+<span>타 서비스 대비 15% 빠름</span>
+</div>
+</div>
+</div>
+<!-- [중간 차트] 14일 통계 -->
+<section class="bg-surface-container-lowest rounded-[24px] p-8 shadow-layer-3 mb-8">
+<div class="flex justify-between items-center mb-10">
+<div>
+<h3 class="text-on-surface font-headline font-bold text-lg">최근 14일 실행 통계</h3>
+<p class="text-on-surface-variant text-sm">일별 성공 및 실패 누적 추이</p>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2 text-xs font-semibold text-on-surface-variant">
+<div class="w-3 h-3 rounded-full bg-primary"></div> 성공
+                    </div>
+<div class="flex items-center gap-2 text-xs font-semibold text-on-surface-variant">
+<div class="w-3 h-3 rounded-full bg-error"></div> 실패
+                    </div>
+</div>
+</div>
+<!-- Bento Chart Simulation -->
+<div class="flex items-end justify-between h-48 gap-3">
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full flex flex-col-reverse gap-0.5 rounded-t-lg overflow-hidden h-[60%]">
+<div class="h-[10%] bg-error/20"></div>
+<div class="h-[90%] bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-outline">03.01</span>
+</div>
+<!-- Repeat for other days with varying heights -->
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full flex flex-col-reverse gap-0.5 rounded-t-lg overflow-hidden h-[75%]">
+<div class="h-[5%] bg-error/20"></div>
+<div class="h-[95%] bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-outline">03.02</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full flex flex-col-reverse gap-0.5 rounded-t-lg overflow-hidden h-[65%]">
+<div class="h-[15%] bg-error/20"></div>
+<div class="h-[85%] bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-outline">03.03</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full flex flex-col-reverse gap-0.5 rounded-t-lg overflow-hidden h-[90%]">
+<div class="h-[2%] bg-error/20"></div>
+<div class="h-[98%] bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-outline">03.04</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full flex flex-col-reverse gap-0.5 rounded-t-lg overflow-hidden h-[80%]">
+<div class="h-[8%] bg-error/20"></div>
+<div class="h-[92%] bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-outline">03.05</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full flex flex-col-reverse gap-0.5 rounded-t-lg overflow-hidden h-[70%]">
+<div class="h-[12%] bg-error/20"></div>
+<div class="h-[88%] bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-outline">03.06</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full flex flex-col-reverse gap-0.5 rounded-t-lg overflow-hidden h-[100%]">
+<div class="h-[4%] bg-error/20"></div>
+<div class="h-[96%] bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-outline">03.07</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full flex flex-col-reverse gap-0.5 rounded-t-lg overflow-hidden h-[85%]">
+<div class="h-[5%] bg-error/20"></div>
+<div class="h-[95%] bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-outline">03.08</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full flex flex-col-reverse gap-0.5 rounded-t-lg overflow-hidden h-[95%]">
+<div class="h-[10%] bg-error/20"></div>
+<div class="h-[90%] bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-outline">03.09</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full flex flex-col-reverse gap-0.5 rounded-t-lg overflow-hidden h-[70%]">
+<div class="h-[20%] bg-error/20"></div>
+<div class="h-[80%] bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-outline">03.10</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full flex flex-col-reverse gap-0.5 rounded-t-lg overflow-hidden h-[82%]">
+<div class="h-[3%] bg-error/20"></div>
+<div class="h-[97%] bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-outline">03.11</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full flex flex-col-reverse gap-0.5 rounded-t-lg overflow-hidden h-[88%]">
+<div class="h-[6%] bg-error/20"></div>
+<div class="h-[94%] bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-outline">03.12</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full flex flex-col-reverse gap-0.5 rounded-t-lg overflow-hidden h-[94%]">
+<div class="h-[4%] bg-error/20"></div>
+<div class="h-[96%] bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-outline">03.13</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full flex flex-col-reverse gap-0.5 rounded-t-lg overflow-hidden h-[98%]">
+<div class="h-[2%] bg-error/20"></div>
+<div class="h-[98%] bg-primary"></div>
+</div>
+<span class="text-[10px] font-bold text-outline">03.14</span>
+</div>
+</div>
+</section>
+<!-- [실행 로그 테이블] -->
+<section class="bg-surface-container-lowest rounded-[24px] overflow-hidden shadow-layer-3">
+<div class="p-6 bg-surface-container-low/50 flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-2">
+<button class="px-4 py-2 rounded-full bg-primary text-white text-sm font-bold">전체</button>
+<button class="px-4 py-2 rounded-full hover:bg-surface-container-high text-on-surface-variant text-sm font-semibold transition-all">성공</button>
+<button class="px-4 py-2 rounded-full hover:bg-surface-container-high text-on-surface-variant text-sm font-semibold transition-all">실패</button>
+<button class="px-4 py-2 rounded-full hover:bg-surface-container-high text-on-surface-variant text-sm font-semibold transition-all">진행중</button>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-outline-variant shadow-sm">
+<span class="material-symbols-outlined text-outline text-lg">calendar_today</span>
+<span class="text-sm font-medium text-on-surface">2024.03.15 - 2024.03.15</span>
+</div>
+<div class="relative">
+<input class="pl-10 pr-4 py-2 bg-white border border-outline-variant rounded-xl text-sm focus:ring-2 focus:ring-primary/20 w-48 transition-all" placeholder="고객명 검색" type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">person</span>
+</div>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-separate border-spacing-0">
+<thead>
+<tr class="bg-surface-container text-on-surface-variant text-[11px] uppercase tracking-wider font-bold">
+<th class="px-6 py-4">실행 시간</th>
+<th class="px-6 py-4">고객</th>
+<th class="px-6 py-4">상품명</th>
+<th class="px-6 py-4">플랜</th>
+<th class="px-6 py-4">상태</th>
+<th class="px-6 py-4">소요시간</th>
+<th class="px-6 py-4 text-right">액션</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<!-- Row: Success -->
+<tr class="group hover:bg-surface-container-low transition-colors">
+<td class="px-6 py-4 text-sm text-on-surface-variant">2024.03.15 14:30</td>
+<td class="px-6 py-4 font-bold text-on-surface">패션모아</td>
+<td class="px-6 py-4 text-sm text-on-surface">오버핏 린넨 셔츠</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 bg-primary/10 text-primary text-[10px] font-extrabold rounded-full border border-primary/20">PREMIUM</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-secondary font-bold text-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 성공
+                                </div>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-on-surface-variant">45s</td>
+<td class="px-6 py-4 text-right">
+<button class="p-2 hover:bg-surface-container-highest rounded-lg transition-all text-outline group-hover:text-primary">
+<span class="material-symbols-outlined text-lg">open_in_new</span>
+</button>
+</td>
+</tr>
+<!-- Row: Failed (Special 강조) -->
+<tr class="group bg-error-container/20 border-l-4 border-error transition-colors relative">
+<td class="px-6 py-4 text-sm text-on-surface-variant">2024.03.15 14:28</td>
+<td class="px-6 py-4 font-bold text-on-surface">라이프스타일 샵</td>
+<td class="px-6 py-4 text-sm text-on-surface">모던 세라믹 화병</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 bg-slate-200 text-slate-600 text-[10px] font-extrabold rounded-full">BASIC</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-error font-bold text-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span> 실패
+                                </div>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-on-surface-variant">12s</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="bg-error text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-on-error-container transition-all">재실행</button>
+<button class="bg-white border border-error/30 text-error px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-error-container transition-all">에러 보기</button>
+</div>
+</td>
+</tr>
+<!-- Row: Pending -->
+<tr class="group hover:bg-surface-container-low transition-colors">
+<td class="px-6 py-4 text-sm text-on-surface-variant">2024.03.15 14:25</td>
+<td class="px-6 py-4 font-bold text-on-surface">뷰티 허브</td>
+<td class="px-6 py-4 text-sm text-on-surface">수분 진정 크림</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 bg-secondary-container/50 text-on-secondary-container text-[10px] font-extrabold rounded-full">STANDARD</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-on-surface-variant font-bold text-xs italic">
+<span class="w-1.5 h-1.5 rounded-full bg-outline animate-pulse"></span> 진행중...
+                                </div>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-on-surface-variant">-</td>
+<td class="px-6 py-4 text-right">
+<button class="p-2 hover:bg-surface-container-highest rounded-lg transition-all text-outline">
+<span class="material-symbols-outlined text-lg">stop_circle</span>
+</button>
+</td>
+</tr>
+<!-- Row: Success -->
+<tr class="group hover:bg-surface-container-low transition-colors">
+<td class="px-6 py-4 text-sm text-on-surface-variant">2024.03.15 14:20</td>
+<td class="px-6 py-4 font-bold text-on-surface">글로벌 마켓</td>
+<td class="px-6 py-4 text-sm text-on-surface">무선 노이즈캔슬링 헤드폰</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 bg-primary/10 text-primary text-[10px] font-extrabold rounded-full border border-primary/20">PREMIUM</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-secondary font-bold text-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 성공
+                                </div>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-on-surface-variant">52s</td>
+<td class="px-6 py-4 text-right">
+<button class="p-2 hover:bg-surface-container-highest rounded-lg transition-all text-outline">
+<span class="material-symbols-outlined text-lg">open_in_new</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-6 bg-surface-container-low border-t border-surface-container flex items-center justify-between">
+<p class="text-xs text-on-surface-variant font-medium">Showing 1-15 of 1,429 executions</p>
+<div class="flex items-center gap-2">
+<button class="p-2 bg-white border border-outline-variant rounded-lg disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-white text-xs font-bold">1</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-on-surface text-xs font-bold">2</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-on-surface text-xs font-bold">3</button>
+<span class="text-outline mx-1">...</span>
+<button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-on-surface text-xs font-bold">96</button>
+<button class="p-2 bg-white border border-outline-variant rounded-lg">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- [에러 상세 모달] Overlay Example -->
+<div class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+<div class="bg-surface-container-lowest w-full max-w-lg rounded-[28px] shadow-2xl overflow-hidden border border-outline-variant/30">
+<div class="bg-error-container/30 px-8 py-6 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-error flex items-center justify-center shadow-lg shadow-error/20">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">error</span>
+</div>
+<div>
+<h4 class="text-on-error-container font-headline font-extrabold">실행 에러 상세</h4>
+<p class="text-on-error-container/80 text-xs font-medium">n8n Workflow Execution Failure</p>
+</div>
+</div>
+<button class="p-2 hover:bg-error-container/50 rounded-full text-on-error-container transition-all">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-8 space-y-6">
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4 rounded-2xl">
+<p class="text-[10px] text-on-surface-variant font-bold uppercase mb-1">에러 코드</p>
+<p class="text-error font-headline font-extrabold text-xl">504</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-2xl">
+<p class="text-[10px] text-on-surface-variant font-bold uppercase mb-1">n8n ID</p>
+<p class="text-on-surface font-headline font-extrabold text-xl">EX-12345</p>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-on-surface-variant ml-1">에러 메시지</label>
+<div class="bg-surface-container-high p-4 rounded-2xl font-mono text-sm text-error border border-error/10">
+                        Gateway Timeout: The server was acting as a gateway or proxy and did not receive a timely response from the upstream server.
+                    </div>
+</div>
+<div class="bg-surface p-4 rounded-2xl border border-outline-variant/30">
+<div class="flex justify-between items-center mb-3">
+<span class="text-xs font-bold text-on-surface">실행 컨텍스트</span>
+<span class="text-[10px] px-2 py-0.5 bg-surface-container-highest rounded font-bold">JSON</span>
+</div>
+<pre class="text-[11px] text-on-surface-variant overflow-x-auto">{
+  "node": "Optimization_Engine",
+  "retry_count": 3,
+  "last_ping": "2024-03-15T14:28:12Z",
+  "upstream_service": "llm-inference-v2"
+}</pre>
+</div>
+</div>
+<div class="px-8 pb-8 flex gap-3">
+<button class="flex-1 bg-primary text-white py-3 rounded-2xl font-bold hover:bg-primary-container shadow-lg transition-all active:scale-[0.98]">
+                    즉시 재실행
+                </button>
+<button class="flex-1 bg-surface-container-high text-on-surface py-3 rounded-2xl font-bold hover:bg-surface-container-highest transition-all">
+                    로그 복사
+                </button>
+</div>
+</div>
+</div>
+</body></html>

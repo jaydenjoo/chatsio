@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chatsio - AI Optimization Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#007151",
+                        "secondary-fixed": "#8af7c9",
+                        "primary-fixed": "#cde5ff",
+                        "on-primary-container": "#fdfcff",
+                        "surface-container-high": "#e3e8f2",
+                        "surface-dim": "#d5dae3",
+                        "surface-container-low": "#eff4fd",
+                        "surface-bright": "#f7f9ff",
+                        "on-secondary-fixed": "#002115",
+                        "tertiary-container": "#6a7587",
+                        "primary-fixed-dim": "#94ccff",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed-variant": "#005139",
+                        "on-tertiary-fixed": "#111c2b",
+                        "tertiary-fixed": "#d8e3f7",
+                        "error": "#ba1a1a",
+                        "on-secondary": "#ffffff",
+                        "surface": "#f7f9ff",
+                        "secondary-fixed-dim": "#6ddaae",
+                        "inverse-primary": "#94ccff",
+                        "surface-container-highest": "#dde3ec",
+                        "outline-variant": "#bfc7d2",
+                        "inverse-on-surface": "#ecf1fa",
+                        "on-tertiary-fixed-variant": "#3c4758",
+                        "error-container": "#ffdad6",
+                        "on-error": "#ffffff",
+                        "tertiary": "#525d6d",
+                        "surface-container": "#e9eef7",
+                        "inverse-surface": "#2b3138",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed-dim": "#bcc7db",
+                        "secondary": "#006c4d",
+                        "primary": "#006195",
+                        "outline": "#6f7881",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#006398",
+                        "on-tertiary-container": "#fdfcff",
+                        "secondary-container": "#87f4c6",
+                        "background": "#f7f9ff",
+                        "surface-variant": "#dde3ec",
+                        "on-primary-fixed": "#001d32",
+                        "on-background": "#161c23",
+                        "on-primary-fixed-variant": "#004b74",
+                        "on-surface-variant": "#3f4850",
+                        "on-surface": "#161c23",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#007aba"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans", "sans-serif"],
+                        "body": ["Manrope", "Pretendard", "sans-serif"],
+                        "label": ["Manrope", "Pretendard", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', 'Pretendard', sans-serif; }
+        .font-headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .custom-shadow { box-shadow: 0 10px 30px -5px rgba(0, 97, 149, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03); }
+    </style>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- SideNavBar Component -->
+<aside class="w-[260px] h-screen fixed left-0 top-0 hidden md:flex flex-col bg-slate-50 dark:bg-slate-900 font-['Plus_Jakarta_Sans'] font-medium text-sm transition-all duration-200 ease-in-out border-r-0 z-50">
+<div class="flex flex-col h-full py-6 px-4">
+<!-- Brand Identity -->
+<div class="px-3 mb-10 flex items-center gap-3">
+<div class="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined" data-icon="auto_graph">auto_graph</span>
+</div>
+<div>
+<h1 class="text-2xl font-bold tracking-tight text-sky-900 dark:text-sky-100 leading-none">Chatsio</h1>
+<p class="text-[10px] uppercase tracking-widest text-primary font-bold mt-1">AI Optimization</p>
+</div>
+</div>
+<!-- Navigation Groups -->
+<div class="flex-grow space-y-8">
+<div>
+<span class="px-4 text-[11px] font-bold text-outline uppercase tracking-wider mb-4 block">Service</span>
+<nav class="space-y-1">
+<!-- Product Management (Active) -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-sky-700 dark:text-sky-400 font-bold border-r-4 border-sky-700 dark:border-sky-400 bg-sky-50/50 dark:bg-sky-900/20 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span>Product Management</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="auto_graph">auto_graph</span>
+<span>Optimization</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="rocket_launch">rocket_launch</span>
+<span>Deployment</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>AI Citation Report</span>
+</a>
+</nav>
+</div>
+<div>
+<span class="px-4 text-[11px] font-bold text-outline uppercase tracking-wider mb-4 block">Settings</span>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+</div>
+</div>
+<!-- Footer Section -->
+<div class="pt-6 mt-6 border-t border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between px-2 mb-4">
+<div class="flex items-center gap-3">
+<img alt="User Avatar" class="w-10 h-10 rounded-full object-cover" data-alt="professional headshot of a smiling young male executive in a grey suit, soft office background lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfOm0whbVuj62xQyPIK8x_g_2wkh1H7-vz3viPr6NPiyLZuguEAdT9OQmTIsi7P1GqY3eySIZdVNLd4zdUG57SqVbynAqyN2Ot66NTzOihKPeW01Z2yEbiDc8yyPBfVwat5PdfIEW43-Rgpdgd-fklvcRadMr7v0LCaoYa9R1mMzywVFlfqnmVpk_xuJHQu7-EpdD4mQ1rVYhSGyvRY7RtwfhRIXlwBXmNOMrf54sxQXA2HVBvF7zIsbNMDUpTy_XF9LEFWR-Jf3cE"/>
+<div class="flex flex-col">
+<span class="font-bold text-on-surface">Alex Kim</span>
+<span class="text-xs text-outline">Smart Shop A</span>
+</div>
+</div>
+<button class="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full text-slate-400 transition-colors">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+</button>
+</div>
+</div>
+</div>
+</aside>
+<!-- TopNavBar Component -->
+<header class="sticky top-0 w-full z-40 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-none">
+<div class="flex justify-between items-center px-6 py-3 md:ml-[260px] h-16">
+<!-- Left: Breadcrumb & Title -->
+<div class="flex flex-col">
+<nav class="flex items-center gap-2 text-[11px] text-outline font-bold uppercase tracking-widest mb-0.5">
+<span>Service</span>
+<span class="material-symbols-outlined text-[12px]" data-icon="chevron_right">chevron_right</span>
+<span class="text-primary">Product Management</span>
+</nav>
+<h2 class="text-xl font-black text-sky-800 dark:text-sky-200 leading-none">상품 관리</h2>
+</div>
+<!-- Right: Actions -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-full">
+<button class="p-2 rounded-full text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+</button>
+<button class="p-2 rounded-full text-outline hover:text-primary relative transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+</div>
+<div class="h-8 w-[1px] bg-outline-variant mx-1"></div>
+<button class="flex items-center gap-2 pl-2 pr-1 py-1 bg-surface-container hover:bg-surface-container-high rounded-full transition-all group">
+<span class="text-sm font-semibold px-2">Profile</span>
+<div class="w-8 h-8 rounded-full overflow-hidden border-2 border-white">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="professional headshot of a smiling young male executive in a grey suit, soft office background lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWwyKiArFPqpT9nE8pRMl8r8FYKcd-qjGyZyHUcdroub-srK5NKQA5htQuLOeuoul4520RiShMJzX5qd-E8NzXiT836zxic0tqwz2Xuufs2pv2neHNilXAtFvB29Ryif5oMcfbebyPrK3UtGg9OG97o_iaz7AZL1SLkpXMt8ZgUScDLON7mAVGD72PaWKQQ2cx_dd1q90f3CYvNjNEG0o_szxePeCfu1j65bq8zR4h97w6vxDGyhXXCGA5NwxcOxIM1ZlgrQgmyRrH"/>
+</div>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="md:ml-[260px] min-h-screen p-8 bg-surface-container-low">
+<div class="max-w-[1200px] w-full mx-auto md:mx-0">
+<!-- Content Header -->
+<div class="mb-10">
+<h3 class="text-4xl font-headline font-extrabold text-on-surface tracking-tight mb-2">Product Overview</h3>
+<p class="text-on-surface-variant font-medium">여기에 페이지 콘텐츠가 들어갑니다. AI 기반 상품 최적화 대시보드를 통해 비즈니스 성장을 가속화하세요.</p>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- Large Featured Bento Card -->
+<div class="md:col-span-8 bg-surface-container-lowest p-8 rounded-[24px] custom-shadow border border-white/50 relative overflow-hidden group">
+<div class="relative z-10">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-12 h-12 bg-secondary-container rounded-2xl flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined" data-icon="trending_up">trending_up</span>
+</div>
+<div>
+<h4 class="text-xl font-bold">Optimization Status</h4>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="text-xs font-bold text-secondary uppercase tracking-widest">Live Sync Active</span>
+</div>
+</div>
+</div>
+<div class="h-48 flex items-end gap-2 px-4 mb-6">
+<!-- Visual placeholder for a chart -->
+<div class="flex-1 bg-primary-fixed-dim/20 rounded-t-xl h-[40%] transition-all hover:h-[50%] hover:bg-primary"></div>
+<div class="flex-1 bg-primary-fixed-dim/20 rounded-t-xl h-[65%] transition-all hover:h-[75%] hover:bg-primary"></div>
+<div class="flex-1 bg-primary-fixed-dim/20 rounded-t-xl h-[55%] transition-all hover:h-[65%] hover:bg-primary"></div>
+<div class="flex-1 bg-primary-fixed-dim/30 rounded-t-xl h-[85%] transition-all hover:h-[95%] hover:bg-primary"></div>
+<div class="flex-1 bg-primary-fixed-dim/20 rounded-t-xl h-[45%] transition-all hover:h-[55%] hover:bg-primary"></div>
+<div class="flex-1 bg-primary-fixed-dim/20 rounded-t-xl h-[70%] transition-all hover:h-[80%] hover:bg-primary"></div>
+<div class="flex-1 bg-primary-fixed-dim/20 rounded-t-xl h-[60%] transition-all hover:h-[70%] hover:bg-primary"></div>
+</div>
+<div class="grid grid-cols-3 gap-4 pt-6 border-t border-surface-variant">
+<div>
+<p class="text-xs text-outline font-bold uppercase mb-1">Efficiency</p>
+<p class="text-2xl font-black text-on-surface">+24.8%</p>
+</div>
+<div>
+<p class="text-xs text-outline font-bold uppercase mb-1">AI Precision</p>
+<p class="text-2xl font-black text-on-surface">98.2%</p>
+</div>
+<div>
+<p class="text-xs text-outline font-bold uppercase mb-1">Cost Saved</p>
+<p class="text-2xl font-black text-on-surface">₩1.2M</p>
+</div>
+</div>
+</div>
+<!-- Decorative Background Element -->
+<div class="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors"></div>
+</div>
+<!-- Secondary Small Bento Card -->
+<div class="md:col-span-4 bg-surface-container-highest p-8 rounded-[24px] flex flex-col justify-between">
+<div>
+<span class="inline-flex items-center px-2 py-1 bg-on-secondary-fixed-variant/10 text-on-secondary-fixed-variant rounded-md text-[10px] font-bold uppercase tracking-widest mb-4">New Report</span>
+<h4 class="text-2xl font-headline font-bold leading-tight mb-4 text-on-surface">Citation Accuracy Insights</h4>
+<p class="text-on-surface-variant text-sm leading-relaxed mb-6">Your recent product deployment has been analyzed for citation accuracy. Click below to see the full report.</p>
+</div>
+<button class="w-full py-4 bg-primary text-on-primary font-bold rounded-xl flex items-center justify-center gap-2 group hover:scale-[1.02] active:scale-[0.98] transition-all">
+<span>View Insights</span>
+<span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Row 2 -->
+<div class="md:col-span-4 bg-white p-6 rounded-[24px] custom-shadow flex items-center gap-5">
+<div class="w-14 h-14 rounded-2xl bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl" data-icon="package_2">package_2</span>
+</div>
+<div>
+<p class="text-xs font-bold text-outline uppercase tracking-widest">Active Products</p>
+<h5 class="text-3xl font-black text-on-surface">1,284</h5>
+</div>
+</div>
+<div class="md:col-span-4 bg-white p-6 rounded-[24px] custom-shadow flex items-center gap-5">
+<div class="w-14 h-14 rounded-2xl bg-surface-container-high flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-3xl" data-icon="rocket">rocket</span>
+</div>
+<div>
+<p class="text-xs font-bold text-outline uppercase tracking-widest">Deployments</p>
+<h5 class="text-3xl font-black text-on-surface">42 <span class="text-sm font-medium text-outline">this week</span></h5>
+</div>
+</div>
+<div class="md:col-span-4 bg-white p-6 rounded-[24px] custom-shadow flex items-center gap-5">
+<div class="w-14 h-14 rounded-2xl bg-surface-container-high flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-3xl" data-icon="error_outline">error_outline</span>
+</div>
+<div>
+<p class="text-xs font-bold text-outline uppercase tracking-widest">Alerts</p>
+<h5 class="text-3xl font-black text-on-surface">3</h5>
+</div>
+</div>
+<!-- Feature Illustration Card -->
+<div class="md:col-span-12 relative rounded-[32px] overflow-hidden min-h-[300px] flex items-center group">
+<div class="absolute inset-0 bg-gradient-to-r from-primary to-primary-container z-10 opacity-90"></div>
+<img alt="Tech Pattern" class="absolute inset-0 w-full h-full object-cover grayscale group-hover:scale-105 transition-transform duration-700" data-alt="abstract digital network connection background with glowing blue nodes and lines representing artificial intelligence data flow" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBP3_GSctkOXkImOeV4u3v0L0uyZMfbM3vMb6rhH8BoM142zW_PSJQ09Vct3nfqYCh5Z8rEedN2CpAZEj8-JxOxdf2vGrloXprJg2gPBeQt6RyfE_tmlg2kuEs0ICbwXsr4tBRnjecNWLaa0YYIwfBFE56-OSJXsXSyKUk7AYWZP5tCG3QpxgJnr0NE9yOBVCOIC5mxpwuc1O8OeCD6iQRr21Brn4mR1dQtevB7z5o9rZ6GCqUb5ryGW-HxgP-hBrdTCL8ZbJa625KU"/>
+<div class="relative z-20 px-12 py-8 max-w-2xl text-on-primary">
+<h4 class="text-4xl font-headline font-extrabold mb-4">Supercharge your product visibility with AI.</h4>
+<p class="text-lg font-medium mb-8 text-on-primary-container">Next-generation optimization that adapts to real-world search intent and market trends in real-time.</p>
+<div class="flex gap-4">
+<button class="px-8 py-3 bg-secondary-container text-on-secondary-container rounded-full font-bold hover:bg-secondary-fixed transition-colors">Start Optimization</button>
+<button class="px-8 py-3 bg-white/20 backdrop-blur-md text-on-primary rounded-full font-bold hover:bg-white/30 transition-colors">Learn More</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar Component (Mobile Only) -->
+<nav class="fixed bottom-0 w-full md:hidden z-50 rounded-t-2xl bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,136,204,0.08)] flex justify-around items-center h-16 px-4 pb-safe transition-all duration-200">
+<a class="flex flex-col items-center justify-center bg-sky-100 dark:bg-sky-900/40 text-sky-800 dark:text-sky-200 rounded-xl px-3 py-1.5 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="dashboard">dashboard</span>
+<span class="text-[11px] font-['Plus_Jakarta_Sans'] font-medium mt-0.5">Service</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 active:bg-slate-100 dark:active:bg-slate-800 p-2 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="tune">tune</span>
+<span class="text-[11px] font-['Plus_Jakarta_Sans'] font-medium mt-0.5">Optimization</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 active:bg-slate-100 dark:active:bg-slate-800 p-2 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="analytics">analytics</span>
+<span class="text-[11px] font-['Plus_Jakarta_Sans'] font-medium mt-0.5">Report</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 active:bg-slate-100 dark:active:bg-slate-800 p-2 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+<span class="text-[11px] font-['Plus_Jakarta_Sans'] font-medium mt-0.5">Settings</span>
+</a>
+</nav>
+</body></html>

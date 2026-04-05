@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chatsio Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=Pretendard:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#87f4c6",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#bfc7d2",
+                        "surface-container-low": "#eff4fd",
+                        "on-tertiary-container": "#fdfcff",
+                        "on-secondary-fixed-variant": "#005139",
+                        "primary-fixed-dim": "#94ccff",
+                        "surface-tint": "#006398",
+                        "primary-fixed": "#cde5ff",
+                        "tertiary-container": "#6a7587",
+                        "background": "#f7f9ff",
+                        "primary-container": "#007aba",
+                        "on-primary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "primary": "#006195",
+                        "on-background": "#161c23",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed": "#111c2b",
+                        "on-primary-fixed-variant": "#004b74",
+                        "secondary": "#006c4d",
+                        "on-surface-variant": "#3f4850",
+                        "on-primary-fixed": "#001d32",
+                        "surface-variant": "#dde3ec",
+                        "tertiary": "#525d6d",
+                        "on-secondary-fixed": "#002115",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed": "#d8e3f7",
+                        "surface": "#f7f9ff",
+                        "inverse-primary": "#94ccff",
+                        "surface-bright": "#f7f9ff",
+                        "secondary-fixed": "#8af7c9",
+                        "on-secondary-container": "#007151",
+                        "on-tertiary-fixed-variant": "#3c4758",
+                        "on-surface": "#161c23",
+                        "inverse-on-surface": "#ecf1fa",
+                        "tertiary-fixed-dim": "#bcc7db",
+                        "surface-container-highest": "#dde3ec",
+                        "surface-dim": "#d5dae3",
+                        "inverse-surface": "#2b3138",
+                        "outline": "#6f7881",
+                        "secondary-fixed-dim": "#6ddaae",
+                        "on-primary-container": "#fdfcff",
+                        "surface-container": "#e9eef7",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-high": "#e3e8f2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "card": "16px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans", "Pretendard"],
+                        "body": ["Manrope", "Pretendard"],
+                        "label": ["Manrope", "Pretendard"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Pretendard', 'Manrope', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .elevation-3 { box-shadow: 0 10px 30px -5px rgba(0, 97, 149, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03); }
+        .glass-header { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); }
+        .pulse-secondary { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    </style>
+</head>
+<body class="bg-background text-on-surface antialiased overflow-x-hidden">
+<!-- SideNavBar (Authority Source: JSON) -->
+<aside class="bg-neutral-900 font-['Plus_Jakarta_Sans'] font-medium antialiased h-screen w-64 fixed left-0 top-0 shadow-2xl flex flex-col py-6 z-50">
+<div class="px-6 mb-8 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-xl font-bold text-white tracking-tight">Chatsio</span>
+<span class="text-xs text-neutral-500">Admin Dashboard</span>
+</div>
+<span class="bg-secondary text-on-secondary text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wider">Admin</span>
+</div>
+<nav class="flex-1 space-y-1">
+<!-- Active: Service Status -->
+<a class="flex items-center text-white font-semibold border-l-4 border-sky-500 pl-4 py-3 bg-white/5 transition-all duration-200 translate-x-1" href="#">
+<span class="material-symbols-outlined mr-3 text-sky-500" data-icon="dynamic_form">dynamic_form</span>
+<span class="text-sm">Service Status</span>
+</a>
+<a class="flex items-center text-neutral-400 hover:text-white pl-5 py-3 transition-colors hover:bg-white/10" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="group">group</span>
+<span class="text-sm">Customer Management</span>
+</a>
+<a class="flex items-center text-neutral-400 hover:text-white pl-5 py-3 transition-colors hover:bg-white/10" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="monitoring">monitoring</span>
+<span class="text-sm">Optimization Monitoring</span>
+</a>
+<a class="flex items-center text-neutral-400 hover:text-white pl-5 py-3 transition-colors hover:bg-white/10" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="terminal">terminal</span>
+<span class="text-sm">Prompt Management</span>
+</a>
+<a class="flex items-center text-neutral-400 hover:text-white pl-5 py-3 transition-colors hover:bg-white/10" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="payments">payments</span>
+<span class="text-sm">AI Costs</span>
+</a>
+<a class="flex items-center text-neutral-400 hover:text-white pl-5 py-3 transition-colors hover:bg-white/10" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="description">description</span>
+<span class="text-sm">Citation Tracking</span>
+</a>
+</nav>
+<div class="mt-auto px-4 space-y-1">
+<a class="flex items-center text-neutral-400 hover:text-white pl-5 py-3 transition-colors text-xs font-bold text-sky-400" href="#">
+<span class="material-symbols-outlined mr-3 text-sm" data-icon="arrow_back">arrow_back</span>
+                ← 일반 대시보드로
+            </a>
+<div class="h-px bg-neutral-800 my-4 mx-2"></div>
+<a class="flex items-center text-neutral-400 hover:text-white pl-5 py-3 transition-colors hover:bg-white/10" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="settings">settings</span>
+<span class="text-sm">Settings</span>
+</a>
+<a class="flex items-center text-neutral-400 hover:text-white pl-5 py-3 transition-colors hover:bg-white/10" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="help">help</span>
+<span class="text-sm">Support</span>
+</a>
+</div>
+</aside>
+<!-- TopNavBar (Authority Source: JSON) -->
+<header class="fixed top-0 right-0 left-64 h-16 bg-white/80 backdrop-blur-md font-['Plus_Jakarta_Sans'] text-sm border-b border-neutral-200 shadow-sm flex justify-between items-center px-8 z-40">
+<div class="flex items-center bg-surface-container-low px-4 py-2 rounded-full w-96 group focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+<span class="material-symbols-outlined text-outline mr-2" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-outline" placeholder="Search data, customers, or status..." type="text"/>
+</div>
+<div class="flex items-center space-x-6">
+<button class="hover:bg-neutral-100 rounded-lg p-2 transition-all relative">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="hover:bg-neutral-100 rounded-lg p-2 transition-all">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="dark_mode">dark_mode</span>
+</button>
+<div class="flex items-center space-x-3 pl-4 border-l border-neutral-200">
+<div class="text-right">
+<p class="font-bold text-on-surface leading-none">Admin User</p>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-tighter">Super Admin</p>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden border-2 border-white shadow-sm">
+<img alt="Admin Profile" data-alt="Close-up professional portrait of a modern executive with a friendly expression in a bright office environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPFGBk0_TNUDAAxd43J_eOgj-KSRSWAX5MzFIqIP5PmmpqH62ia3NATEAQ89e2V0Ri0Nzi_WystPKMLMacoOE-ykakIFIUvHu4cjCgw4aWc62ZAOVOOKvJWey8FKZI66XQ5o14zvuYIXMn3V-6xSUez20xU-6lDJM4f5vsc5hdzs5AOYNbx2S16VleKlWJTtFlt2QIDzSfnbDGtjbtLjte5CEB0QOx4uNDfg37aC2nQMvqT3uhgn3kGlhHZjnh0_1kBS5GQhrv9xfP"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 mt-16 p-8 min-h-screen">
+<!-- Header Section -->
+<div class="mb-10 flex justify-between items-end">
+<div>
+<h1 class="text-3xl font-extrabold text-on-surface tracking-tight mb-2">대시보드 홈</h1>
+<p class="text-on-surface-variant font-medium">관리자 전용 실시간 KPI 리포트입니다.</p>
+</div>
+<div class="flex space-x-3">
+<button class="flex items-center px-4 py-2.5 bg-surface-container-high text-on-surface-variant rounded-xl font-bold hover:bg-surface-container-highest transition-all">
+<span class="material-symbols-outlined mr-2 text-[20px]" data-icon="calendar_today">calendar_today</span>
+                    지난 30일
+                </button>
+<button class="flex items-center px-5 py-2.5 bg-gradient-to-br from-primary to-primary-container text-white rounded-xl font-bold elevation-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined mr-2 text-[20px]" data-icon="download">download</span>
+                    리포트 다운로드
+                </button>
+</div>
+</div>
+<!-- Bento Grid: Main KPIs -->
+<div class="grid grid-cols-4 gap-6 mb-10">
+<!-- Large Card (2 columns): 총 고객 -->
+<div class="col-span-2 row-span-1 bg-surface-container-low rounded-card p-8 elevation-3 relative overflow-hidden group">
+<div class="relative z-10">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h3 class="text-on-surface-variant font-bold text-sm mb-1">총 고객</h3>
+<div class="flex items-center space-x-3">
+<span class="text-5xl font-['Plus_Jakarta_Sans'] font-extrabold text-on-surface tracking-tighter">12,842</span>
+<span class="bg-secondary-fixed text-on-secondary-fixed px-2.5 py-1 rounded-full text-xs font-bold">+2 new this week</span>
+</div>
+</div>
+<div class="p-3 bg-surface-container-highest rounded-2xl text-primary">
+<span class="material-symbols-outlined text-[28px]" data-icon="person_add">person_add</span>
+</div>
+</div>
+<div class="mt-4 h-24 w-full flex items-end space-x-1">
+<!-- Mock Trend Line -->
+<div class="flex-1 bg-primary/10 rounded-t-lg h-12 group-hover:h-16 transition-all duration-500"></div>
+<div class="flex-1 bg-primary/10 rounded-t-lg h-16 group-hover:h-20 transition-all duration-500 delay-75"></div>
+<div class="flex-1 bg-primary/20 rounded-t-lg h-24 group-hover:h-24 transition-all duration-500 delay-100"></div>
+<div class="flex-1 bg-primary/40 rounded-t-lg h-20 group-hover:h-24 transition-all duration-500 delay-150"></div>
+<div class="flex-1 bg-primary/60 rounded-t-lg h-28 group-hover:h-32 transition-all duration-500 delay-200"></div>
+<div class="flex-1 bg-primary rounded-t-lg h-24 group-hover:h-28 transition-all duration-500 delay-300"></div>
+</div>
+</div>
+<div class="absolute -right-8 -bottom-8 opacity-5">
+<span class="material-symbols-outlined text-[180px]" data-icon="groups">groups</span>
+</div>
+</div>
+<!-- Medium Card: 총 최적화 건수 -->
+<div class="col-span-1 bg-surface-container rounded-card p-6 border border-white/50 shadow-sm flex flex-col justify-between">
+<div>
+<h3 class="text-on-surface-variant font-bold text-sm mb-4">총 최적화 건수</h3>
+<div class="flex items-baseline space-x-1 mb-2">
+<span class="text-3xl font-['Plus_Jakarta_Sans'] font-extrabold text-on-surface">1,429</span>
+<span class="text-xs font-bold text-secondary">건</span>
+</div>
+<p class="text-xs font-bold text-on-surface-variant flex items-center">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary mr-1.5 pulse-secondary"></span>
+                        12 today
+                    </p>
+</div>
+<div class="mt-6 pt-6 border-t border-surface-variant">
+<div class="flex justify-between items-center text-xs font-bold mb-2">
+<span class="text-on-surface-variant">Success Rate</span>
+<span class="text-primary">96.5%</span>
+</div>
+<div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[96.5%]"></div>
+</div>
+</div>
+</div>
+<!-- Medium Card: 이번 달 AI 비용 -->
+<div class="col-span-1 bg-surface-container-highest rounded-card p-6 shadow-sm flex flex-col justify-between">
+<div>
+<h3 class="text-on-surface-variant font-bold text-sm mb-4">이번 달 AI 비용</h3>
+<div class="flex items-baseline space-x-1">
+<span class="text-xs font-bold text-on-surface-variant">₩</span>
+<span class="text-3xl font-['Plus_Jakarta_Sans'] font-extrabold text-on-surface">428,200</span>
+</div>
+<p class="text-xs font-medium text-on-surface-variant mt-1">Avg ₩3,200/day</p>
+</div>
+<div class="mt-6 flex items-end justify-between space-x-1 h-12">
+<div class="flex-1 bg-outline-variant/40 rounded-sm h-[40%]"></div>
+<div class="flex-1 bg-outline-variant/40 rounded-sm h-[60%]"></div>
+<div class="flex-1 bg-outline-variant/40 rounded-sm h-[30%]"></div>
+<div class="flex-1 bg-outline-variant/40 rounded-sm h-[80%]"></div>
+<div class="flex-1 bg-outline-variant/40 rounded-sm h-[50%]"></div>
+<div class="flex-1 bg-primary rounded-sm h-[95%]"></div>
+<div class="flex-1 bg-primary/40 rounded-sm h-[20%]"></div>
+</div>
+</div>
+<!-- Small Card: 시스템 상태 -->
+<div class="col-span-1 bg-inverse-surface rounded-card p-6 flex flex-col justify-between">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-surface-container-lowest font-bold text-sm">시스템 상태</h3>
+<span class="material-symbols-outlined text-secondary-fixed text-[20px] pulse-secondary" data-icon="sensors">sensors</span>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<span class="text-xs text-neutral-400 font-medium">n8n Workflow</span>
+<span class="text-xs font-bold text-secondary-fixed">✅ Normal</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-xs text-neutral-400 font-medium">Core API</span>
+<span class="text-xs font-bold text-secondary-fixed">✅ Normal</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-xs text-neutral-400 font-medium">Database (Vector)</span>
+<span class="text-xs font-bold text-secondary-fixed">✅ Normal</span>
+</div>
+</div>
+</div>
+<!-- Quick Action: 최적화 실패 건 -->
+<div class="col-span-1 bg-error-container/20 rounded-card p-6 flex flex-col justify-between border border-error/5 group cursor-pointer hover:bg-error-container/30 transition-all">
+<div>
+<h3 class="text-error font-bold text-sm mb-4">최적화 실패 건</h3>
+<div class="flex items-baseline space-x-2">
+<span class="text-4xl font-extrabold text-error font-['Plus_Jakarta_Sans'] tracking-tighter">07</span>
+<span class="material-symbols-outlined text-error" data-icon="report">report</span>
+</div>
+</div>
+<a class="text-xs font-bold text-error flex items-center group-hover:translate-x-1 transition-transform" href="#">
+                    확인하기
+                    <span class="material-symbols-outlined text-xs ml-1" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</div>
+<!-- Quick Action: 미응답 고객 -->
+<div class="col-span-2 bg-surface-container-lowest rounded-card p-6 flex items-center justify-between shadow-sm border border-surface-container border-dashed group">
+<div class="flex items-center space-x-6">
+<div class="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-3xl" data-icon="chat_bubble_outline">chat_bubble_outline</span>
+</div>
+<div>
+<h3 class="text-on-surface-variant font-bold text-sm">미응답 고객</h3>
+<p class="text-2xl font-extrabold text-on-surface">24 <span class="text-sm font-bold text-on-surface-variant">명 대기 중</span></p>
+</div>
+</div>
+<button class="px-6 py-3 bg-surface-container-high rounded-xl text-on-surface font-bold text-sm hover:bg-secondary hover:text-white transition-all flex items-center">
+                    메모 작성
+                    <span class="material-symbols-outlined text-sm ml-2" data-icon="edit">edit</span>
+</button>
+</div>
+</div>
+<!-- Activity Feed (Below KPI cards) -->
+<div class="bg-surface-container-low rounded-card p-8 shadow-sm">
+<div class="flex justify-between items-center mb-8">
+<h2 class="text-xl font-extrabold text-on-surface tracking-tight">최근 활동</h2>
+<button class="text-sm font-bold text-primary hover:underline">모든 로그 보기</button>
+</div>
+<div class="space-y-4">
+<!-- Timeline Items -->
+<div class="flex items-start group">
+<div class="text-[11px] font-bold text-on-surface-variant w-24 pt-1">오전 11:24</div>
+<div class="relative px-6 border-l-2 border-surface-variant group-last:border-transparent pb-4 flex-1">
+<div class="absolute -left-1.5 top-1.5 w-2.5 h-2.5 rounded-full bg-secondary-fixed ring-4 ring-surface-container-low"></div>
+<div class="bg-white p-4 rounded-2xl shadow-sm border border-surface-container group-hover:border-primary/20 transition-all">
+<p class="text-sm font-semibold text-on-surface">김민수 고객 최적화 프로세스 완료</p>
+<p class="text-xs text-on-surface-variant mt-1">Prompt: v2.4.1 적용됨 | 성공 점수: 98%</p>
+</div>
+</div>
+</div>
+<div class="flex items-start group">
+<div class="text-[11px] font-bold text-on-surface-variant w-24 pt-1">오전 10:55</div>
+<div class="relative px-6 border-l-2 border-error/30 group-last:border-transparent pb-4 flex-1">
+<div class="absolute -left-1.5 top-1.5 w-2.5 h-2.5 rounded-full bg-error ring-4 ring-surface-container-low"></div>
+<div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-error border-y-surface-container border-r-surface-container transition-all">
+<div class="flex items-center justify-between">
+<p class="text-sm font-semibold text-error">API 연동 오류 감지</p>
+<span class="material-symbols-outlined text-error text-lg" data-icon="error">error</span>
+</div>
+<p class="text-xs text-on-surface-variant mt-1">Kakao Channel Webhook: Timeout (504)</p>
+</div>
+</div>
+</div>
+<div class="flex items-start group">
+<div class="text-[11px] font-bold text-on-surface-variant w-24 pt-1">오전 10:30</div>
+<div class="relative px-6 border-l-2 border-surface-variant group-last:border-transparent pb-4 flex-1">
+<div class="absolute -left-1.5 top-1.5 w-2.5 h-2.5 rounded-full bg-primary/40 ring-4 ring-surface-container-low"></div>
+<div class="bg-white p-4 rounded-2xl shadow-sm border border-surface-container">
+<p class="text-sm font-semibold text-on-surface">시스템 백업 완료</p>
+<p class="text-xs text-on-surface-variant mt-1">Vector DB 스냅샷 저장됨 (Region: Seoul)</p>
+</div>
+</div>
+</div>
+<div class="flex items-start group">
+<div class="text-[11px] font-bold text-on-surface-variant w-24 pt-1">오전 09:12</div>
+<div class="relative px-6 border-l-2 border-surface-variant group-last:border-transparent pb-4 flex-1">
+<div class="absolute -left-1.5 top-1.5 w-2.5 h-2.5 rounded-full bg-secondary ring-4 ring-surface-container-low"></div>
+<div class="bg-white p-4 rounded-2xl shadow-sm border border-surface-container">
+<p class="text-sm font-semibold text-on-surface">신규 고객 등록: (주)테크솔루션</p>
+<p class="text-xs text-on-surface-variant mt-1">엔터프라이즈 플랜 | 채널 ID: biz_9230</p>
+</div>
+</div>
+</div>
+<div class="flex items-start group">
+<div class="text-[11px] font-bold text-on-surface-variant w-24 pt-1">어제 22:45</div>
+<div class="relative px-6 border-l-2 border-surface-variant group-last:border-transparent pb-4 flex-1">
+<div class="absolute -left-1.5 top-1.5 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-surface-container-low"></div>
+<div class="bg-white p-4 rounded-2xl shadow-sm border border-surface-container">
+<p class="text-sm font-semibold text-on-surface">AI 프롬프트 업데이트</p>
+<p class="text-xs text-on-surface-variant mt-1">Version 2.4.0 -&gt; 2.4.1 (Admin: Park)</p>
+</div>
+</div>
+</div>
+<!-- Repeating Items for 10 total items -->
+<div class="flex items-start group">
+<div class="text-[11px] font-bold text-on-surface-variant w-24 pt-1">어제 20:10</div>
+<div class="relative px-6 border-l-2 border-surface-variant group-last:border-transparent pb-4 flex-1">
+<div class="absolute -left-1.5 top-1.5 w-2.5 h-2.5 rounded-full bg-secondary-fixed ring-4 ring-surface-container-low"></div>
+<div class="bg-white p-4 rounded-2xl shadow-sm border border-surface-container">
+<p class="text-sm font-semibold text-on-surface">최적화 리포트 생성 완료</p>
+<p class="text-xs text-on-surface-variant mt-1">총 142건 분석 리포트 발송</p>
+</div>
+</div>
+</div>
+<div class="flex items-start group">
+<div class="text-[11px] font-bold text-on-surface-variant w-24 pt-1">어제 18:30</div>
+<div class="relative px-6 border-l-2 border-error/30 group-last:border-transparent pb-4 flex-1">
+<div class="absolute -left-1.5 top-1.5 w-2.5 h-2.5 rounded-full bg-error ring-4 ring-surface-container-low"></div>
+<div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-error border-surface-container">
+<p class="text-sm font-semibold text-error">미응답 고객 임계치 초과</p>
+<p class="text-xs text-on-surface-variant mt-1">대기 고객 20명 돌파 알림</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

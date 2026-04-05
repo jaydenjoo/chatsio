@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chatsio - Deployment Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed-variant": "#004b74",
+                        "on-surface": "#161c23",
+                        "on-background": "#161c23",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#006c4d",
+                        "surface-tint": "#006398",
+                        "on-tertiary-container": "#fdfcff",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed-variant": "#005139",
+                        "primary": "#006195",
+                        "tertiary-fixed": "#d8e3f7",
+                        "surface-container-high": "#e3e8f2",
+                        "inverse-surface": "#2b3138",
+                        "surface-container-highest": "#dde3ec",
+                        "on-primary": "#ffffff",
+                        "surface-container-low": "#eff4fd",
+                        "on-surface-variant": "#3f4850",
+                        "on-secondary-fixed": "#002115",
+                        "on-tertiary-fixed-variant": "#3c4758",
+                        "on-primary-fixed": "#001d32",
+                        "surface-bright": "#f7f9ff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-container": "#fdfcff",
+                        "inverse-primary": "#94ccff",
+                        "inverse-on-surface": "#ecf1fa",
+                        "tertiary-container": "#6a7587",
+                        "background": "#f7f9ff",
+                        "tertiary": "#525d6d",
+                        "surface-variant": "#dde3ec",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#111c2b",
+                        "primary-container": "#007aba",
+                        "primary-fixed-dim": "#94ccff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed": "#8af7c9",
+                        "tertiary-fixed-dim": "#bcc7db",
+                        "outline-variant": "#bfc7d2",
+                        "error-container": "#ffdad6",
+                        "primary-fixed": "#cde5ff",
+                        "outline": "#6f7881",
+                        "on-secondary-container": "#007151",
+                        "surface-dim": "#d5dae3",
+                        "surface-container": "#e9eef7",
+                        "secondary-container": "#87f4c6",
+                        "surface": "#f7f9ff",
+                        "secondary-fixed-dim": "#6ddaae",
+                        "on-error": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans", "sans-serif"],
+                        "body": ["Manrope", "Pretendard", "sans-serif"],
+                        "label": ["Manrope", "Pretendard", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Manrope', 'Pretendard', sans-serif; }
+        h1, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+        code, pre { font-family: 'JetBrains Mono', monospace; }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 55% 45%;
+            gap: 24px;
+        }
+        @media (max-width: 1024px) {
+            .bento-grid { grid-template-columns: 1fr; }
+        }
+        .glass-nav {
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .dark .glass-nav {
+            background: rgba(15, 23, 42, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed overflow-x-hidden">
+<!-- SideNavBar (Shared Component) -->
+<aside class="fixed left-0 top-0 h-full flex flex-col bg-slate-50 dark:bg-slate-900 h-screen w-64 border-r-0 z-50">
+<div class="p-6">
+<div class="flex items-center gap-3 mb-8">
+<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-sm" data-icon="rocket_launch">rocket_launch</span>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tight text-sky-800 dark:text-sky-300">Chatsio</h1>
+<p class="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Deployment Admin</p>
+</div>
+</div>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-colors font-['Plus_Jakarta_Sans'] text-sm font-medium rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+                    Product Management
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-colors font-['Plus_Jakarta_Sans'] text-sm font-medium rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="insights">insights</span>
+                    Optimization
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-sky-700 dark:text-sky-400 font-bold border-r-4 border-sky-600 bg-sky-50 dark:bg-sky-900/30 font-['Plus_Jakarta_Sans'] text-sm rounded-l-xl translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="rocket_launch">rocket_launch</span>
+                    Deployment
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-colors font-['Plus_Jakarta_Sans'] text-sm font-medium rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+                    AI Citation Report
+                </a>
+</nav>
+</div>
+<div class="mt-auto p-6 space-y-6">
+<div class="bg-surface-container-high dark:bg-slate-800 rounded-2xl p-4">
+<p class="text-xs font-semibold text-on-surface-variant mb-2">Upgrade Plan</p>
+<p class="text-[11px] text-slate-500 mb-3 leading-relaxed">Unlock advanced SEO automation features today.</p>
+<button class="w-full py-2 bg-primary text-white text-xs font-bold rounded-lg shadow-md shadow-primary/20 hover:scale-105 transition-transform">Upgrade Now</button>
+</div>
+<div class="space-y-1">
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 dark:text-slate-400 hover:text-sky-600 transition-colors font-['Plus_Jakarta_Sans'] text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="settings">settings</span>
+                    Settings
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 dark:text-slate-400 hover:text-sky-600 transition-colors font-['Plus_Jakarta_Sans'] text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="help">help</span>
+                    Support
+                </a>
+</div>
+</div>
+</aside>
+<!-- Main Content Shell -->
+<main class="ml-64 min-h-screen">
+<!-- TopAppBar (Shared Component) -->
+<header class="sticky top-0 z-40 flex justify-between items-center w-full px-8 h-16 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md shadow-sm dark:shadow-none font-['Plus_Jakarta_Sans'] text-base font-semibold">
+<div class="flex items-center gap-8">
+<span class="text-lg font-black text-sky-700 dark:text-sky-400">Deployment</span>
+<nav class="hidden md:flex gap-6">
+<a class="text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-300 transition-all" href="#">Dashboard</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-300 transition-all" href="#">Analytics</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-300 transition-all" href="#">Team</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined text-sm" data-icon="search">search</span>
+<input class="bg-surface-container-highest dark:bg-slate-800 border-none rounded-full py-2 pl-10 pr-4 text-xs focus:ring-2 focus:ring-primary/20 w-64 transition-all" placeholder="Search deployments..." type="text"/>
+</div>
+<button class="material-symbols-outlined text-slate-500 hover:text-primary transition-colors" data-icon="notifications">notifications</button>
+<button class="bg-gradient-to-r from-primary to-primary-container text-white px-5 py-2 rounded-full text-sm font-bold shadow-lg shadow-primary/20 active:opacity-80 transition-all">Deploy Live</button>
+<div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="professional user headshot in a studio setting with soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8FFKbOibgY6xdpn8AuaPg6luaiGXxMGY4B55cPC6R3Pb6oK5Zgv3CKAXzWW5o2__-ioYbfjpysIgAch9wVOS_Fi2tJzqQ2y_v30HjXO4XHLSlhWbGl4Z-HrsyAJDzR9VDQjhxJW5HQXhXa73SbV_5VWDVJVhZ8R1uJku22srThddCWF493VGPTc3ssNe5Tja0OSmgLuBoDqTn5i6g6jyEqU5Rx54kVusc4jgO12NWPkBL8WyWTWJXp3I5A2JdHlXSWiZkEzGpp6r9"/>
+</div>
+</div>
+</header>
+<section class="p-8 max-w-7xl mx-auto space-y-8">
+<!-- Header Section -->
+<div class="flex justify-between items-end">
+<div>
+<h2 class="text-3xl font-extrabold tracking-tight text-on-surface mb-2">배포 관리</h2>
+<p class="text-on-surface-variant font-medium">최적화된 JSON-LD를 쇼핑몰에 적용하세요</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-low text-on-surface hover:bg-surface-container-high transition-colors text-sm font-semibold">
+<span class="material-symbols-outlined text-sm" data-icon="refresh">refresh</span>
+                        상태 동기화
+                    </button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary-container text-on-secondary-container hover:shadow-lg transition-all text-sm font-bold">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                        새 배포 설정
+                    </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="bento-grid">
+<!-- Card 1: Manual Deployment (Left 55%) -->
+<div class="flex flex-col gap-6 p-8 bg-surface-container-low dark:bg-slate-900/50 rounded-[24px] border border-transparent hover:border-outline-variant/30 transition-all group">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-2xl" data-icon="content_copy">content_copy</span>
+</div>
+<div>
+<h3 class="text-xl font-bold text-on-surface">수동 배포 (코드 복사)</h3>
+<p class="text-sm text-on-surface-variant">상품별 스키마 데이터를 직접 삽입합니다.</p>
+</div>
+</div>
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-xs font-bold rounded-full">⭐ 쉬움</span>
+</div>
+<div class="space-y-4">
+<div class="space-y-2">
+<label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider ml-1">상품 선택</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface-container-lowest dark:bg-slate-800 border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 shadow-sm cursor-pointer">
+<option>프리미엄 린넨 셔츠 (SKU-2024-01)</option>
+<option>오버핏 그래픽 티셔츠 (SKU-2024-05)</option>
+<option>슬림핏 치노 팬츠 (SKU-2024-12)</option>
+</select>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 material-symbols-outlined pointer-events-none text-slate-400" data-icon="unfold_more">unfold_more</span>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center ml-1">
+<label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">JSON-LD 코드 블록</label>
+<button class="text-primary text-xs font-bold hover:underline flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="content_copy">content_copy</span>
+                                    전체 복사
+                                </button>
+</div>
+<div class="bg-slate-950 rounded-2xl p-6 overflow-hidden relative group/code">
+<pre class="text-sky-300 text-[13px] leading-relaxed overflow-x-auto"><code class="language-json">{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "프리미엄 린넨 셔츠",
+  "image": "https://example.com/shirt.jpg",
+  "description": "최고급 린넨 소재로 제작된...",
+  "brand": {
+    "@type": "Brand",
+    "name": "Chatsio Boutique"
+  },
+  "offers": {
+    "@type": "Offer",
+    "priceCurrency": "KRW",
+    "price": "49000"
+  }
+}</code></pre>
+<div class="absolute inset-0 bg-slate-950/0 group-hover/code:bg-slate-950/40 transition-all flex items-center justify-center opacity-0 group-hover/code:opacity-100">
+<button class="bg-white text-slate-900 px-6 py-2 rounded-full font-bold text-sm shadow-xl hover:scale-105 transition-all">복사하기</button>
+</div>
+</div>
+</div>
+<div class="pt-2">
+<div class="flex items-center justify-between p-4 bg-surface-container dark:bg-slate-800/50 rounded-xl cursor-pointer hover:bg-surface-container-high transition-colors">
+<span class="text-sm font-bold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="help_center">help_center</span>
+                                    적용 가이드 아코디언
+                                </span>
+<span class="material-symbols-outlined text-slate-400" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 2: Automatic Deployment (Right 45%) -->
+<div class="flex flex-col gap-6 p-8 bg-surface-container-low dark:bg-slate-900/50 rounded-[24px] border border-transparent hover:border-outline-variant/30 transition-all group">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-2xl" data-icon="bolt">bolt</span>
+</div>
+<div>
+<h3 class="text-xl font-bold text-on-surface">Loader JS 자동 삽입</h3>
+<p class="text-sm text-on-surface-variant">한 줄의 스크립트로 전 상품 자동 적용</p>
+</div>
+</div>
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-black uppercase rounded-full">추천</span>
+</div>
+<div class="bg-surface-container-lowest dark:bg-slate-800 p-5 rounded-2xl border-l-4 border-secondary space-y-3">
+<p class="text-xs font-bold text-on-surface-variant">Header에 아래 코드를 추가하세요</p>
+<div class="flex items-center gap-3 bg-surface-container p-3 rounded-xl border border-outline-variant/20">
+<code class="text-[11px] text-on-surface-variant truncate">&lt;script src="https://cdn.chatsio.com/loader/CS_88291.js"&gt;&lt;/script&gt;</code>
+<button class="material-symbols-outlined text-secondary hover:bg-secondary/10 p-1 rounded-md" data-icon="content_copy">content_copy</button>
+</div>
+</div>
+<div class="flex-grow space-y-4">
+<div class="flex justify-between items-center">
+<h4 class="text-sm font-bold text-on-surface">적용 상태 테이블</h4>
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-secondary animate-pulse"></div>
+<span class="text-[10px] font-bold text-secondary uppercase">Live Syncing</span>
+</div>
+</div>
+<div class="space-y-2">
+<!-- Table Row 1 -->
+<div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-lowest dark:bg-slate-800 hover:shadow-md transition-shadow">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="close up of a white linen shirt fabric texture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQ3X_xJBT5VkDw0jHHfWilKKaH65JfDr6ubIlqWJ5CsPpwf4GChk83fwixyN7Ly-2XdOPX0BGDWe35nDHWDe0WamMijOiCMeWQMM95F5Lv4JPH8tQhGhqDokvKM0I7eZ4XHN8pEseU6E2pVBNuAjmPkF-5pZ98NMUquYZC8OBX06Phqj8KDaUj6emYZabHvLxfjXyX-c1nxXjfBZCSDi7f8TJv20FNDVPU1QOa3ry9uRiaP4w2owZi4PtjB3rMgmhDU2qbP8hFHaw4"/>
+</div>
+<span class="text-xs font-bold text-on-surface truncate max-w-[120px]">프리미엄 린넨 셔츠</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-secondary text-lg" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[10px] font-medium text-slate-400">24.05.20</span>
+</div>
+</div>
+<!-- Table Row 2 -->
+<div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-lowest dark:bg-slate-800 hover:shadow-md transition-shadow">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="folded graphic t-shirt on a clean white background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBy7uyD2CMPhDqhH-219u6XQ1i0Fc8uRaJSzwNymvO4JpsH3R7xptPcwiJbIR-E6N1ldiiL5ZGVO8Pb2OE8XOht_NdaWXyHk_5F9CxPa8sRtuWH3bFxlkbCHg4F9s9YxpZLCUuzLnBSMgZiM6iftwexIszTo0ci-sZlnzmyDDV2154--up-kh7OhkpUcHllJPG-MdPJJUt7wdmIlFAS3A9qLBZFOaN_GlR5exqiOI3rwt7UFXIm83f4xEYS10NnM93uvckYw5qv5Win"/>
+</div>
+<span class="text-xs font-bold text-on-surface truncate max-w-[120px]">오버핏 그래픽...</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-300 text-lg" data-icon="check_circle">check_circle</span>
+<span class="text-[10px] font-medium text-slate-400">24.05.19</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 3: llms.txt (Full Width spanning bottom) -->
+<div class="lg:col-span-2 flex flex-col md:flex-row items-center justify-between p-8 bg-gradient-to-br from-surface-container to-surface-container-high dark:from-slate-800 dark:to-slate-900 rounded-[24px] gap-8">
+<div class="flex items-center gap-6">
+<div class="w-16 h-16 rounded-3xl bg-white dark:bg-slate-800 shadow-xl flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl" data-icon="description">description</span>
+</div>
+<div>
+<h3 class="text-xl font-bold text-on-surface">llms.txt 파일 생성</h3>
+<p class="text-sm text-on-surface-variant max-w-md">LLM 크롤러를 위해 최적화된 사이트 설명을 제공합니다. AI 검색 엔진에서 당신의 쇼핑몰이 더 잘 발견되도록 합니다.</p>
+<div class="flex items-center gap-3 mt-3">
+<span class="text-[11px] font-bold px-2 py-0.5 bg-primary/10 text-primary rounded">Last Generated: 2024-05-21 14:30</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+<button class="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-surface-container-lowest text-on-surface hover:bg-white transition-all shadow-sm font-bold text-sm">
+<span class="material-symbols-outlined text-lg" data-icon="download">download</span>
+                            llms.txt 다운로드
+                        </button>
+<button class="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-white hover:opacity-90 transition-all shadow-lg shadow-primary/20 font-bold text-sm">
+<span class="material-symbols-outlined text-lg" data-icon="refresh">refresh</span>
+                            다시 생성
+                        </button>
+</div>
+</div>
+</div>
+<!-- Empty State Section (Hidden by default, shown based on logic) -->
+<div class="hidden flex flex-col items-center justify-center py-20 px-8 bg-surface-container-low rounded-[32px] border-2 border-dashed border-outline-variant/30 text-center">
+<div class="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-6 text-outline">
+<span class="material-symbols-outlined text-4xl" data-icon="search_off">search_off</span>
+</div>
+<h3 class="text-2xl font-extrabold text-on-surface mb-2">최적화 완료된 상품이 없습니다</h3>
+<p class="text-on-surface-variant mb-8 max-w-sm">상품 정보를 분석하고 AI 스키마를 생성하여 검색 엔진 가시성을 높여보세요.</p>
+<button class="px-8 py-3 bg-gradient-to-r from-primary to-primary-container text-white rounded-full font-black shadow-xl shadow-primary/20 hover:scale-105 transition-all">
+                    최적화 하러 가기
+                </button>
+</div>
+</section>
+<!-- Footer Decor -->
+<footer class="p-8 border-t border-outline-variant/10 text-center">
+<p class="text-xs font-medium text-slate-400">© 2024 Chatsio. All rights reserved. Version 3.0.0-stable</p>
+</footer>
+</main>
+<!-- Floating Action Button (FAB) - Suppressed on this page as per rules, but shown here if intent matches -->
+<!-- The user is on "Deployment" which is a core destination -->
+<button class="fixed bottom-8 right-8 w-16 h-16 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:rotate-12 transition-transform z-50">
+<span class="material-symbols-outlined text-2xl" data-icon="rocket_launch">rocket_launch</span>
+</button>
+</body></html>

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chatsio Admin - Prompt Editor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary-fixed-dim": "#bcc7db",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#f7f9ff",
+                        "on-error": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "tertiary-container": "#6a7587",
+                        "on-background": "#161c23",
+                        "on-surface-variant": "#3f4850",
+                        "on-primary-container": "#fdfcff",
+                        "inverse-surface": "#2b3138",
+                        "primary-fixed": "#cde5ff",
+                        "surface-container-low": "#eff4fd",
+                        "primary-fixed-dim": "#94ccff",
+                        "inverse-primary": "#94ccff",
+                        "surface-dim": "#d5dae3",
+                        "on-secondary-fixed-variant": "#005139",
+                        "on-primary-fixed-variant": "#004b74",
+                        "surface": "#f7f9ff",
+                        "tertiary-fixed": "#d8e3f7",
+                        "outline": "#6f7881",
+                        "surface-container-highest": "#dde3ec",
+                        "on-tertiary-fixed": "#111c2b",
+                        "surface-container-high": "#e3e8f2",
+                        "surface-container": "#e9eef7",
+                        "on-tertiary-fixed-variant": "#3c4758",
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#007aba",
+                        "tertiary": "#525d6d",
+                        "secondary-container": "#87f4c6",
+                        "inverse-on-surface": "#ecf1fa",
+                        "secondary-fixed": "#8af7c9",
+                        "surface-variant": "#dde3ec",
+                        "on-secondary-fixed": "#002115",
+                        "on-primary-fixed": "#001d32",
+                        "on-secondary-container": "#007151",
+                        "primary": "#006195",
+                        "outline-variant": "#bfc7d2",
+                        "secondary-fixed-dim": "#6ddaae",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#161c23",
+                        "secondary": "#006c4d",
+                        "surface-bright": "#f7f9ff",
+                        "on-tertiary-container": "#fdfcff",
+                        "surface-tint": "#006398",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "error-container": "#ffdad6"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"],
+                        "code": ["JetBrains Mono"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .syntax-variable { color: #8af7c9; font-weight: 600; }
+        .syntax-keyword { color: #94ccff; }
+        .syntax-comment { color: #6f7881; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-background text-on-surface antialiased">
+<!-- SideNavBar Shell -->
+<aside class="h-screen w-64 fixed left-0 top-0 border-r-0 bg-neutral-900 shadow-[20px_0_40px_-15px_rgba(0,0,0,0.3)] z-50 flex flex-col py-6">
+<div class="px-6 mb-8">
+<div class="flex items-center gap-3">
+<span class="text-xl font-bold tracking-tight text-white font-headline">Chatsio Admin</span>
+<span class="px-2 py-0.5 rounded bg-sky-500 text-[10px] font-bold text-white uppercase tracking-wider">Admin</span>
+</div>
+<p class="text-neutral-400 text-xs mt-1 font-headline">Editorial Tech v2.4</p>
+</div>
+<nav class="flex-1 space-y-1 px-3">
+<a class="text-neutral-400 hover:text-white px-4 py-3 flex items-center gap-3 transition-colors hover:bg-neutral-800 rounded-xl group" href="#">
+<span class="material-symbols-outlined group-active:scale-90 transition-transform">dashboard</span>
+<span class="font-['Plus_Jakarta_Sans'] text-sm antialiased">Dashboard</span>
+</a>
+<!-- Active Navigation: Prompt Manager -->
+<a class="bg-sky-500/10 text-sky-400 border-r-4 border-sky-500 px-4 py-3 flex items-center gap-3 rounded-l-xl" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="font-['Plus_Jakarta_Sans'] text-sm antialiased">Prompt Manager</span>
+</a>
+<a class="text-neutral-400 hover:text-white px-4 py-3 flex items-center gap-3 transition-colors hover:bg-neutral-800 rounded-xl group" href="#">
+<span class="material-symbols-outlined group-active:scale-90 transition-transform">settings_input_component</span>
+<span class="font-['Plus_Jakarta_Sans'] text-sm antialiased">Model Settings</span>
+</a>
+<a class="text-neutral-400 hover:text-white px-4 py-3 flex items-center gap-3 transition-colors hover:bg-neutral-800 rounded-xl group" href="#">
+<span class="material-symbols-outlined group-active:scale-90 transition-transform">insights</span>
+<span class="font-['Plus_Jakarta_Sans'] text-sm antialiased">Analytics</span>
+</a>
+<a class="text-neutral-400 hover:text-white px-4 py-3 flex items-center gap-3 transition-colors hover:bg-neutral-800 rounded-xl group" href="#">
+<span class="material-symbols-outlined group-active:scale-90 transition-transform">history</span>
+<span class="font-['Plus_Jakarta_Sans'] text-sm antialiased">User History</span>
+</a>
+</nav>
+<div class="px-6 mt-auto">
+<button class="w-full bg-sky-500 hover:bg-sky-400 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg">
+<span class="material-symbols-outlined">add</span>
+<span class="font-headline text-sm">New Prompt</span>
+</button>
+<div class="mt-6 flex items-center gap-3 px-1">
+<div class="w-8 h-8 rounded-full bg-neutral-700 overflow-hidden ring-2 ring-neutral-800">
+<img alt="Admin Profile" class="w-full h-full object-cover" data-alt="close-up of a professional male editor in a dark studio setting with soft cyan rim lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBtf_8cY1KacyU-EUdE9cJzCqM5tVZvxaAWfFgGLDr8IC-G3pdsqegnZVXWTxNt17iFbZ6DYhdCeYlwkSv87rImriIPH6STo9qiSTASVXkOXUCkCc6pwnBGtrdisQVEHrlPZCznJRzpdlJMGQ_O9JT9gkn68ohVBcgcv3m0-XkGCCyvibhPTApEWIS3sO7MTCEccx0d5UYzgCPbJ8cR93HRsLVAgNBuUaEeFVczv3Sg_12GQUbPScDwXhEnS737nGCVT05q9PF-C8-"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-white text-sm font-semibold truncate">Admin User</p>
+<p class="text-neutral-500 text-xs truncate">Super Editor</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- TopAppBar Shell -->
+<header class="sticky top-0 w-full z-40 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-xl flex justify-between items-center px-8 h-16 ml-64 shadow-sm">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-6">
+<a class="text-sky-600 border-b-2 border-sky-600 pb-2 font-['Plus_Jakarta_Sans'] font-semibold text-sm" href="#">Drafts</a>
+<a class="text-neutral-500 dark:text-neutral-400 hover:text-sky-500 font-['Plus_Jakarta_Sans'] font-semibold text-sm transition-opacity" href="#">Published</a>
+<a class="text-neutral-500 dark:text-neutral-400 hover:text-sky-500 font-['Plus_Jakarta_Sans'] font-semibold text-sm transition-opacity" href="#">Archived</a>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative">
+<span class="material-symbols-outlined text-neutral-500 hover:opacity-80 cursor-pointer">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
+</div>
+<span class="material-symbols-outlined text-neutral-500 hover:opacity-80 cursor-pointer">help_outline</span>
+<button class="bg-primary text-white px-5 py-2 rounded-full font-headline text-sm font-bold shadow-md hover:opacity-90 active:opacity-70 transition-all">
+                Deploy Changes
+            </button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 p-8">
+<div class="flex gap-8 h-[calc(100vh-120px)]">
+<!-- Left: Prompt Editor (55%) -->
+<section class="w-[55%] flex flex-col gap-4">
+<div class="bg-surface-container-lowest rounded-2xl p-1 flex items-center gap-1 shadow-sm w-max">
+<button class="px-6 py-2 rounded-xl text-sm font-bold bg-primary text-on-primary transition-all">의류</button>
+<button class="px-6 py-2 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-all">식품</button>
+<button class="px-6 py-2 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-all">가구</button>
+<button class="px-6 py-2 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-all">기타</button>
+</div>
+<div class="flex flex-col flex-1 bg-surface-container-low rounded-3xl overflow-hidden shadow-sm">
+<!-- Editor Header -->
+<div class="px-6 py-4 flex items-center justify-between bg-white/50 backdrop-blur-sm border-b border-outline-variant/10">
+<div class="flex items-center gap-4">
+<div class="relative">
+<select class="appearance-none bg-surface-container-highest px-4 py-2 pr-10 rounded-xl text-sm font-bold text-on-surface border-none focus:ring-2 focus:ring-primary/20">
+<option selected="">P1 상품분석가</option>
+<option>P2 콘텐츠작가</option>
+<option>P3 리뷰대응봇</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-xs font-bold rounded-lg">v3.2</span>
+<span class="flex items-center gap-1.5 px-3 py-1 bg-secondary-container text-on-secondary-container text-xs font-bold rounded-lg">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+                                    활성
+                                </span>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-surface-container rounded-lg transition-all text-on-surface-variant">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</div>
+<!-- Code Editor Area -->
+<div class="flex-1 relative bg-[#1e1e1e] text-white p-6 font-code text-sm leading-relaxed overflow-auto no-scrollbar">
+<div class="flex gap-4">
+<div class="text-outline text-right select-none opacity-40">
+                                01<br/>02<br/>03<br/>04<br/>05<br/>06<br/>07<br/>08<br/>09<br/>10<br/>11<br/>12
+                            </div>
+<div class="flex-1">
+<span class="syntax-keyword">SYSTEM_PROMPT</span>:<br/>
+<span class="syntax-comment">// 당신은 의류 쇼핑몰의 상품 분석가입니다.</span><br/>
+<br/>
+                                "입력받은 <span class="syntax-variable">{{product_name}}</span>의 정보를 바탕으로 다음의 가이드라인을 따르세요.<br/>
+                                1. 원단 혼용률: <span class="syntax-variable">{{fabric_composition}}</span>을 분석하여 세탁 주의사항을 도출할 것.<br/>
+                                2. 타겟 오디언스: <span class="syntax-variable">{{target_age}}</span> 여성을 위한 스타일링 제안을 포함할 것.<br/>
+                                3. 톤앤매너: 고급스러우면서도 전문적인 어조를 유지하세요.<br/>
+<br/>
+<span class="syntax-keyword">OUTPUT_FORMAT</span>: <span class="syntax-variable">JSON</span><br/>
+                                {<br/>
+                                  "analysis": "...",<br/>
+                                  "styling_tips": []<br/>
+                                }"
+                            </div>
+</div>
+</div>
+<!-- Editor Footer -->
+<div class="px-6 py-4 bg-white/50 backdrop-blur-sm border-t border-outline-variant/10 flex items-center justify-between">
+<div class="text-xs text-on-surface-variant font-medium flex gap-4">
+<span>글자수: <strong class="text-on-surface">1,240</strong></span>
+<span>예상 토큰: <strong class="text-primary">850</strong></span>
+</div>
+<div class="flex gap-3">
+<button class="px-6 py-2.5 text-sm font-bold text-on-surface-variant hover:text-on-surface transition-all">변경 취소</button>
+<button class="px-6 py-2.5 text-sm font-bold bg-secondary-fixed text-on-secondary-fixed rounded-xl flex items-center gap-2 shadow-sm hover:brightness-95 active:scale-95 transition-all">
+                                테스트 실행
+                                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+<button class="px-8 py-2.5 text-sm font-bold bg-gradient-to-br from-primary to-primary-container text-white rounded-xl shadow-lg hover:shadow-primary/20 active:scale-95 transition-all">
+                                저장
+                            </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Right: Test + History (45%) -->
+<section class="w-[45%] flex flex-col gap-4">
+<div class="bg-surface-container-low rounded-3xl flex-1 flex flex-col overflow-hidden">
+<!-- Tabs -->
+<div class="flex border-b border-outline-variant/10">
+<button class="flex-1 py-4 text-sm font-bold text-primary border-b-2 border-primary bg-white/30">테스트</button>
+<button class="flex-1 py-4 text-sm font-bold text-on-surface-variant hover:text-on-surface hover:bg-white/10 transition-all">버전 히스토리</button>
+</div>
+<!-- Test Content -->
+<div class="p-6 flex flex-col gap-6 flex-1 overflow-auto">
+<div class="space-y-2">
+<label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider ml-1">샘플 상품 선택</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface-container-highest px-4 py-3 rounded-2xl text-sm font-semibold text-on-surface border-none focus:ring-2 focus:ring-primary/20">
+<option>캐시미어 블렌드 오버핏 코트</option>
+<option>린넨 와이드 슬랙스 (SS24)</option>
+<option>실크 스트랩 민소매 탑</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">unfold_more</span>
+</div>
+</div>
+<!-- Result Area (Bento Style) -->
+<div class="flex-1 flex flex-col gap-3">
+<label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider ml-1">테스트 결과</label>
+<div class="flex-1 bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/5 relative group overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent pointer-events-none"></div>
+<div class="relative space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<span class="text-xs font-bold text-secondary uppercase">Success</span>
+</div>
+<span class="text-[10px] font-medium text-on-surface-variant">2024-05-24 14:22:10</span>
+</div>
+<div class="p-4 bg-background rounded-xl text-sm font-body text-on-surface leading-relaxed italic border border-outline-variant/10">
+                                        "해당 코트는 울 80%와 캐시미어 20%가 혼용된 고급 소재를 사용하고 있습니다. 캐시미어의 부드러움과 울의 보온성을 동시에 갖춘 상품으로, 드라이클리닝을 권장하며 직사광선을 피해 통풍이 잘 되는 곳에 보관하는 것이 좋습니다..."
+                                    </div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container rounded-xl p-3">
+<p class="text-[10px] text-on-surface-variant font-bold uppercase">소요 시간</p>
+<p class="text-lg font-headline font-bold text-on-surface">1.42s</p>
+</div>
+<div class="bg-surface-container rounded-xl p-3">
+<p class="text-[10px] text-on-surface-variant font-bold uppercase">예상 비용</p>
+<p class="text-lg font-headline font-bold text-on-surface">₩12.4</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Version History Content (Hidden state represented via structure) -->
+<!-- In a real app, this would toggle. Here we focus on the Test tab as primary state -->
+</div>
+<!-- Bento: History Quick View -->
+<div class="bg-surface-container-high rounded-3xl p-6 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-sm font-bold text-on-surface">최근 변경 이력</h3>
+<span class="material-symbols-outlined text-on-surface-variant text-sm">more_horiz</span>
+</div>
+<div class="space-y-4">
+<div class="flex items-start gap-4 relative">
+<div class="absolute left-[11px] top-6 bottom-[-20px] w-0.5 bg-outline-variant/30"></div>
+<div class="w-6 h-6 rounded-full bg-primary-container flex items-center justify-center shrink-0 z-10 shadow-sm shadow-primary/20">
+<span class="material-symbols-outlined text-[14px] text-white" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<p class="text-xs font-bold text-on-surface">v3.2 <span class="font-normal text-on-surface-variant">— 현재 버전</span></p>
+<span class="text-[10px] text-outline">방금 전</span>
+</div>
+<p class="text-[11px] text-on-surface-variant mt-1">의류 분석 정확도 개선 및 타겟 제안 추가</p>
+</div>
+</div>
+<div class="flex items-start gap-4 relative">
+<div class="absolute left-[11px] top-6 bottom-[-20px] w-0.5 bg-outline-variant/30"></div>
+<div class="w-6 h-6 rounded-full bg-surface-container-highest flex items-center justify-center shrink-0 z-10">
+<div class="w-2 h-2 rounded-full bg-outline"></div>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<p class="text-xs font-bold text-on-surface">v3.1</p>
+<span class="text-[10px] text-outline">2일 전</span>
+</div>
+<div class="flex gap-3 mt-2">
+<button class="text-[10px] font-bold text-primary hover:underline">비교 보기</button>
+<button class="text-[10px] font-bold text-on-surface-variant hover:text-on-surface transition-colors">롤백</button>
+</div>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-6 h-6 rounded-full bg-surface-container-highest flex items-center justify-center shrink-0 z-10">
+<div class="w-2 h-2 rounded-full bg-outline"></div>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<p class="text-xs font-bold text-on-surface">v3.0</p>
+<span class="text-[10px] text-outline">5일 전</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- FAB Suppression: On focused editor screens, FAB is suppressed to prioritize editing. -->
+</body></html>

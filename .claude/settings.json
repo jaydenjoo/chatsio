@@ -1,0 +1,22 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{
+          "type": "command",
+          "command": "case \"$CLAUDE_FILE_PATH\" in *.ts|*.tsx) npx tsc --noEmit --pretty 2>&1 | head -20 ;; esac; exit 0",
+          "timeout": 30000
+        }]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{
+          "type": "command",
+          "command": "case \"$CLAUDE_FILE_PATH\" in *.ts|*.tsx) npx eslint --quiet --max-warnings 0 \"$CLAUDE_FILE_PATH\" 2>&1 | head -10 ;; esac; exit 0",
+          "timeout": 15000
+        }]
+      }
+    ]
+  }
+}

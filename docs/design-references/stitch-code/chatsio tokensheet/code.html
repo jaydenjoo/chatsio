@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=DM+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+        
+        body {
+            font-family: 'Manrope', 'Pretendard', sans-serif;
+            background-color: #f7f9ff;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .font-pretendard { font-family: 'Pretendard', sans-serif; }
+        .font-dmsans { font-family: 'DM Sans', sans-serif; }
+        .font-plus-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        .korean-content {
+            word-break: keep-all;
+            line-height: 1.8;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        /* Ambient Shadows based on Design System */
+        .shadow-lvl-1 { box-shadow: 0 4px 6px -1px rgba(0, 97, 149, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02); }
+        .shadow-lvl-2 { box-shadow: 0 10px 15px -3px rgba(0, 97, 149, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03); }
+        .shadow-lvl-3 { box-shadow: 0 10px 30px -5px rgba(0, 97, 149, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03); }
+        .shadow-lvl-4 { box-shadow: 0 25px 50px -12px rgba(0, 97, 149, 0.12); }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-fixed": "#d8e3f7",
+                      "on-secondary-fixed-variant": "#005139",
+                      "secondary-container": "#87f4c6",
+                      "primary": "#006195",
+                      "primary-fixed-dim": "#94ccff",
+                      "on-error": "#ffffff",
+                      "outline-variant": "#bfc7d2",
+                      "on-secondary": "#ffffff",
+                      "outline": "#6f7881",
+                      "surface-container-high": "#e3e8f2",
+                      "primary-fixed": "#cde5ff",
+                      "background": "#f7f9ff",
+                      "on-background": "#161c23",
+                      "surface": "#f7f9ff",
+                      "tertiary-container": "#6a7587",
+                      "on-primary": "#ffffff",
+                      "inverse-on-surface": "#ecf1fa",
+                      "on-surface-variant": "#3f4850",
+                      "error": "#ba1a1a",
+                      "secondary-fixed-dim": "#6ddaae",
+                      "surface-container": "#e9eef7",
+                      "secondary": "#006c4d",
+                      "surface-variant": "#dde3ec",
+                      "tertiary-fixed-dim": "#bcc7db",
+                      "surface-dim": "#d5dae3",
+                      "on-secondary-fixed": "#002115",
+                      "on-secondary-container": "#007151",
+                      "surface-bright": "#f7f9ff",
+                      "on-tertiary-fixed-variant": "#3c4758",
+                      "primary-container": "#007aba",
+                      "inverse-surface": "#2b3138",
+                      "on-tertiary-fixed": "#111c2b",
+                      "on-primary-fixed": "#001d32",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed-variant": "#004b74",
+                      "on-tertiary": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "inverse-primary": "#94ccff",
+                      "surface-container-low": "#eff4fd",
+                      "secondary-fixed": "#8af7c9",
+                      "on-primary-container": "#fdfcff",
+                      "on-surface": "#161c23",
+                      "on-error-container": "#93000a",
+                      "surface-container-highest": "#dde3ec",
+                      "tertiary": "#525d6d",
+                      "surface-tint": "#006398",
+                      "on-tertiary-container": "#fdfcff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "2xl": "1rem",
+                      "3xl": "1.5rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Plus Jakarta Sans"],
+                      "body": ["Manrope"],
+                      "label": ["Manrope"]
+              }
+            },
+          }
+        }
+      </script>
+</head>
+<body class="bg-surface text-on-surface antialiased p-4 md:p-8">
+<div class="max-w-[1440px] mx-auto space-y-6">
+<!-- Header Section -->
+<header class="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+<div class="md:col-span-12 lg:col-span-8 bg-surface-container-lowest p-8 md:p-12 rounded-3xl shadow-lvl-1 relative overflow-hidden">
+<div class="relative z-10">
+<span class="inline-block px-4 py-1.5 bg-primary-fixed text-on-primary-fixed-variant font-bold text-xs rounded-full mb-6 tracking-wider uppercase">System Identity</span>
+<h1 class="text-4xl md:text-6xl font-black font-headline text-primary tracking-tighter mb-6">Chatsio Design System v3.0</h1>
+<p class="korean-content font-pretendard text-lg text-on-surface-variant max-w-2xl">
+                        Chatsio 디자인 시스템은 한국의 중소기업 마케터와 주니어 운영자들을 위한 가장 신뢰할 수 있는 인터페이스 가이드를 제공합니다. 단순한 사스(SaaS) 툴을 넘어 디지털 매거진의 세련된 감각과 엔터프라이즈급의 안정성을 동시에 경험할 수 있도록 설계되었습니다.
+                    </p>
+</div>
+<div class="absolute right-0 bottom-0 opacity-10 pointer-events-none translate-x-10 translate-y-10">
+<span class="material-symbols-outlined text-[300px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+</div>
+<div class="md:col-span-12 lg:col-span-4 bg-gradient-to-br from-primary to-primary-container p-8 rounded-3xl flex flex-col justify-between text-on-primary">
+<div class="space-y-2">
+<h3 class="font-headline font-bold text-2xl tracking-tight">The Editorial Bridge</h3>
+<p class="text-primary-fixed opacity-90 text-sm">Design Strategy v3.0</p>
+</div>
+<div class="mt-8 space-y-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary-fixed">check_circle</span>
+<span class="text-sm font-medium">Organic Asymmetry</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary-fixed">check_circle</span>
+<span class="text-sm font-medium">Tonal Layering Hierarchy</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary-fixed">check_circle</span>
+<span class="text-sm font-medium">Bilingual Typography Stack</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Bento Grid Main Content -->
+<main class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- Color Palette (7:5 Ratio) -->
+<section class="md:col-span-12 lg:col-span-7 bg-surface-container-low p-8 rounded-3xl space-y-8">
+<div class="flex justify-between items-center">
+<h2 class="text-2xl font-bold font-headline tracking-tight text-on-surface">Color Palette</h2>
+<div class="flex gap-2">
+<div class="w-4 h-4 rounded-full bg-primary"></div>
+<div class="w-4 h-4 rounded-full bg-secondary"></div>
+<div class="w-4 h-4 rounded-full bg-error"></div>
+</div>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+<!-- Primary -->
+<div class="space-y-3">
+<div class="h-24 bg-primary rounded-2xl flex items-end p-3 text-on-primary font-bold text-xs uppercase tracking-widest">Primary</div>
+<div class="space-y-1">
+<div class="h-10 bg-primary-container rounded-lg flex items-center px-3 text-on-primary-container text-[10px] font-bold">Container</div>
+<div class="h-10 bg-primary-fixed rounded-lg flex items-center px-3 text-on-primary-fixed text-[10px] font-bold">Fixed</div>
+</div>
+</div>
+<!-- Secondary -->
+<div class="space-y-3">
+<div class="h-24 bg-secondary rounded-2xl flex items-end p-3 text-on-secondary font-bold text-xs uppercase tracking-widest">Accent</div>
+<div class="space-y-1">
+<div class="h-10 bg-secondary-container rounded-lg flex items-center px-3 text-on-secondary-container text-[10px] font-bold">Container</div>
+<div class="h-10 bg-secondary-fixed rounded-lg flex items-center px-3 text-on-secondary-fixed text-[10px] font-bold">Fixed</div>
+</div>
+</div>
+<!-- Surface -->
+<div class="space-y-3">
+<div class="h-24 bg-surface-container-highest rounded-2xl flex items-end p-3 text-on-surface font-bold text-xs uppercase tracking-widest">Surface</div>
+<div class="space-y-1">
+<div class="h-10 bg-surface-container rounded-lg flex items-center px-3 text-on-surface-variant text-[10px] font-bold">Low</div>
+<div class="h-10 bg-surface-container-lowest rounded-lg border border-outline-variant/10 flex items-center px-3 text-on-surface-variant text-[10px] font-bold">Lowest</div>
+</div>
+</div>
+<!-- Semantic -->
+<div class="space-y-3">
+<div class="h-24 bg-error rounded-2xl flex items-end p-3 text-on-error font-bold text-xs uppercase tracking-widest">Error</div>
+<div class="space-y-1">
+<div class="h-10 bg-error-container rounded-lg flex items-center px-3 text-on-error-container text-[10px] font-bold">Container</div>
+<div class="h-10 bg-tertiary-container rounded-lg flex items-center px-3 text-on-tertiary-container text-[10px] font-bold">Neutral</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Typography (5:7 Ratio) -->
+<section class="md:col-span-12 lg:col-span-5 bg-surface-container p-8 rounded-3xl space-y-8">
+<h2 class="text-2xl font-bold font-headline tracking-tight text-on-surface">Typography Stack</h2>
+<div class="space-y-6">
+<div class="border-b border-outline-variant/20 pb-4">
+<span class="text-[10px] font-bold text-primary mb-1 block uppercase tracking-widest">H1 Display / DM Sans</span>
+<h1 class="font-dmsans text-4xl font-bold tracking-tighter">The Editorial Bridge</h1>
+</div>
+<div class="border-b border-outline-variant/20 pb-4">
+<span class="text-[10px] font-bold text-primary mb-1 block uppercase tracking-widest">H2 Headline / DM Sans</span>
+<h2 class="font-dmsans text-2xl font-bold tracking-tight">Responsive Design v3</h2>
+</div>
+<div>
+<span class="text-[10px] font-bold text-primary mb-1 block uppercase tracking-widest">Body Text / Pretendard</span>
+<p class="korean-content font-pretendard text-base text-on-surface-variant">
+                            디자인 시스템은 단순한 도구가 아니라 조직의 철학을 전달하는 매개체입니다. 사용자가 데이터를 읽는 것이 아니라 '경험'하도록 돕습니다.
+                        </p>
+</div>
+<div class="flex gap-4">
+<div class="px-3 py-1 bg-surface-container-highest rounded text-[11px] font-mono font-bold text-outline">LINE-HEIGHT: 1.8</div>
+<div class="px-3 py-1 bg-surface-container-highest rounded text-[11px] font-mono font-bold text-outline">TRACKING: -0.02EM</div>
+</div>
+</div>
+</section>
+<!-- Buttons & Interactions (8:4 Ratio) -->
+<section class="md:col-span-12 lg:col-span-8 bg-surface-container-low p-8 rounded-3xl space-y-8">
+<div class="flex justify-between items-end">
+<div>
+<h2 class="text-2xl font-bold font-headline tracking-tight text-on-surface">Button Matrix</h2>
+<p class="text-sm text-on-surface-variant mt-1">Tactile interactive components with primary gradients.</p>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="text-[10px] font-bold text-outline uppercase tracking-widest">
+<th class="pb-6">Type</th>
+<th class="pb-6">Default</th>
+<th class="pb-6">Hover / Active</th>
+<th class="pb-6">Disabled</th>
+</tr>
+</thead>
+<tbody class="space-y-4">
+<tr class="group">
+<td class="py-4 text-xs font-bold text-primary">Primary</td>
+<td class="py-4">
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-2.5 rounded-xl font-bold text-sm shadow-lvl-1">Action</button>
+</td>
+<td class="py-4">
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-2.5 rounded-xl font-bold text-sm shadow-lvl-2 scale-95 transition-transform">Action</button>
+</td>
+<td class="py-4">
+<button class="bg-surface-variant text-outline-variant px-6 py-2.5 rounded-xl font-bold text-sm cursor-not-allowed" disabled="">Action</button>
+</td>
+</tr>
+<tr>
+<td class="py-4 text-xs font-bold text-primary">Secondary</td>
+<td class="py-4">
+<button class="bg-surface-container-high text-on-primary-fixed-variant px-6 py-2.5 rounded-xl font-bold text-sm">Secondary</button>
+</td>
+<td class="py-4">
+<button class="bg-surface-container-highest text-on-primary-fixed-variant px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm">Secondary</button>
+</td>
+<td class="py-4">
+<button class="bg-surface-container text-outline-variant px-6 py-2.5 rounded-xl font-bold text-sm cursor-not-allowed" disabled="">Secondary</button>
+</td>
+</tr>
+<tr>
+<td class="py-4 text-xs font-bold text-primary">Ghost</td>
+<td class="py-4">
+<button class="text-primary px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-primary/5">Ghost</button>
+</td>
+<td class="py-4">
+<button class="text-primary px-6 py-2.5 rounded-xl font-bold text-sm bg-primary/10">Ghost</button>
+</td>
+<td class="py-4">
+<button class="text-outline-variant px-6 py-2.5 rounded-xl font-bold text-sm cursor-not-allowed" disabled="">Ghost</button>
+</td>
+</tr>
+<tr>
+<td class="py-4 text-xs font-bold text-primary">Destructive</td>
+<td class="py-4">
+<button class="text-error px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-error/5">Delete</button>
+</td>
+<td class="py-4">
+<button class="bg-error text-on-error px-6 py-2.5 rounded-xl font-bold text-sm shadow-lvl-1">Delete</button>
+</td>
+<td class="py-4">
+<button class="text-error/30 px-6 py-2.5 rounded-xl font-bold text-sm cursor-not-allowed" disabled="">Delete</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Badges & Status (4:8 Ratio) -->
+<section class="md:col-span-12 lg:col-span-4 bg-surface-container p-8 rounded-3xl space-y-8">
+<h2 class="text-2xl font-bold font-headline tracking-tight text-on-surface">Status Tokens</h2>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-2xl">
+<span class="text-sm font-bold text-on-surface-variant">Success</span>
+<span class="px-4 py-1.5 bg-secondary-container text-on-secondary-container text-xs font-bold rounded-full flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+                            ACTIVE
+                        </span>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-2xl">
+<span class="text-sm font-bold text-on-surface-variant">In-Progress</span>
+<span class="px-4 py-1.5 bg-primary-fixed text-on-primary-fixed-variant text-xs font-bold rounded-full">SYNCING</span>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-2xl">
+<span class="text-sm font-bold text-on-surface-variant">Pending</span>
+<span class="px-4 py-1.5 bg-surface-container-highest text-outline text-xs font-bold rounded-full">QUEUED</span>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-2xl">
+<span class="text-sm font-bold text-on-surface-variant">Failed</span>
+<span class="px-4 py-1.5 bg-error-container text-on-error-container text-xs font-bold rounded-full">ERROR</span>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-2xl">
+<span class="text-sm font-bold text-on-surface-variant">Warning</span>
+<span class="px-4 py-1.5 bg-tertiary-fixed text-on-tertiary-fixed-variant text-xs font-bold rounded-full">LIMIT REFRESH</span>
+</div>
+</div>
+</section>
+<!-- Inputs & Shadows (6:6 Ratio) -->
+<section class="md:col-span-12 lg:col-span-6 bg-surface-container-low p-8 rounded-3xl space-y-8">
+<h2 class="text-2xl font-bold font-headline tracking-tight text-on-surface">Input Fields</h2>
+<div class="grid grid-cols-1 gap-6">
+<div class="space-y-2">
+<label class="text-xs font-bold text-on-surface-variant ml-1">Default Field</label>
+<input class="w-full bg-surface-container-highest border-none rounded-2xl px-6 py-4 text-on-surface placeholder:text-outline/50 focus:ring-0" placeholder="Enter your query..." type="text"/>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-primary ml-1">Focused State</label>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border-2 border-primary/20 rounded-2xl px-6 py-4 text-on-surface focus:ring-4 focus:ring-primary/5 outline-none transition-all" type="text" value="Active interaction"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-primary">edit</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-error ml-1">Error State</label>
+<input class="w-full bg-error-container/20 border-2 border-error/20 rounded-2xl px-6 py-4 text-on-error-container focus:ring-0 outline-none" type="text" value="Invalid input data"/>
+<p class="text-[10px] font-bold text-error ml-1">Please check the required format.</p>
+</div>
+</div>
+</section>
+<section class="md:col-span-12 lg:col-span-6 bg-surface-container-low p-8 rounded-3xl space-y-8">
+<h2 class="text-2xl font-bold font-headline tracking-tight text-on-surface">Shadow &amp; Elevation</h2>
+<div class="grid grid-cols-2 gap-4 h-full">
+<div class="bg-surface-container-lowest p-6 rounded-3xl shadow-none flex flex-col justify-end border border-outline-variant/10 min-h-[120px]">
+<span class="text-[10px] font-black font-mono text-outline">LVL-0 / FLAT</span>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-3xl shadow-lvl-1 flex flex-col justify-end min-h-[120px]">
+<span class="text-[10px] font-black font-mono text-outline">LVL-1 / TEXTURE</span>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-3xl shadow-lvl-2 flex flex-col justify-end min-h-[120px]">
+<span class="text-[10px] font-black font-mono text-outline">LVL-2 / ACCENT</span>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-3xl shadow-lvl-3 flex flex-col justify-end min-h-[120px]">
+<span class="text-[10px] font-black font-mono text-outline">LVL-3 / FLOATING</span>
+</div>
+</div>
+</section>
+<!-- Spacing Scale (Full Width) -->
+<section class="md:col-span-12 bg-surface-container p-8 rounded-3xl space-y-8 overflow-hidden">
+<div class="flex justify-between items-center">
+<h2 class="text-2xl font-bold font-headline tracking-tight text-on-surface">Spacing Scale</h2>
+<p class="text-[11px] font-mono font-bold text-outline uppercase tracking-tighter">Geometric Progression: 4px Base</p>
+</div>
+<div class="flex items-end gap-2 overflow-x-auto pb-4">
+<div class="flex flex-col items-center gap-2 shrink-0">
+<div class="w-1 h-1 bg-primary rounded-sm"></div>
+<span class="text-[9px] font-bold text-outline">4</span>
+</div>
+<div class="flex flex-col items-center gap-2 shrink-0">
+<div class="w-2 h-2 bg-primary rounded-sm"></div>
+<span class="text-[9px] font-bold text-outline">8</span>
+</div>
+<div class="flex flex-col items-center gap-2 shrink-0">
+<div class="w-3 h-3 bg-primary rounded-sm"></div>
+<span class="text-[9px] font-bold text-outline">12</span>
+</div>
+<div class="flex flex-col items-center gap-2 shrink-0">
+<div class="w-4 h-4 bg-primary rounded-sm"></div>
+<span class="text-[9px] font-bold text-outline">16</span>
+</div>
+<div class="flex flex-col items-center gap-2 shrink-0">
+<div class="w-6 h-6 bg-primary rounded-md"></div>
+<span class="text-[9px] font-bold text-outline">24</span>
+</div>
+<div class="flex flex-col items-center gap-2 shrink-0">
+<div class="w-8 h-8 bg-primary rounded-lg"></div>
+<span class="text-[9px] font-bold text-outline">32</span>
+</div>
+<div class="flex flex-col items-center gap-2 shrink-0">
+<div class="w-12 h-12 bg-primary rounded-xl"></div>
+<span class="text-[9px] font-bold text-outline">48</span>
+</div>
+<div class="flex flex-col items-center gap-2 shrink-0">
+<div class="w-16 h-16 bg-primary rounded-2xl"></div>
+<span class="text-[9px] font-bold text-outline">64</span>
+</div>
+<div class="flex flex-col items-center gap-2 shrink-0">
+<div class="w-20 h-20 bg-primary rounded-3xl"></div>
+<span class="text-[9px] font-bold text-outline">80</span>
+</div>
+<div class="flex-grow h-px bg-outline-variant/30 self-center mb-4 min-w-[40px]"></div>
+<div class="shrink-0 mb-4 px-6 py-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/10 shadow-lvl-1">
+<p class="text-xs font-bold text-on-surface-variant">"Trust the Grid religiously to ensure precision."</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer / System Meta -->
+<footer class="flex flex-col md:flex-row justify-between items-center py-12 px-8 text-on-surface-variant border-t border-outline-variant/10">
+<div class="flex items-center gap-4 mb-4 md:mb-0">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary" style="font-variation-settings: 'FILL' 1;">token</span>
+</div>
+<div>
+<h4 class="font-headline font-extrabold tracking-tight">Chatsio Spec v3.0</h4>
+<p class="text-[10px] uppercase font-bold tracking-widest text-outline">Last Updated: Oct 2023</p>
+</div>
+</div>
+<div class="flex gap-8">
+<div class="text-center">
+<span class="block text-2xl font-bold text-primary">12px</span>
+<span class="text-[10px] uppercase font-bold text-outline">Base Radius</span>
+</div>
+<div class="text-center">
+<span class="block text-2xl font-bold text-primary">4px</span>
+<span class="text-[10px] uppercase font-bold text-outline">Grid Unit</span>
+</div>
+<div class="text-center">
+<span class="block text-2xl font-bold text-primary">1.8</span>
+<span class="text-[10px] uppercase font-bold text-outline">Line Height</span>
+</div>
+</div>
+</footer>
+</div>
+</body></html>

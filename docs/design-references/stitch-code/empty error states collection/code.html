@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Empty &amp; Error States Collection - Chatsio v3.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#dde3ec",
+                        "on-secondary-fixed": "#002115",
+                        "inverse-surface": "#2b3138",
+                        "on-background": "#161c23",
+                        "secondary-fixed-dim": "#6ddaae",
+                        "surface-container-high": "#e3e8f2",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#bcc7db",
+                        "surface-variant": "#dde3ec",
+                        "on-primary-fixed": "#001d32",
+                        "outline-variant": "#bfc7d2",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "outline": "#6f7881",
+                        "on-surface": "#161c23",
+                        "surface-container": "#e9eef7",
+                        "secondary-fixed": "#8af7c9",
+                        "primary": "#006195",
+                        "secondary": "#006c4d",
+                        "tertiary": "#525d6d",
+                        "on-tertiary-container": "#fdfcff",
+                        "tertiary-container": "#6a7587",
+                        "primary-container": "#007aba",
+                        "background": "#f7f9ff",
+                        "on-secondary-fixed-variant": "#005139",
+                        "surface-bright": "#f7f9ff",
+                        "secondary-container": "#87f4c6",
+                        "on-primary-container": "#fdfcff",
+                        "tertiary-fixed": "#d8e3f7",
+                        "on-secondary-container": "#007151",
+                        "surface-dim": "#d5dae3",
+                        "surface": "#f7f9ff",
+                        "primary-fixed": "#cde5ff",
+                        "on-primary-fixed-variant": "#004b74",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface-variant": "#3f4850",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#3c4758",
+                        "inverse-primary": "#94ccff",
+                        "on-tertiary": "#ffffff",
+                        "inverse-on-surface": "#ecf1fa",
+                        "surface-tint": "#006398",
+                        "on-tertiary-fixed": "#111c2b",
+                        "surface-container-low": "#eff4fd",
+                        "primary-fixed-dim": "#94ccff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                },
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+        }
+        body { font-family: 'Manrope', 'Pretendard', sans-serif; }
+        .font-plus-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen">
+<!-- Top Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-sm dark:shadow-none flex justify-between items-center h-16 px-8 max-w-full">
+<div class="text-xl font-black tracking-tight text-sky-800 dark:text-sky-300 font-plus-jakarta">Chatsio v3.0</div>
+<div class="hidden md:flex items-center space-y-0 space-x-8">
+<a class="text-slate-500 dark:text-slate-400 font-plus-jakarta text-sm font-semibold hover:text-sky-600 dark:hover:text-sky-300 transition-colors" href="#">Dashboard</a>
+<a class="text-slate-500 dark:text-slate-400 font-plus-jakarta text-sm font-semibold hover:text-sky-600 dark:hover:text-sky-300 transition-colors" href="#">Campaigns</a>
+<a class="text-slate-500 dark:text-slate-400 font-plus-jakarta text-sm font-semibold hover:text-sky-600 dark:hover:text-sky-300 transition-colors" href="#">Analytics</a>
+<a class="text-sky-700 dark:text-sky-400 border-b-2 border-sky-600 font-plus-jakarta text-sm font-semibold hover:text-sky-600 dark:hover:text-sky-300 transition-colors" href="#">Settings</a>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-500 cursor-pointer">notifications</span>
+<span class="material-symbols-outlined text-slate-500 cursor-pointer">help_outline</span>
+<button class="bg-primary-container text-on-primary-container px-4 py-2 rounded-lg font-semibold text-sm scale-95 active:opacity-80 transition-all">Create New</button>
+</div>
+</nav>
+<!-- Side Navigation Shell -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-slate-50 dark:bg-slate-950 hidden lg:flex flex-col p-4 space-y-2">
+<div class="flex items-center gap-3 mb-6 px-2">
+<div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-sm">dashboard</span>
+</div>
+<div>
+<div class="text-lg font-bold text-sky-900 dark:text-sky-100 font-plus-jakarta">Chatsio</div>
+<div class="text-[10px] text-slate-500 uppercase tracking-widest">Editorial v3.0</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<div class="flex items-center gap-3 p-3 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="font-plus-jakarta text-sm">Home</span>
+</div>
+<div class="flex items-center gap-3 p-3 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-plus-jakarta text-sm">Messages</span>
+</div>
+<div class="flex items-center gap-3 p-3 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-plus-jakarta text-sm">Inventory</span>
+</div>
+<div class="flex items-center gap-3 p-3 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="font-plus-jakarta text-sm">Reports</span>
+</div>
+<div class="flex items-center gap-3 p-3 bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-400 font-bold rounded-lg transition-all cursor-pointer">
+<span class="material-symbols-outlined">history_toggle_off</span>
+<span class="font-plus-jakarta text-sm">Logs</span>
+</div>
+</nav>
+<div class="pt-4 mt-auto border-t border-slate-200 dark:border-slate-800 space-y-1">
+<div class="flex items-center gap-3 p-3 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined">help_center</span>
+<span class="font-plus-jakarta text-sm">Help</span>
+</div>
+<div class="flex items-center gap-3 p-3 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-plus-jakarta text-sm">Sign Out</span>
+</div>
+<div class="mt-4 p-4 bg-primary/5 rounded-xl">
+<div class="flex items-center gap-2 mb-1">
+<div class="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+<span class="text-xs font-bold text-primary">System Status</span>
+</div>
+<p class="text-[10px] text-on-surface-variant">All systems operational</p>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="lg:ml-64 pt-24 pb-12 px-8 max-w-7xl mx-auto">
+<!-- Header -->
+<header class="mb-12 text-center">
+<h1 class="text-4xl font-extrabold font-plus-jakarta tracking-tight text-on-background mb-3">Empty &amp; Error States Collection</h1>
+<p class="text-on-surface-variant max-w-2xl mx-auto">Reference guide for structural feedback components across the Chatsio v3.0 ecosystem.</p>
+</header>
+<!-- [Empty States Section] -->
+<section class="mb-20">
+<div class="flex items-center gap-3 mb-8">
+<h2 class="text-2xl font-bold font-plus-jakarta text-on-surface">Empty States</h2>
+<div class="h-[1px] flex-1 bg-surface-container-highest"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- 1. 상품 목록 Empty -->
+<div class="bg-surface-container-lowest rounded-2xl p-8 shadow-[0_10px_30px_-5px_rgba(0,97,149,0.08),0_4px_12px_-2px_rgba(0,0,0,0.03)] flex flex-col items-center text-center">
+<div class="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-outline text-[48px]">inventory_2</span>
+</div>
+<h3 class="text-xl font-bold font-plus-jakarta mb-2 text-on-surface">아직 등록된 상품이 없습니다</h3>
+<p class="text-on-surface-variant text-sm mb-8 leading-relaxed">첫 상품을 등록하고 AI 최적화를 경험해보세요</p>
+<div class="flex flex-col gap-3 w-full">
+<button class="bg-primary text-on-primary py-3 px-6 rounded-xl font-bold text-sm transition-all hover:shadow-lg active:scale-95">상품 추가 +</button>
+<a class="text-primary text-xs font-semibold hover:underline" href="#">CSV 샘플 다운로드</a>
+</div>
+</div>
+<!-- 2. 최적화 결과 Empty -->
+<div class="bg-surface-container-lowest rounded-2xl p-8 shadow-[0_10px_30px_-5px_rgba(0,97,149,0.08),0_4px_12px_-2px_rgba(0,0,0,0.03)] flex flex-col items-center text-center">
+<div class="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-outline text-[48px]">auto_fix_high</span>
+</div>
+<h3 class="text-xl font-bold font-plus-jakarta mb-2 text-on-surface">최적화를 실행하면 여기에 결과가 표시됩니다</h3>
+<p class="text-on-surface-variant text-sm mb-8 leading-relaxed">상품을 선택하고 AI 최적화를 시작해보세요</p>
+<button class="bg-primary text-on-primary py-3 px-6 rounded-xl font-bold text-sm w-full transition-all hover:shadow-lg active:scale-95">최적화 시작 →</button>
+</div>
+<!-- 3. AI 인용 리포트 Empty (Badge state) -->
+<div class="bg-surface-container-lowest rounded-2xl p-8 shadow-[0_10px_30px_-5px_rgba(0,97,149,0.08),0_4px_12px_-2px_rgba(0,0,0,0.03)] flex flex-col items-center text-center relative overflow-hidden">
+<div class="absolute top-4 right-4 bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">곧 출시됩니다</div>
+<div class="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-outline text-[48px]">troubleshoot</span>
+</div>
+<h3 class="text-xl font-bold font-plus-jakarta mb-2 text-on-surface leading-tight">인용 추적을 시작하면 AI가 상품을 얼마나 추천하는지 확인할 수 있습니다</h3>
+</div>
+<!-- 4. 배포 관리 Empty -->
+<div class="bg-surface-container-lowest rounded-2xl p-8 shadow-[0_10px_30px_-5px_rgba(0,97,149,0.08),0_4px_12px_-2px_rgba(0,0,0,0.03)] flex flex-col items-center text-center">
+<div class="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-outline text-[48px]">rocket_launch</span>
+</div>
+<h3 class="text-xl font-bold font-plus-jakarta mb-2 text-on-surface">최적화 완료 후 코드를 쇼핑몰에 적용해보세요</h3>
+<a class="text-primary text-sm font-bold mt-4 hover:underline" href="#">먼저 상품을 최적화하세요</a>
+</div>
+<!-- 5. 검색 결과 없음 -->
+<div class="bg-surface-container-lowest rounded-2xl p-8 shadow-[0_10px_30px_-5px_rgba(0,97,149,0.08),0_4px_12px_-2px_rgba(0,0,0,0.03)] flex flex-col items-center text-center">
+<div class="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-outline text-[48px]">search_off</span>
+</div>
+<h3 class="text-xl font-bold font-plus-jakarta mb-2 text-on-surface">"면 소재"에 대한 검색 결과가 없습니다</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">다른 키워드로 검색해보세요</p>
+</div>
+<!-- 6. 어드민 — 데이터 없음 -->
+<div class="bg-surface-container-lowest rounded-2xl p-8 shadow-[0_10px_30px_-5px_rgba(0,97,149,0.08),0_4px_12px_-2px_rgba(0,0,0,0.03)] flex flex-col items-center text-center">
+<div class="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-outline text-[48px]">bar_chart</span>
+</div>
+<h3 class="text-xl font-bold font-plus-jakarta mb-2 text-on-surface">아직 표시할 데이터가 없습니다</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">고객이 서비스를 사용하면 여기에 데이터가 쌓입니다</p>
+</div>
+</div>
+</section>
+<!-- [Error States Section] -->
+<section>
+<div class="flex items-center gap-3 mb-8">
+<h2 class="text-2xl font-bold font-plus-jakarta text-on-surface">Error States</h2>
+<div class="h-[1px] flex-1 bg-surface-container-highest"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- 1. 네트워크 에러 -->
+<div class="bg-surface-container-lowest rounded-2xl p-10 shadow-[0_10px_30px_-5px_rgba(0,97,149,0.08),0_4px_12px_-2px_rgba(0,0,0,0.03)] flex flex-col items-center text-center md:flex-row md:text-left gap-8">
+<div class="w-20 h-20 rounded-2xl bg-error-container/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-error text-[48px]">wifi_off</span>
+</div>
+<div class="flex-1">
+<h3 class="text-xl font-bold font-plus-jakarta mb-2 text-on-surface">연결에 문제가 발생했습니다</h3>
+<p class="text-on-surface-variant text-sm mb-6 leading-relaxed">인터넷 연결을 확인하고 다시 시도해주세요</p>
+<button class="bg-surface-container-high text-on-secondary-fixed-variant px-6 py-2.5 rounded-xl font-bold text-sm transition-all hover:bg-surface-container-highest active:scale-95">다시 시도</button>
+</div>
+</div>
+<!-- 2. 최적화 실패 -->
+<div class="bg-surface-container-lowest rounded-2xl p-10 shadow-[0_10px_30px_-5px_rgba(0,97,149,0.08),0_4px_12px_-2px_rgba(0,0,0,0.03)] flex flex-col items-center text-center md:flex-row md:text-left gap-8">
+<div class="w-20 h-20 rounded-2xl bg-error-container/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-error text-[48px]">error</span>
+</div>
+<div class="flex-1">
+<h3 class="text-xl font-bold font-plus-jakarta mb-2 text-on-surface">AI 분석 중 오류가 발생했습니다</h3>
+<p class="text-on-surface-variant text-sm mb-6 leading-relaxed">일시적인 문제일 수 있습니다. 잠시 후 다시 시도해주세요.</p>
+<div class="flex items-center gap-4">
+<button class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold text-sm transition-all hover:shadow-lg active:scale-95">다시 시도</button>
+<a class="text-on-surface-variant text-xs font-semibold underline decoration-outline-variant underline-offset-4" href="#">문제 신고</a>
+</div>
+</div>
+</div>
+<!-- 3. 세션 만료 -->
+<div class="bg-surface-container-lowest rounded-2xl p-10 shadow-[0_10px_30px_-5px_rgba(0,97,149,0.08),0_4px_12px_-2px_rgba(0,0,0,0.03)] flex flex-col items-center text-center md:flex-row md:text-left gap-8">
+<div class="w-20 h-20 rounded-2xl bg-error-container/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-error text-[48px]">schedule</span>
+</div>
+<div class="flex-1">
+<h3 class="text-xl font-bold font-plus-jakarta mb-2 text-on-surface">세션이 만료되었습니다</h3>
+<p class="text-on-surface-variant text-sm mb-6 leading-relaxed">보안을 위해 다시 로그인해주세요</p>
+<button class="bg-primary text-on-primary px-10 py-2.5 rounded-xl font-bold text-sm transition-all hover:shadow-lg active:scale-95">로그인</button>
+</div>
+</div>
+<!-- 4. 403 접근 제한 -->
+<div class="bg-surface-container-lowest rounded-2xl p-10 shadow-[0_10px_30px_-5px_rgba(0,97,149,0.08),0_4px_12px_-2px_rgba(0,0,0,0.03)] flex flex-col items-center text-center md:flex-row md:text-left gap-8">
+<div class="w-20 h-20 rounded-2xl bg-error-container/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-error text-[48px]">lock</span>
+</div>
+<div class="flex-1">
+<h3 class="text-xl font-bold font-plus-jakarta mb-2 text-on-surface">접근 권한이 없습니다</h3>
+<p class="text-on-surface-variant text-sm mb-6 leading-relaxed">이 페이지는 관리자만 접근할 수 있습니다</p>
+<button class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold text-sm transition-all hover:shadow-lg active:scale-95">대시보드로 돌아가기</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Visual Accents: Asymmetric Elements -->
+<div class="fixed top-0 right-0 -z-10 w-1/3 h-1/2 bg-gradient-to-bl from-primary/5 to-transparent blur-3xl pointer-events-none"></div>
+<div class="fixed bottom-0 left-0 -z-10 w-1/4 h-1/3 bg-gradient-to-tr from-secondary/5 to-transparent blur-3xl pointer-events-none"></div>
+</body></html>

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI 인용 추적 관리 - Chatsio Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Pretendard is typically loaded via CDN for Korean support -->
+<link as="style" crossorigin="" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed-variant": "#005139",
+                    "inverse-primary": "#94ccff",
+                    "background": "#f7f9ff",
+                    "tertiary-fixed-dim": "#bcc7db",
+                    "primary-fixed-dim": "#94ccff",
+                    "outline": "#6f7881",
+                    "on-tertiary-fixed-variant": "#3c4758",
+                    "surface-bright": "#f7f9ff",
+                    "secondary-container": "#87f4c6",
+                    "on-secondary": "#ffffff",
+                    "inverse-surface": "#2b3138",
+                    "secondary": "#006c4d",
+                    "on-surface-variant": "#3f4850",
+                    "tertiary-fixed": "#d8e3f7",
+                    "surface-container": "#e9eef7",
+                    "surface-container-low": "#eff4fd",
+                    "outline-variant": "#bfc7d2",
+                    "on-secondary-fixed": "#002115",
+                    "on-primary-container": "#fdfcff",
+                    "on-primary-fixed": "#001d32",
+                    "primary": "#006195",
+                    "on-tertiary-container": "#fdfcff",
+                    "on-tertiary": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "error": "#ba1a1a",
+                    "surface-container-highest": "#dde3ec",
+                    "primary-container": "#007aba",
+                    "on-secondary-container": "#007151",
+                    "on-tertiary-fixed": "#111c2b",
+                    "on-primary": "#ffffff",
+                    "surface-tint": "#006398",
+                    "on-surface": "#161c23",
+                    "inverse-on-surface": "#ecf1fa",
+                    "tertiary": "#525d6d",
+                    "secondary-fixed": "#8af7c9",
+                    "on-background": "#161c23",
+                    "surface-container-high": "#e3e8f2",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-variant": "#dde3ec",
+                    "surface-dim": "#d5dae3",
+                    "on-error": "#ffffff",
+                    "tertiary-container": "#6a7587",
+                    "error-container": "#ffdad6",
+                    "primary-fixed": "#cde5ff",
+                    "on-primary-fixed-variant": "#004b74",
+                    "surface": "#f7f9ff",
+                    "secondary-fixed-dim": "#6ddaae"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "2xl": "1rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans", "Pretendard"],
+                    "body": ["Manrope", "Pretendard"],
+                    "label": ["Manrope", "Pretendard"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Manrope', 'Pretendard', sans-serif; }
+        .font-headline { font-family: 'Plus Jakarta Sans', 'Pretendard', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bento-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .bento-card:hover {
+            transform: translateY(-2px);
+        }
+        .modal-overlay {
+            background: rgba(22, 28, 35, 0.6);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- SideNavBar (Execution from JSON) -->
+<aside class="bg-neutral-900 h-screen w-64 fixed left-0 top-0 flex flex-col py-6 z-50">
+<div class="px-6 mb-10 flex items-center gap-3">
+<span class="text-xl font-bold text-white tracking-tight font-headline">Chatsio</span>
+<span class="bg-sky-500/10 text-sky-400 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Admin</span>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="text-neutral-400 hover:text-neutral-100 px-6 py-3 flex items-center gap-3 transition-colors hover:bg-neutral-800/50" href="#">
+<span class="material-symbols-outlined">monitor_heart</span>
+<span class="font-plus-jakarta text-sm font-medium">Service Status</span>
+</a>
+<a class="text-neutral-400 hover:text-neutral-100 px-6 py-3 flex items-center gap-3 transition-colors hover:bg-neutral-800/50" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-plus-jakarta text-sm font-medium">Customer Management</span>
+</a>
+<a class="text-neutral-400 hover:text-neutral-100 px-6 py-3 flex items-center gap-3 transition-colors hover:bg-neutral-800/50" href="#">
+<span class="material-symbols-outlined">insights</span>
+<span class="font-plus-jakarta text-sm font-medium">Optimization Monitoring</span>
+</a>
+<a class="text-neutral-400 hover:text-neutral-100 px-6 py-3 flex items-center gap-3 transition-colors hover:bg-neutral-800/50" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="font-plus-jakarta text-sm font-medium">Prompt Management</span>
+</a>
+<a class="text-neutral-400 hover:text-neutral-100 px-6 py-3 flex items-center gap-3 transition-colors hover:bg-neutral-800/50" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-plus-jakarta text-sm font-medium">AI Costs</span>
+</a>
+<!-- Active State Logic for Citation Tracking -->
+<a class="bg-neutral-800 text-sky-400 font-semibold border-r-4 border-sky-500 px-6 py-3 flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">history_edu</span>
+<span class="font-plus-jakarta text-sm font-medium">Citation Tracking</span>
+</a>
+</nav>
+<div class="px-6 mt-auto">
+<div class="flex items-center gap-3 p-3 rounded-xl bg-neutral-800/40">
+<div class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-secondary"></div>
+<div class="overflow-hidden">
+<p class="text-white text-xs font-semibold truncate">Admin User</p>
+<p class="text-neutral-500 text-[10px] truncate">admin@chatsio.ai</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<main class="ml-64 min-h-screen">
+<!-- TopNavBar (Execution from JSON) -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 bg-white/80 backdrop-blur-md flex justify-between items-center px-8 z-40">
+<div class="flex items-center gap-4">
+<h1 class="font-headline font-semibold text-lg text-on-surface">AI 인용 추적 관리</h1>
+<div class="h-4 w-px bg-outline-variant"></div>
+<div class="flex items-center gap-2 text-on-surface-variant text-sm">
+<span class="material-symbols-outlined text-sm">refresh</span>
+<span>마지막 업데이트: 12분 전</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4 text-neutral-500">
+<span class="material-symbols-outlined hover:text-primary cursor-pointer">notifications</span>
+<span class="material-symbols-outlined hover:text-primary cursor-pointer">settings</span>
+</div>
+<button class="bg-surface-container-high text-on-primary-fixed-variant px-4 py-2 rounded-lg text-sm font-bold hover:bg-surface-container-highest transition-colors">Logout</button>
+</div>
+</header>
+<!-- Page Canvas -->
+<div class="pt-24 px-8 pb-12">
+<!-- Header Actions -->
+<div class="flex justify-between items-end mb-8">
+<div>
+<h2 class="text-2xl font-extrabold text-on-surface tracking-tight font-headline">실시간 데이터 개요</h2>
+<p class="text-on-surface-variant mt-1">주요 고객사별 AI 인용 성능지표 및 추적 상태를 확인합니다.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 bg-surface-container-high text-on-primary-fixed-variant px-5 py-2.5 rounded-2xl font-bold text-sm transition-all hover:bg-surface-container-highest">
+<span class="material-symbols-outlined text-lg">download</span>
+                        CSV 내보내기
+                    </button>
+<button class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-white px-6 py-2.5 rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined text-lg">bolt</span>
+                        수동 추적 실행
+                    </button>
+</div>
+</div>
+<!-- KPI Bento Grid -->
+<div class="grid grid-cols-12 gap-6 mb-8">
+<div class="col-span-3 bg-surface-container-low p-6 rounded-2xl bento-card shadow-sm border border-transparent hover:border-primary/10">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-primary/10 rounded-lg">
+<span class="material-symbols-outlined text-primary">group</span>
+</div>
+</div>
+<p class="text-on-surface-variant text-sm font-medium">추적 대상 고객</p>
+<div class="flex items-end gap-2 mt-2">
+<h3 class="text-4xl font-headline font-extrabold text-on-surface tracking-tight">24</h3>
+<span class="text-primary font-bold text-sm mb-1.5">개 기업</span>
+</div>
+</div>
+<div class="col-span-4 bg-surface-container-low p-6 rounded-2xl bento-card shadow-sm border border-transparent hover:border-primary/10">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-secondary-container/30 rounded-lg">
+<span class="material-symbols-outlined text-secondary">inventory_2</span>
+</div>
+</div>
+<p class="text-on-surface-variant text-sm font-medium">총 추적 상품</p>
+<div class="flex items-end gap-2 mt-2">
+<h3 class="text-4xl font-headline font-extrabold text-on-surface tracking-tight">1,429</h3>
+<span class="text-secondary font-bold text-sm mb-1.5">SKU</span>
+</div>
+</div>
+<div class="col-span-5 bg-gradient-to-br from-primary to-primary-container p-6 rounded-2xl bento-card shadow-xl shadow-primary/10 text-white relative overflow-hidden">
+<div class="relative z-10">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-white/20 backdrop-blur-md rounded-lg">
+<span class="material-symbols-outlined text-white">star</span>
+</div>
+<div class="bg-secondary-container text-on-secondary-container px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">trending_up</span>
+                                5%
+                            </div>
+</div>
+<p class="text-primary-fixed-dim text-sm font-medium">평균 Citation Score</p>
+<div class="flex items-end gap-2 mt-2">
+<h3 class="text-4xl font-headline font-extrabold tracking-tight">42<span class="text-xl opacity-60 font-medium">/100</span></h3>
+<p class="text-xs text-white/80 mb-2 ml-4">지난 30일 대비 상승</p>
+</div>
+</div>
+<!-- Decorative Background Element -->
+<div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-8">
+<!-- Ranking Table -->
+<div class="col-span-8 bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden flex flex-col">
+<div class="p-6 border-b border-surface-container flex justify-between items-center">
+<h3 class="font-headline font-bold text-lg">Citation Score 랭킹</h3>
+<div class="flex items-center gap-2 px-3 py-1.5 bg-surface-container-low rounded-lg">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">search</span>
+<input class="bg-transparent border-none text-xs focus:ring-0 w-32 p-0 text-on-surface" placeholder="상점명 검색..." type="text"/>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low">
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">순위</th>
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">상점명</th>
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">추적 상품</th>
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">평균 스코어</th>
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">최종 추적일</th>
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider text-right">관리</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="px-6 py-5 font-headline font-bold text-primary">01</td>
+<td class="px-6 py-5 font-bold">패션모아</td>
+<td class="px-6 py-5 text-sm">342개</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="flex-1 h-2 bg-surface-container-highest rounded-full overflow-hidden min-w-[80px]">
+<div class="h-full bg-primary" style="width: 78%"></div>
+</div>
+<span class="text-xs font-bold text-primary">78</span>
+</div>
+</td>
+<td class="px-6 py-5 text-xs text-on-surface-variant">2024-05-20 14:22</td>
+<td class="px-6 py-5 text-right">
+<div class="flex justify-end gap-2">
+<button class="text-xs font-bold text-primary hover:underline">상세 보기</button>
+<button class="p-1.5 rounded-lg bg-surface-container-high hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">bolt</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="px-6 py-5 font-headline font-bold text-on-surface-variant">02</td>
+<td class="px-6 py-5 font-bold">리빙센스</td>
+<td class="px-6 py-5 text-sm">189개</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="flex-1 h-2 bg-surface-container-highest rounded-full overflow-hidden min-w-[80px]">
+<div class="h-full bg-primary" style="width: 65%"></div>
+</div>
+<span class="text-xs font-bold text-primary">65</span>
+</div>
+</td>
+<td class="px-6 py-5 text-xs text-on-surface-variant">2024-05-20 12:45</td>
+<td class="px-6 py-5 text-right">
+<div class="flex justify-end gap-2">
+<button class="text-xs font-bold text-primary hover:underline">상세 보기</button>
+<button class="p-1.5 rounded-lg bg-surface-container-high hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">bolt</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="px-6 py-5 font-headline font-bold text-on-surface-variant">03</td>
+<td class="px-6 py-5 font-bold">푸드마켓</td>
+<td class="px-6 py-5 text-sm">521개</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="flex-1 h-2 bg-surface-container-highest rounded-full overflow-hidden min-w-[80px]">
+<div class="h-full bg-primary" style="width: 42%"></div>
+</div>
+<span class="text-xs font-bold text-primary">42</span>
+</div>
+</td>
+<td class="px-6 py-5 text-xs text-on-surface-variant">2024-05-20 10:10</td>
+<td class="px-6 py-5 text-right">
+<div class="flex justify-end gap-2">
+<button class="text-xs font-bold text-primary hover:underline">상세 보기</button>
+<button class="p-1.5 rounded-lg bg-surface-container-high hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">bolt</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Execution Log Timeline -->
+<div class="col-span-4 bg-surface-container-low rounded-2xl p-6 shadow-sm">
+<h3 class="font-headline font-bold text-lg mb-6 flex items-center gap-2">
+                        추적 실행 로그
+                        <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+</h3>
+<div class="space-y-6 relative">
+<!-- Vertical line -->
+<div class="absolute left-3.5 top-0 bottom-0 w-px bg-surface-container-highest"></div>
+<!-- Entry 1 -->
+<div class="relative pl-10">
+<div class="absolute left-0 top-1 w-7 h-7 bg-white rounded-full flex items-center justify-center border-2 border-secondary shadow-sm">
+<span class="material-symbols-outlined text-sm text-secondary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex justify-between items-start mb-1">
+<span class="text-xs font-bold text-on-surface">스타일샵</span>
+<span class="text-[10px] text-on-surface-variant">14:32:05</span>
+</div>
+<div class="p-3 bg-white rounded-xl shadow-sm border border-secondary/10">
+<div class="flex justify-between items-center mb-2">
+<span class="text-[10px] font-bold text-secondary bg-secondary-container/20 px-1.5 py-0.5 rounded">Success ✅</span>
+<span class="text-[10px] text-on-surface-variant">소요시간: 12s</span>
+</div>
+<div class="flex items-center gap-2">
+<p class="text-xs text-on-surface-variant">파싱 정확도</p>
+<span class="bg-secondary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">84%</span>
+</div>
+</div>
+</div>
+<!-- Entry 2 -->
+<div class="relative pl-10">
+<div class="absolute left-0 top-1 w-7 h-7 bg-white rounded-full flex items-center justify-center border-2 border-amber-500 shadow-sm">
+<span class="material-symbols-outlined text-sm text-amber-500" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<div class="flex justify-between items-start mb-1">
+<span class="text-xs font-bold text-on-surface">전체</span>
+<span class="text-[10px] text-on-surface-variant">13:10:44</span>
+</div>
+<div class="p-3 bg-white rounded-xl shadow-sm border border-amber-500/10">
+<div class="flex justify-between items-center mb-2">
+<span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Partial Success ⚠️</span>
+<span class="text-[10px] text-on-surface-variant">소요시간: 45s</span>
+</div>
+<div class="flex items-center gap-2">
+<p class="text-xs text-on-surface-variant">파싱 정확도</p>
+<span class="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">65%</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Manual Execution Modal -->
+<div class="fixed inset-0 z-[100] flex items-center justify-center modal-overlay">
+<div class="bg-surface-container-lowest w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-surface-container-high">
+<div class="p-6 border-b border-surface-container flex justify-between items-center">
+<h3 class="font-headline font-bold text-xl flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">bolt</span>
+                    수동 추적 실행
+                </h3>
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">close</span>
+</button>
+</div>
+<div class="p-8 space-y-6">
+<!-- Field 1 -->
+<div>
+<label class="block text-sm font-bold text-on-surface mb-2">대상 선택</label>
+<select class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 text-on-surface">
+<option>특정 고객</option>
+<option>전체</option>
+</select>
+</div>
+<!-- Field 2 -->
+<div>
+<label class="block text-sm font-bold text-on-surface mb-2">상품 범위</label>
+<select class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 text-on-surface">
+<option>특정 상품</option>
+<option>모든 상품</option>
+</select>
+</div>
+<!-- Field 3 -->
+<div>
+<label class="block text-sm font-bold text-on-surface mb-3">추적 AI 플랫폼</label>
+<div class="grid grid-cols-3 gap-3">
+<label class="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl cursor-pointer border-2 border-primary ring-2 ring-primary/5 transition-all">
+<input checked="" class="rounded-full text-primary focus:ring-primary border-none w-4 h-4" type="checkbox"/>
+<span class="text-xs font-bold">ChatGPT</span>
+</label>
+<label class="flex items-center gap-3 p-3 bg-surface-container-low/50 rounded-xl cursor-not-allowed opacity-60 border-2 border-transparent">
+<input class="rounded-full text-neutral-400 border-none w-4 h-4" disabled="" type="checkbox"/>
+<span class="text-xs font-bold text-neutral-500">Perplexity</span>
+</label>
+<label class="flex items-center gap-3 p-3 bg-surface-container-low/50 rounded-xl cursor-not-allowed opacity-60 border-2 border-transparent">
+<input class="rounded-full text-neutral-400 border-none w-4 h-4" disabled="" type="checkbox"/>
+<span class="text-xs font-bold text-neutral-500">Gemini</span>
+</label>
+</div>
+</div>
+<!-- Note -->
+<div class="bg-primary/5 rounded-xl p-4 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-lg">info</span>
+<p class="text-xs text-on-primary-fixed-variant leading-relaxed">
+<span class="font-bold">PoC 단계 안내:</span> 현재 버전에서는 ChatGPT 모델만 지원합니다. 안정적인 추적을 위해 1회 실행 시 10건 이내의 상품을 권장합니다.
+                    </p>
+</div>
+</div>
+<div class="p-6 bg-surface-container-low flex justify-end gap-3">
+<button class="px-6 py-3 rounded-xl text-sm font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors">취소</button>
+<button class="bg-gradient-to-br from-primary to-primary-container text-white px-10 py-3 rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                    추적 실행
+                </button>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chatsio Optimization Results</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&amp;family=Manrope:wght@400;500;600&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary-fixed": "#d8e3f7",
+                        "on-surface": "#161c23",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#6a7587",
+                        "surface-dim": "#d5dae3",
+                        "surface-container-highest": "#dde3ec",
+                        "on-primary": "#ffffff",
+                        "surface-tint": "#006398",
+                        "secondary-fixed-dim": "#6ddaae",
+                        "surface-variant": "#dde3ec",
+                        "on-secondary-fixed": "#002115",
+                        "on-primary-container": "#fdfcff",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#bfc7d2",
+                        "on-secondary-container": "#007151",
+                        "primary": "#006195",
+                        "secondary": "#006c4d",
+                        "on-surface-variant": "#3f4850",
+                        "surface-container-low": "#eff4fd",
+                        "surface-container": "#e9eef7",
+                        "secondary-container": "#87f4c6",
+                        "surface": "#f7f9ff",
+                        "on-secondary-fixed-variant": "#005139",
+                        "primary-fixed-dim": "#94ccff",
+                        "on-tertiary-container": "#fdfcff",
+                        "tertiary-fixed-dim": "#bcc7db",
+                        "primary-fixed": "#cde5ff",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed-variant": "#3c4758",
+                        "on-error-container": "#93000a",
+                        "inverse-primary": "#94ccff",
+                        "surface-bright": "#f7f9ff",
+                        "primary-container": "#007aba",
+                        "error-container": "#ffdad6",
+                        "on-background": "#161c23",
+                        "on-primary-fixed-variant": "#004b74",
+                        "on-primary-fixed": "#001d32",
+                        "inverse-surface": "#2b3138",
+                        "surface-container-high": "#e3e8f2",
+                        "tertiary": "#525d6d",
+                        "error": "#ba1a1a"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"],
+                        "mono": ["JetBrains Mono"]
+                    },
+                    boxShadow: {
+                        'lvl1': '0 4px 12px -2px rgba(0, 0, 0, 0.03)',
+                        'lvl2': '0 10px 30px -5px rgba(0, 97, 149, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03)',
+                        'lvl3': '0 20px 40px -8px rgba(0, 97, 149, 0.12)',
+                        'lvl4': '0 30px 60px -12px rgba(0, 97, 149, 0.18)'
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; background-color: #f7f9ff; }
+        .font-headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="text-on-surface">
+<!-- SideNavBar (Suppressed for detail page logic - Back button takes priority) -->
+<div class="min-h-screen flex flex-col">
+<!-- Top Header -->
+<header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/10 h-20 flex items-center justify-between px-8 shadow-sm">
+<div class="flex items-center gap-6">
+<button class="flex items-center gap-2 text-primary font-semibold hover:bg-surface-container-low px-3 py-2 rounded-xl transition-all">
+<span class="material-symbols-outlined">arrow_back</span>
+<span>상품 목록</span>
+</button>
+<div class="h-10 w-[1px] bg-outline-variant/30"></div>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-surface-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Close-up of a high-quality white oversized cotton t-shirt texture on a neutral studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJXx0vjjDj72jw73fTb1w1LYDIzpWhKhpJqRcnxiT_WLY9TXzYSLg9gvElSWAtRRzDRBYK4c01rH_Ha7SCORBpThee1euDKVQ_L5JLxWLp1wGXdP9uhDo5QALa8Pz9KeYIfUogtFza8y82a71sOR3rNmfqeCaHTcvH5vOn7T0nTqv6PNCkoXMnvsawIhBtvQelvf4qNYkwl32B2r5tEppapmathUbmtUneg5VHL65lMNg7Lq8mdq3aM1MoRjiZOCuTMZM8vB4QOg40"/>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h1 class="text-lg font-bold font-headline tracking-tight text-on-surface">에어핏 프리미엄 오버핏 티셔츠</h1>
+<span class="px-2 py-0.5 bg-secondary-container text-on-secondary-container text-xs font-bold rounded-md">완료</span>
+</div>
+<p class="text-xs text-on-surface-variant flex items-center gap-2">
+<span>2024-03-20</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="font-mono opacity-80">https://store.chatsio.com/p/10293</span>
+</p>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-5 py-2.5 bg-surface-container-high text-on-primary-fixed-variant font-semibold rounded-xl hover:bg-surface-container-highest transition-colors">
+                    다시 최적화
+                </button>
+<button class="px-5 py-2.5 bg-gradient-to-br from-primary to-primary-container text-white font-bold rounded-xl shadow-lvl2 hover:scale-[0.98] transition-all">
+                    JSON-LD 복사
+                </button>
+</div>
+</header>
+<main class="flex-1 max-w-[1600px] mx-auto w-full p-8 gap-8 grid grid-cols-10">
+<!-- Left Column: Optimization Results (5.8/10) -->
+<div class="col-span-10 lg:col-span-6 space-y-6">
+<!-- Tabs Section -->
+<div class="flex items-center gap-1 bg-surface-container-low p-1.5 rounded-2xl w-fit">
+<button class="px-6 py-2.5 bg-white text-primary font-bold rounded-xl shadow-sm">속성 목록</button>
+<button class="px-6 py-2.5 text-on-surface-variant font-semibold hover:bg-white/50 rounded-xl transition-all">JSON-LD 코드</button>
+<button class="px-6 py-2.5 text-on-surface-variant font-semibold hover:bg-white/50 rounded-xl transition-all">llms.txt</button>
+</div>
+<!-- Attribute Groups -->
+<div class="space-y-6">
+<!-- Card: Basic Info -->
+<section class="bg-white rounded-3xl p-8 shadow-lvl1 border-l-4 border-primary">
+<div class="flex items-center justify-between mb-8">
+<h2 class="text-xl font-bold font-headline flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">info</span>
+                                기본 정보
+                            </h2>
+<span class="text-xs font-semibold text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">3 attributes</span>
+</div>
+<div class="space-y-1">
+<div class="group flex items-center justify-between p-4 hover:bg-surface-container-low rounded-2xl transition-all">
+<div class="w-1/3 text-on-surface-variant font-medium">상품명 (Name)</div>
+<div class="w-2/3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="text-on-surface font-semibold">에어핏 프리미엄 오버핏 티셔츠</span>
+<span class="flex items-center gap-1 text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                            HIGH
+                                        </span>
+</div>
+<button class="opacity-0 group-hover:opacity-100 material-symbols-outlined text-outline hover:text-primary transition-all">edit</button>
+</div>
+</div>
+<div class="group flex items-center justify-between p-4 hover:bg-surface-container-low rounded-2xl transition-all">
+<div class="w-1/3 text-on-surface-variant font-medium">브랜드 (Brand)</div>
+<div class="w-2/3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<input class="bg-surface-container-lowest border-primary/20 border-2 rounded-lg px-2 py-1 text-on-surface font-semibold focus:ring-4 ring-primary/10 transition-all outline-none" type="text" value="Chatsio Apparel"/>
+<span class="flex items-center gap-1 text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                            HIGH
+                                        </span>
+</div>
+<div class="flex items-center gap-2">
+<button class="material-symbols-outlined text-green-600">check</button>
+<button class="material-symbols-outlined text-error">close</button>
+</div>
+</div>
+</div>
+<div class="group flex items-center justify-between p-4 hover:bg-surface-container-low rounded-2xl transition-all">
+<div class="w-1/3 text-on-surface-variant font-medium">카테고리 (Category)</div>
+<div class="w-2/3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="text-on-surface font-semibold">의류 &gt; 상의 &gt; 반팔 티셔츠</span>
+<span class="flex items-center gap-1 text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">info</span>
+                                            MEDIUM
+                                        </span>
+</div>
+<button class="opacity-0 group-hover:opacity-100 material-symbols-outlined text-outline hover:text-primary transition-all">edit</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Card: Detailed Attributes -->
+<section class="bg-white rounded-3xl p-8 shadow-lvl1">
+<div class="flex items-center justify-between mb-8">
+<h2 class="text-xl font-bold font-headline flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">analytics</span>
+                                상세 속성
+                            </h2>
+</div>
+<div class="grid grid-cols-1 gap-1">
+<div class="group flex items-center justify-between p-4 hover:bg-surface-container-low rounded-2xl transition-all">
+<div class="w-1/3 text-on-surface-variant font-medium">소재 (Material)</div>
+<div class="w-2/3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="text-on-surface font-semibold">코마사 100% 코튼 (20수)</span>
+<span class="flex items-center gap-1 text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">HIGH</span>
+</div>
+<button class="opacity-0 group-hover:opacity-100 material-symbols-outlined text-outline transition-all">edit</button>
+</div>
+</div>
+<div class="group flex items-center justify-between p-4 hover:bg-surface-container-low rounded-2xl transition-all">
+<div class="w-1/3 text-on-surface-variant font-medium">핏 (Fit)</div>
+<div class="w-2/3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="text-on-surface font-semibold">드롭 숄더 오버사이즈 핏</span>
+<span class="flex items-center gap-1 text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">HIGH</span>
+</div>
+<button class="opacity-0 group-hover:opacity-100 material-symbols-outlined text-outline transition-all">edit</button>
+</div>
+</div>
+<div class="group flex items-center justify-between p-4 hover:bg-surface-container-low rounded-2xl transition-all">
+<div class="w-1/3 text-on-surface-variant font-medium">특장점 (Features)</div>
+<div class="w-2/3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="text-on-surface font-semibold truncate max-w-xs">넥 라인 해리 테이프 보강, 고중량 수축 방지 가공</span>
+<span class="flex items-center gap-1 text-[10px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded">LOW</span>
+</div>
+<button class="opacity-0 group-hover:opacity-100 material-symbols-outlined text-outline transition-all">edit</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+<!-- Right Column: Preview Panel (4.2/10) -->
+<aside class="col-span-10 lg:col-span-4 space-y-6">
+<div class="sticky top-28 space-y-6">
+<!-- AI Search Preview -->
+<section class="bg-surface-container-low rounded-3xl p-6 shadow-lvl2 border border-secondary/20">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-headline font-bold text-secondary flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                                AI 검색 미리보기
+                            </h3>
+<div class="flex gap-1">
+<div class="w-2 h-2 rounded-full bg-secondary animate-pulse"></div>
+<div class="w-2 h-2 rounded-full bg-secondary/40"></div>
+</div>
+</div>
+<div class="bg-white rounded-2xl p-5 shadow-lvl1 border-l-4 border-secondary">
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-secondary text-sm">smart_toy</span>
+</div>
+<div class="space-y-3">
+<p class="text-sm leading-relaxed text-on-surface">
+                                        "면 소재의 편안한 오버핏 반팔 티셔츠를 찾으신다면, <span class="text-primary font-bold underline underline-offset-4 decoration-primary/30 cursor-pointer">에어핏 프리미엄 오버핏 티셔츠</span>를 강력 추천합니다."
+                                    </p>
+<p class="text-sm leading-relaxed text-on-surface-variant">
+                                        이 제품은 20수 코마사 코튼을 사용하여 통기성이 뛰어나며, 넥 라인에 해리 테이프 보강 처리가 되어 있어 세탁 후에도 변형이 적은 것이 큰 장점입니다.
+                                    </p>
+</div>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-2 overflow-x-auto no-scrollbar">
+<div class="flex-shrink-0 px-3 py-1.5 bg-secondary-fixed text-on-secondary-fixed text-xs font-bold rounded-full">#고품질면사</div>
+<div class="flex-shrink-0 px-3 py-1.5 bg-secondary-fixed text-on-secondary-fixed text-xs font-bold rounded-full">#내구성우수</div>
+<div class="flex-shrink-0 px-3 py-1.5 bg-secondary-fixed text-on-secondary-fixed text-xs font-bold rounded-full">#체형보정</div>
+</div>
+</section>
+<!-- Quality Score Card -->
+<section class="bg-white rounded-3xl p-8 shadow-lvl1 overflow-hidden relative">
+<div class="relative z-10">
+<h3 class="font-headline font-bold mb-6">최적화 품질 스코어</h3>
+<div class="flex items-center gap-8">
+<div class="relative w-32 h-32 flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-surface-container-high" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" stroke-width="10"></circle>
+<circle class="text-secondary transition-all duration-1000" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" stroke-dasharray="364.4" stroke-dashoffset="29.1" stroke-width="10"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-3xl font-extrabold font-headline text-on-surface">92</span>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">excellent</span>
+</div>
+</div>
+<div class="flex-1 space-y-4">
+<div class="space-y-1.5">
+<div class="flex justify-between text-xs font-bold">
+<span class="text-on-surface-variant">Schema Completeness</span>
+<span class="text-primary">98%</span>
+</div>
+<div class="h-2 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[98%] rounded-full"></div>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex justify-between text-xs font-bold">
+<span class="text-on-surface-variant">Content Depth</span>
+<span class="text-secondary">85%</span>
+</div>
+<div class="h-2 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[85%] rounded-full"></div>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex justify-between text-xs font-bold">
+<span class="text-on-surface-variant">SEO Optimization</span>
+<span class="text-primary-container">94%</span>
+</div>
+<div class="h-2 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-[94%] rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="absolute -bottom-12 -right-12 w-48 h-48 bg-secondary/5 rounded-full blur-3xl"></div>
+</section>
+<!-- History Card -->
+<section class="bg-white rounded-3xl p-8 shadow-lvl1">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-headline font-bold">최적화 히스토리</h3>
+<button class="material-symbols-outlined text-outline">history</button>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-3 bg-surface-container-lowest border border-primary/10 rounded-2xl">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+<span class="text-xs font-bold text-primary">v3</span>
+</div>
+<div>
+<div class="text-sm font-bold">현재 버전</div>
+<div class="text-[10px] text-on-surface-variant">2024-03-20 14:22</div>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex items-center justify-between p-3 hover:bg-surface-container-low transition-all rounded-2xl">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center">
+<span class="text-xs font-bold text-on-surface-variant">v2</span>
+</div>
+<div>
+<div class="text-sm font-semibold">속성 값 수정</div>
+<div class="text-[10px] text-on-surface-variant">2024-03-19 11:05</div>
+</div>
+</div>
+<button class="text-xs font-bold text-primary hover:underline">복구하기</button>
+</div>
+<div class="flex items-center justify-between p-3 hover:bg-surface-container-low transition-all rounded-2xl">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center">
+<span class="text-xs font-bold text-on-surface-variant">v1</span>
+</div>
+<div>
+<div class="text-sm font-semibold">최초 최적화</div>
+<div class="text-[10px] text-on-surface-variant">2024-03-18 09:30</div>
+</div>
+</div>
+<button class="text-xs font-bold text-primary hover:underline">복구하기</button>
+</div>
+</div>
+</section>
+</div>
+</aside>
+</main>
+</div>
+<!-- Code Editor Modal Overlay (Example triggered state for JSON-LD Code Tab) -->
+<!-- This would normally be toggled, but here's the structure for the requested JSON-LD view -->
+<div class="hidden fixed inset-0 z-[60] bg-on-surface/20 backdrop-blur-sm flex items-center justify-center p-8">
+<div class="bg-white w-full max-w-5xl rounded-3xl shadow-lvl4 overflow-hidden flex flex-col h-[819px]">
+<div class="p-6 border-b border-surface-container-highest flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">code</span>
+<h3 class="font-headline font-extrabold text-xl">JSON-LD 최적화 코드</h3>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-4 py-2 bg-surface-container text-on-surface font-bold rounded-xl flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">open_in_new</span> Google 테스트
+                    </button>
+<button class="px-4 py-2 bg-primary text-white font-bold rounded-xl flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">content_copy</span> 복사
+                    </button>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-error/10 text-error transition-all">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</div>
+<div class="flex-1 bg-slate-900 overflow-auto p-0 flex font-mono text-sm leading-relaxed">
+<div class="bg-slate-950/50 text-slate-500 px-4 py-6 text-right select-none border-r border-slate-800">
+                    1<br/>2<br/>3<br/>4<br/>5<br/>6<br/>7<br/>8<br/>9<br/>10<br/>11<br/>12<br/>13<br/>14<br/>15
+                </div>
+<div class="p-6 text-slate-300 overflow-x-auto w-full">
+<pre class="whitespace-pre"><code>{
+  "<span class="text-pink-400">@context</span>": "<span class="text-emerald-400">https://schema.org/</span>",
+  "<span class="text-pink-400">@type</span>": "<span class="text-emerald-400">Product</span>",
+  "<span class="text-pink-400">name</span>": "<span class="text-emerald-400">에어핏 프리미엄 오버핏 티셔츠</span>",
+  "<span class="text-pink-400">image</span>": [
+    "<span class="text-emerald-400">https://store.chatsio.com/img/10293_1.jpg</span>",
+    "<span class="text-emerald-400">https://store.chatsio.com/img/10293_2.jpg</span>"
+  ],
+  "<span class="text-pink-400">description</span>": "<span class="text-emerald-400">20수 코마사 코튼 100%를 사용한 고품질 오버핏 반팔 티셔츠...</span>",
+  "<span class="text-pink-400">brand</span>": {
+    "<span class="text-pink-400">@type</span>": "<span class="text-emerald-400">Brand</span>",
+    "<span class="text-pink-400">name</span>": "<span class="text-emerald-400">Chatsio Apparel</span>"
+  },
+  "<span class="text-pink-400">offers</span>": {
+    "<span class="text-pink-400">@type</span>": "<span class="text-emerald-400">Offer</span>",
+    "<span class="text-pink-400">price</span>": "<span class="text-emerald-400">29000</span>",
+    "<span class="text-pink-400">priceCurrency</span>": "<span class="text-emerald-400">KRW</span>"
+  }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</body></html>

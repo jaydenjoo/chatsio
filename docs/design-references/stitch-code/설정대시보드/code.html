@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chatsio V2 - Dashboard Settings</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-dim": "#d5dae3",
+                        "secondary": "#006c4d",
+                        "on-tertiary-fixed": "#111c2b",
+                        "background": "#f7f9ff",
+                        "tertiary-fixed": "#d8e3f7",
+                        "on-tertiary-fixed-variant": "#3c4758",
+                        "on-secondary-fixed": "#002115",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "primary": "#006195",
+                        "on-surface": "#161c23",
+                        "surface-container": "#e9eef7",
+                        "inverse-surface": "#2b3138",
+                        "inverse-on-surface": "#ecf1fa",
+                        "secondary-fixed-dim": "#6ddaae",
+                        "outline": "#6f7881",
+                        "secondary-container": "#87f4c6",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#3f4850",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#bcc7db",
+                        "on-secondary-container": "#007151",
+                        "on-primary-fixed": "#001d32",
+                        "tertiary-container": "#6a7587",
+                        "on-tertiary-container": "#fdfcff",
+                        "tertiary": "#525d6d",
+                        "on-primary-container": "#fdfcff",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed-variant": "#005139",
+                        "inverse-primary": "#94ccff",
+                        "secondary-fixed": "#8af7c9",
+                        "error-container": "#ffdad6",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#161c23",
+                        "surface": "#f7f9ff",
+                        "primary-fixed": "#cde5ff",
+                        "primary-container": "#007aba",
+                        "surface-tint": "#006398",
+                        "surface-container-highest": "#dde3ec",
+                        "surface-bright": "#f7f9ff",
+                        "on-primary-fixed-variant": "#004b74",
+                        "outline-variant": "#bfc7d2",
+                        "primary-fixed-dim": "#94ccff",
+                        "surface-variant": "#dde3ec",
+                        "surface-container-low": "#eff4fd",
+                        "surface-container-high": "#e3e8f2"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', 'Pretendard', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- TopNavBar -->
+<header class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-sm shadow-sky-900/5 w-full sticky top-0 z-50 border-b border-transparent">
+<div class="flex items-center justify-between px-6 h-16 w-full">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tight text-sky-700 dark:text-sky-300">Chatsio</span>
+<nav class="hidden md:flex gap-6">
+<a class="text-sky-600 dark:text-sky-400 border-b-2 border-sky-600 font-plus-jakarta text-sm font-medium h-16 flex items-center" href="#">Dashboard</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-sky-500 transition-colors duration-200 font-plus-jakarta text-sm font-medium h-16 flex items-center" href="#">Analytics</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-sky-500 transition-colors duration-200 font-plus-jakarta text-sm font-medium h-16 flex items-center" href="#">Campaigns</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full">
+<span class="material-symbols-outlined text-lg text-outline">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-32" placeholder="Search..." type="text"/>
+</div>
+<button class="material-symbols-outlined text-outline hover:text-primary transition-colors">notifications</button>
+<button class="material-symbols-outlined text-outline hover:text-primary transition-colors">help</button>
+<button class="bg-primary-container text-on-primary-container px-4 py-2 rounded-full font-bold text-sm hover:opacity-90 transition-all active:scale-95">Upgrade</button>
+<img class="w-8 h-8 rounded-full object-cover" data-alt="close-up portrait of a professional smiling man in a modern office setting with soft natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZwFuFyQ2JLmbbIDRyAxZsePdK1CPMO5z4h9YrQWVdeHxE4oTiiIHTISq43aBTTIMJ04nWcu1MZ4PLIiztjaqeugF47N09id9zRXWnXYOtrt5UJOy0aL9csxN2IgGQR_JAKPrpPuRXMGqkerc6q56vkHpClg72HKlnnwFrqbhCkLcvD2Qv1Sx-AcSo4DC28LMpE8YWTYYz_nW1Q6o2A5cuCYFZCJk5sLxvr6V2O0vD9zdAx3w7G7kW-mO61imGj1B7_1QwhO3-U7ob"/>
+</div>
+</div>
+</header>
+<div class="flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="bg-slate-50 dark:bg-slate-950 h-screen w-64 fixed left-0 top-0 pt-16 z-40 hidden md:block">
+<div class="flex flex-col gap-2 p-4 h-full">
+<div class="px-4 py-6">
+<h2 class="text-lg font-bold text-on-surface">Settings</h2>
+<p class="text-xs text-on-surface-variant font-medium tracking-wide">Manage your workspace</p>
+</div>
+<nav class="flex flex-col gap-1">
+<!-- Active Tab: Profile (Using exact labels from instruction) -->
+<a class="bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 font-bold rounded-lg border-r-4 border-sky-600 flex items-center gap-3 px-4 py-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-plus-jakarta text-sm tracking-wide">Profile</span>
+</a>
+<a class="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 flex items-center gap-3 px-4 py-3 rounded-lg hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">storefront</span>
+<span class="font-plus-jakarta text-sm tracking-wide">Shop Info</span>
+</a>
+<a class="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 flex items-center gap-3 px-4 py-3 rounded-lg hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">rocket_launch</span>
+<span class="font-plus-jakarta text-sm tracking-wide">Deployment</span>
+</a>
+<a class="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 flex items-center gap-3 px-4 py-3 rounded-lg hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-plus-jakarta text-sm tracking-wide">Billing</span>
+</a>
+<a class="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 flex items-center gap-3 px-4 py-3 rounded-lg hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">database</span>
+<span class="font-plus-jakarta text-sm tracking-wide">Data</span>
+</a>
+</nav>
+<div class="mt-auto pt-4 border-t border-outline-variant/10">
+<div class="flex items-center gap-2 px-4 py-2 mb-4">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+</span>
+<span class="text-[10px] font-bold text-secondary uppercase tracking-widest">System Status: Live</span>
+</div>
+<a class="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 flex items-center gap-3 px-4 py-3 rounded-lg hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">contact_support</span>
+<span class="font-plus-jakarta text-sm tracking-wide">Support</span>
+</a>
+<a class="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 flex items-center gap-3 px-4 py-3 rounded-lg hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-plus-jakarta text-sm tracking-wide">Logout</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 md:ml-64 p-8 bg-surface">
+<div class="max-w-4xl mx-auto space-y-8">
+<!-- Bento Layout Header -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Profile Identity Card -->
+<div class="md:col-span-2 bg-surface-container-lowest rounded-2xl p-8 shadow-[0_10px_30px_-5px_rgba(0,97,149,0.08)] flex items-center gap-8">
+<div class="relative group">
+<img class="w-[100px] h-[100px] rounded-full object-cover border-4 border-surface-container" data-alt="modern aesthetic 3d avatar of a male user with stylish hair and glasses on a pastel blue background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7cbyGlYmrpk8AUu8KjkqC6v42fxVapV-xmfxJ7MXZE7IoChM43LvmMeWecAAIiJQuiav-WFzH52PADes38HOT4U-Q8C6AjeHHrSSu--tUjTing41SGwFlTS_UIti8ys62CUm9fZdLfVbY_u-BgVpQAtD4mfAbc4JakS-tcDNoOjdVEJKqQ5UrDdx8B-C9OJ0c9wMFbWLlNu2F238Axcy3ad0IMo6uYDyIV7IMQLORqgzxt0JlH74F2vKOqfYhxpppAQXc5Ii4ed3F"/>
+<button class="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full shadow-lg hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+</div>
+<div class="flex-1">
+<h1 class="text-3xl font-extrabold text-on-surface tracking-tight mb-1">김준호</h1>
+<p class="text-on-surface-variant font-medium">junho.kim@chatsio.io</p>
+<div class="mt-4 flex gap-2">
+<span class="px-3 py-1 bg-secondary-fixed text-on-secondary-fixed text-xs font-bold rounded-full">Pro Member</span>
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-xs font-bold rounded-full">Admin</span>
+</div>
+</div>
+</div>
+<!-- Connection Status Bento Item -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_10px_30px_-5px_rgba(0,97,149,0.08)] flex flex-col justify-center items-center text-center">
+<div class="w-12 h-12 bg-sky-50 rounded-full flex items-center justify-center mb-4">
+<img class="w-6 h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAj5fXGbDnH1Y4qoDUbyMrmnInVPgZ189hsdD8XLBtSmcbnMNVJiqGYMExya61z5PEdqZlXNeTzRbWVzLQisCqpw4DFraYEwFXnW0VVUHTdpnKc5v0amlPwof4ygSN86-s3Lj235P-m8GB_ByWVL3uGXJv6krGJ0GNFd8HKHqjWmyZMMQUhQoF30jCXW9f5NfPu5N6QztG2h9P7HaFTag-x6Wy-X1WgPmLWVs10b3QoKR3ivVBOAQBheutPN0ucfaM2MEj9ioRY13AA"/>
+</div>
+<p class="text-sm font-bold text-on-surface mb-1">Google 계정 연결됨 ✅</p>
+<p class="text-xs text-on-surface-variant">Last synced 2 hours ago</p>
+<button class="mt-4 text-xs font-bold text-primary hover:underline">Manage Account</button>
+</div>
+</div>
+<!-- Form Section: Account Details -->
+<section class="bg-surface-container-low rounded-2xl p-8 space-y-8">
+<div class="flex items-center justify-between">
+<h2 class="text-xl font-bold text-on-surface">프로필 설정</h2>
+<button class="bg-primary text-on-primary px-8 py-3 rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 hover:opacity-95 transition-all active:scale-95">저장</button>
+</div>
+<!-- Grid for Inputs -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Profile Inputs -->
+<div class="space-y-6">
+<div>
+<label class="block font-headline text-sm font-bold text-on-surface mb-2">Name</label>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border-none rounded-xl px-4 py-3.5 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all" type="text" value="김준호"/>
+<span class="material-symbols-outlined absolute right-4 top-3.5 text-outline text-lg">edit</span>
+</div>
+</div>
+<div>
+<label class="block font-headline text-sm font-bold text-on-surface mb-2">Email Address</label>
+<input class="w-full bg-surface-container-highest border-none rounded-xl px-4 py-3.5 text-on-surface-variant cursor-not-allowed" readonly="" type="email" value="junho.kim@chatsio.io"/>
+</div>
+</div>
+<!-- Password Section -->
+<div class="space-y-6 p-6 bg-surface-container-highest/40 rounded-2xl">
+<h3 class="font-headline text-sm font-bold text-on-primary-fixed-variant uppercase tracking-widest mb-4">Security</h3>
+<div>
+<label class="block font-headline text-sm font-bold text-on-surface mb-2">Current Password</label>
+<input class="w-full bg-surface-container-lowest border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/20 transition-all" placeholder="••••••••" type="password"/>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block font-headline text-sm font-bold text-on-surface mb-2">New Password</label>
+<input class="w-full bg-surface-container-lowest border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/20 transition-all" type="password"/>
+</div>
+<div>
+<label class="block font-headline text-sm font-bold text-on-surface mb-2">Confirm Password</label>
+<input class="w-full bg-surface-container-lowest border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/20 transition-all" type="password"/>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Shop Info Preview Section (Next in flow) -->
+<section class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<div class="md:col-span-3 bg-surface-container-lowest rounded-2xl p-8 shadow-sm">
+<div class="flex items-center justify-between mb-8">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-secondary-container text-on-secondary-container rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined">storefront</span>
+</div>
+<h2 class="text-xl font-bold text-on-surface">쇼핑몰 정보</h2>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-6">
+<div class="space-y-4">
+<div>
+<label class="block text-xs font-bold text-on-surface-variant uppercase mb-2">Shop Name</label>
+<p class="text-on-surface font-semibold">준호네 문방구</p>
+</div>
+<div>
+<label class="block text-xs font-bold text-on-surface-variant uppercase mb-2">Platform</label>
+<p class="text-on-surface font-semibold">Cafe24</p>
+</div>
+</div>
+<div class="space-y-4">
+<div>
+<label class="block text-xs font-bold text-on-surface-variant uppercase mb-2">URL</label>
+<p class="text-primary font-semibold">https://junho-shop.kr</p>
+</div>
+<div>
+<label class="block text-xs font-bold text-on-surface-variant uppercase mb-2">Sector</label>
+<p class="text-on-surface font-semibold">General Retail</p>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-primary-container rounded-2xl p-6 text-on-primary-container flex flex-col justify-between">
+<span class="material-symbols-outlined text-4xl opacity-50">auto_awesome</span>
+<div>
+<p class="text-xs font-bold uppercase tracking-wider mb-2">Upgrade Status</p>
+<p class="text-lg font-bold leading-tight">Switch to Enterprise for Advanced Data Tracking</p>
+</div>
+</div>
+</section>
+<!-- Danger Zone -->
+<section class="border-2 border-error/10 bg-error-container/5 rounded-2xl p-8">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="text-lg font-bold text-error">Danger Zone</h2>
+<p class="text-on-surface-variant text-sm mt-1">이 작업은 취소할 수 없습니다. 데이터 관리에 주의하세요.</p>
+</div>
+<button class="border border-error text-error px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-error hover:text-white transition-all">계정 삭제</button>
+</div>
+</section>
+</div>
+</main>
+</div>
+<!-- Mobile Bottom NavBar -->
+<footer class="md:hidden fixed bottom-0 left-0 right-0 glass-nav z-50">
+<div class="flex items-center justify-around h-16">
+<button class="flex flex-col items-center gap-1 text-sky-600">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="text-[10px] font-bold">Profile</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">storefront</span>
+<span class="text-[10px] font-medium">Shop</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">rocket_launch</span>
+<span class="text-[10px] font-medium">Deploy</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-[10px] font-medium">Billing</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">database</span>
+<span class="text-[10px] font-medium">Data</span>
+</button>
+</div>
+</footer>
+</body></html>

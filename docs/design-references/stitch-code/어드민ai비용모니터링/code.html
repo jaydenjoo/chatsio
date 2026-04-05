@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chatsio Admin - AI 비용 모니터링</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#161c23",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#8af7c9",
+                        "surface-container-high": "#e3e8f2",
+                        "surface-container-low": "#eff4fd",
+                        "surface-variant": "#dde3ec",
+                        "primary-fixed-dim": "#94ccff",
+                        "outline-variant": "#bfc7d2",
+                        "surface-tint": "#006398",
+                        "surface-container-highest": "#dde3ec",
+                        "surface-bright": "#f7f9ff",
+                        "on-primary-fixed-variant": "#004b74",
+                        "surface": "#f7f9ff",
+                        "primary-fixed": "#cde5ff",
+                        "primary-container": "#007aba",
+                        "on-primary-container": "#fdfcff",
+                        "tertiary": "#525d6d",
+                        "tertiary-container": "#6a7587",
+                        "on-tertiary-container": "#fdfcff",
+                        "on-secondary-container": "#007151",
+                        "on-primary-fixed": "#001d32",
+                        "inverse-primary": "#94ccff",
+                        "on-secondary-fixed-variant": "#005139",
+                        "error": "#ba1a1a",
+                        "secondary-container": "#87f4c6",
+                        "on-secondary": "#ffffff",
+                        "outline": "#6f7881",
+                        "secondary-fixed-dim": "#6ddaae",
+                        "inverse-on-surface": "#ecf1fa",
+                        "tertiary-fixed-dim": "#bcc7db",
+                        "on-error-container": "#93000a",
+                        "on-surface-variant": "#3f4850",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed": "#d8e3f7",
+                        "on-tertiary-fixed-variant": "#3c4758",
+                        "on-secondary-fixed": "#002115",
+                        "secondary": "#006c4d",
+                        "on-tertiary-fixed": "#111c2b",
+                        "background": "#f7f9ff",
+                        "surface-dim": "#d5dae3",
+                        "surface-container": "#e9eef7",
+                        "inverse-surface": "#2b3138",
+                        "primary": "#006195",
+                        "on-surface": "#161c23",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "accent-warm": "#ff9100"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans", "sans-serif"],
+                        "body": ["Manrope", "Pretendard", "sans-serif"],
+                        "label": ["Manrope", "Pretendard", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', 'Pretendard', sans-serif; }
+        .font-headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-auto-rows: minmax(160px, auto);
+            gap: 24px;
+        }
+        .chart-bar { transition: height 1s ease-in-out; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- SideNavBar -->
+<aside class="bg-slate-900 h-screen w-64 fixed left-0 top-0 overflow-y-auto flex flex-col gap-2 p-4 shadow-2xl z-40 font-['Plus_Jakarta_Sans','Pretendard'] text-sm font-medium">
+<div class="flex items-center gap-3 mb-8 px-2">
+<div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<div>
+<h1 class="text-xl font-bold text-white tracking-tight">Chatsio</h1>
+<p class="text-[10px] text-slate-400 uppercase tracking-widest">Admin Dashboard</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all duration-200 ease-in-out hover:pl-4" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>서비스 현황</span>
+</a>
+<a class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all duration-200 ease-in-out hover:pl-4" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>고객 관리</span>
+</a>
+<a class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all duration-200 ease-in-out hover:pl-4" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>최적화 모니터링</span>
+</a>
+<a class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all duration-200 ease-in-out hover:pl-4" href="#">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+<span>프롬프트 관리</span>
+</a>
+<!-- Active State: AI 비용 -->
+<a class="flex items-center gap-3 p-3 rounded-lg bg-sky-500/10 text-sky-400 font-bold border-r-4 border-sky-500 transition-all duration-200 ease-in-out pl-4" href="#">
+<span class="material-symbols-outlined" data-icon="payments" style="font-variation-settings: 'FILL' 1;">payments</span>
+<span>AI 비용</span>
+</a>
+<a class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all duration-200 ease-in-out hover:pl-4" href="#">
+<span class="material-symbols-outlined" data-icon="history_edu">history_edu</span>
+<span>인용 추적 관리</span>
+</a>
+</nav>
+<div class="mt-auto pt-4 space-y-1">
+<button class="w-full bg-primary-container text-white py-3 rounded-xl font-bold mb-4 flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[0.98] transition-transform">
+<span class="material-symbols-outlined text-sm">add</span>
+                신규 캠페인 생성
+            </button>
+<a class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>설정</span>
+</a>
+<a class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span>로그아웃</span>
+</a>
+</div>
+</aside>
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 left-64 h-16 z-30 bg-white/80 backdrop-blur-md flex items-center justify-between px-8 w-full shadow-sm">
+<div class="flex items-center flex-1">
+<div class="relative w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container rounded-full border-none focus:ring-2 focus:ring-primary/20 text-sm" placeholder="고객사 또는 모델 검색..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-secondary-container/30 text-secondary rounded-full text-xs font-bold">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+</span>
+                시스템 정상
+            </div>
+<button class="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<div class="flex items-center gap-3 pl-4 border-l border-slate-200">
+<div class="text-right">
+<p class="text-sm font-bold text-on-surface">김관리 본부장</p>
+<p class="text-[10px] text-slate-500">최고 관리자</p>
+</div>
+<img alt="Admin Profile" class="w-10 h-10 rounded-full border-2 border-primary/10" data-alt="Professional headshot of a middle-aged man in business attire, clean studio lighting, high-end editorial style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjz7QifMLdViaBkTP4Nz8wrVi75EHsvn9bo48jwbLWPcifeucZnMHwlbkWNS8Cfl9w-Icg7oUtv9bYxteKmG8Ep8Cac0yL7KrfWcmBmho4T7S5SJOKIGnTx-vmwiUkfwsTvpZegr15cg6jMCu-21MaEpHHE3NKbU3Ms2Y1oJlvzxCBWB4_Z7X0yYKE-vRhQwy_6POk2WWUcnCSFQEBj7pU9LEJ65lWT2VgaE0Zm28rDAIG-ldAd-ezWLsMsWCJZrXNZbkmLLdj5BM6"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 pt-20 p-8 min-h-screen bg-surface-container-low">
+<div class="mb-8">
+<h2 class="text-2xl font-extrabold text-on-surface font-headline tracking-tight">AI 비용 모니터링</h2>
+<p class="text-on-surface-variant text-sm mt-1">실시간 API 호출 분석 및 예산 최적화 대시보드</p>
+</div>
+<!-- KPI Bento Grid -->
+<div class="bento-grid mb-8">
+<!-- Large Card (2x2) -->
+<div class="col-span-2 row-span-2 bg-surface-container-lowest p-8 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between">
+<div class="relative z-10">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-on-surface-variant font-semibold text-sm">이번 달 총 비용</p>
+<h3 class="text-5xl font-extrabold text-primary font-headline mt-2">₩428,200</h3>
+</div>
+<div class="px-3 py-1 bg-red-50 text-error rounded-full text-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+                            12.5%
+                            <span class="text-[10px] font-medium text-slate-400 ml-1">vs 지난달</span>
+</div>
+</div>
+</div>
+<div class="mt-8 flex items-end gap-1 h-32 relative z-10">
+<!-- Fake Micro Chart -->
+<div class="flex-1 bg-primary/10 rounded-t-lg chart-bar" style="height: 40%"></div>
+<div class="flex-1 bg-primary/10 rounded-t-lg chart-bar" style="height: 55%"></div>
+<div class="flex-1 bg-primary/10 rounded-t-lg chart-bar" style="height: 45%"></div>
+<div class="flex-1 bg-primary/10 rounded-t-lg chart-bar" style="height: 70%"></div>
+<div class="flex-1 bg-primary/10 rounded-t-lg chart-bar" style="height: 60%"></div>
+<div class="flex-1 bg-primary/20 rounded-t-lg chart-bar" style="height: 85%"></div>
+<div class="flex-1 bg-primary rounded-t-lg chart-bar shadow-[0_-4px_10px_rgba(0,97,149,0.2)]" style="height: 100%"></div>
+</div>
+<!-- Background Decorative Pattern -->
+<div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,97,149,0.03),transparent)]"></div>
+</div>
+<!-- Medium Card: Today Cost -->
+<div class="col-span-1 bg-surface-container-lowest p-6 rounded-3xl shadow-sm flex flex-col justify-between border-l-4 border-secondary">
+<p class="text-on-surface-variant font-semibold text-sm">오늘 비용</p>
+<div>
+<h3 class="text-2xl font-extrabold text-on-surface font-headline">₩14,200</h3>
+<p class="text-xs text-secondary font-bold mt-1">예상 일일 마감: ₩18,500</p>
+</div>
+</div>
+<!-- Medium Card: Total Calls -->
+<div class="col-span-1 bg-surface-container-lowest p-6 rounded-3xl shadow-sm flex flex-col justify-between border-l-4 border-primary">
+<p class="text-on-surface-variant font-semibold text-sm">총 API 호출</p>
+<div>
+<h3 class="text-2xl font-extrabold text-on-surface font-headline">1,429건</h3>
+<p class="text-xs text-on-surface-variant mt-1">평균 성공률 99.8%</p>
+</div>
+</div>
+<!-- Large Budget Card -->
+<div class="col-span-2 bg-surface-container-lowest p-6 rounded-3xl shadow-sm flex flex-col justify-center">
+<div class="flex justify-between items-end mb-4">
+<div>
+<p class="text-on-surface-variant font-semibold text-sm">월 예산 대비 진행률</p>
+<p class="text-xs text-slate-400">목표 예산: ₩500,000</p>
+</div>
+<span class="text-2xl font-extrabold text-accent-warm">85%</span>
+</div>
+<div class="w-full h-4 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-accent-warm rounded-full" style="width: 85%"></div>
+</div>
+<p class="text-[11px] text-error mt-3 flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">warning</span>
+                    현재 추세 유지 시 이번 달 예산을 12% 초과할 것으로 예상됩니다.
+                </p>
+</div>
+</div>
+<!-- Middle Section: Config & Main Charts -->
+<div class="grid grid-cols-12 gap-6 mb-8">
+<!-- Settings Card -->
+<div class="col-span-4 bg-surface-container-lowest p-6 rounded-3xl shadow-sm h-full">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-accent-warm">notifications_active</span>
+<h4 class="font-bold text-on-surface">비용 상한 알림 설정</h4>
+</div>
+<div class="space-y-6">
+<div>
+<label class="block text-xs font-bold text-on-surface-variant mb-2">알림 기준 금액 (KRW)</label>
+<div class="relative">
+<input class="w-full bg-surface-container-high border-none rounded-xl py-3 px-4 font-headline font-bold focus:ring-2 focus:ring-primary/20" type="text" value="500,000"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₩</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface rounded-2xl">
+<div>
+<p class="text-sm font-bold">실시간 경고 토글</p>
+<p class="text-[10px] text-on-surface-variant">예산 90% 도달 시 담당자에게 슬랙 알림</p>
+</div>
+<div class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</div>
+</div>
+<button class="w-full py-3 bg-surface-container-high text-on-surface font-bold rounded-xl hover:bg-surface-container-highest transition-colors">설정 저장하기</button>
+</div>
+</div>
+<!-- Bar Chart Section -->
+<div class="col-span-8 bg-surface-container-lowest p-6 rounded-3xl shadow-sm">
+<div class="flex justify-between items-center mb-8">
+<h4 class="font-bold text-on-surface">최근 30일 일별 비용 추이</h4>
+<div class="flex gap-4">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="text-xs font-medium text-on-surface-variant">Claude</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="text-xs font-medium text-on-surface-variant">ChatGPT</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-slate-400"></span>
+<span class="text-xs font-medium text-on-surface-variant">기타</span>
+</div>
+</div>
+</div>
+<div class="h-64 flex items-end justify-between gap-1">
+<!-- Simple Mockup Bar Chart -->
+<div class="flex-1 flex flex-col-reverse gap-0.5">
+<div class="bg-primary rounded-t-sm" style="height: 40%"></div>
+<div class="bg-secondary" style="height: 20%"></div>
+<div class="bg-slate-400" style="height: 10%"></div>
+</div>
+<div class="flex-1 flex flex-col-reverse gap-0.5">
+<div class="bg-primary rounded-t-sm" style="height: 45%"></div>
+<div class="bg-secondary" style="height: 15%"></div>
+<div class="bg-slate-400" style="height: 5%"></div>
+</div>
+<div class="flex-1 flex flex-col-reverse gap-0.5">
+<div class="bg-primary rounded-t-sm" style="height: 35%"></div>
+<div class="bg-secondary" style="height: 25%"></div>
+<div class="bg-slate-400" style="height: 15%"></div>
+</div>
+<!-- Repeat multiple times to fill 30 days visualization -->
+<div class="flex-1 flex flex-col-reverse gap-0.5">
+<div class="bg-primary rounded-t-sm" style="height: 50%"></div>
+<div class="bg-secondary" style="height: 10%"></div>
+<div class="bg-slate-400" style="height: 12%"></div>
+</div>
+<div class="flex-1 flex flex-col-reverse gap-0.5">
+<div class="bg-primary rounded-t-sm" style="height: 60%"></div>
+<div class="bg-secondary" style="height: 20%"></div>
+<div class="bg-slate-400" style="height: 8%"></div>
+</div>
+<!-- Central Peak -->
+<div class="flex-1 flex flex-col-reverse gap-0.5 scale-110">
+<div class="bg-primary rounded-t-sm" style="height: 65%"></div>
+<div class="bg-secondary" style="height: 24%"></div>
+<div class="bg-slate-400" style="height: 11%"></div>
+</div>
+<!-- Visual fill for the rest of bars -->
+<div class="flex-1 flex flex-col-reverse gap-0.5 h-full bg-slate-50/50 rounded-lg"></div>
+<div class="flex-1 flex flex-col-reverse gap-0.5 h-full bg-slate-50/50 rounded-lg"></div>
+<div class="flex-1 flex flex-col-reverse gap-0.5 h-full bg-slate-50/50 rounded-lg"></div>
+<div class="flex-1 flex flex-col-reverse gap-0.5 h-full bg-slate-50/50 rounded-lg"></div>
+<div class="flex-1 flex flex-col-reverse gap-0.5 h-full bg-slate-50/50 rounded-lg"></div>
+</div>
+<div class="flex justify-between mt-4 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+<span>30일 전</span>
+<span>15일 전</span>
+<span>오늘</span>
+</div>
+</div>
+</div>
+<!-- Bottom Table Section -->
+<div class="bg-surface-container-lowest rounded-3xl shadow-sm overflow-hidden">
+<div class="p-6 flex justify-between items-center bg-surface-container-lowest">
+<div>
+<h4 class="font-bold text-on-surface">고객사별 비용 상세</h4>
+<p class="text-xs text-on-surface-variant">상위 100개 고객사의 실시간 비용 통계</p>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-container-high rounded-xl text-xs font-bold hover:bg-primary-container hover:text-white transition-all">
+<span class="material-symbols-outlined text-sm">download</span>
+                    CSV 내보내기
+                </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant text-[11px] font-extrabold uppercase tracking-widest">
+<th class="px-8 py-4">쇼핑몰명</th>
+<th class="px-6 py-4">총 비용 (KRW)</th>
+<th class="px-6 py-4">API 호출 수</th>
+<th class="px-6 py-4">평균 건당 비용</th>
+<th class="px-6 py-4">마지막 사용일</th>
+<th class="px-6 py-4">상태</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<!-- High Usage Row 1 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="px-8 py-5 border-l-4 border-accent-warm">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center font-bold text-primary text-xs">A</div>
+<span class="font-bold text-sm">에이블리 패션 스토어</span>
+</div>
+</td>
+<td class="px-6 py-5 font-headline font-bold text-sm">₩84,200</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">2,481건</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">₩33.9</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">오늘 14:22</td>
+<td class="px-6 py-5">
+<span class="px-2 py-1 bg-secondary/10 text-secondary text-[10px] font-bold rounded-md">활성</span>
+</td>
+</tr>
+<!-- High Usage Row 2 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="px-8 py-5 border-l-4 border-accent-warm">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center font-bold text-primary text-xs">M</div>
+<span class="font-bold text-sm">무신사 공식몰</span>
+</div>
+</td>
+<td class="px-6 py-5 font-headline font-bold text-sm">₩72,500</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">1,902건</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">₩38.1</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">오늘 13:58</td>
+<td class="px-6 py-5">
+<span class="px-2 py-1 bg-secondary/10 text-secondary text-[10px] font-bold rounded-md">활성</span>
+</td>
+</tr>
+<!-- High Usage Row 3 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="px-8 py-5 border-l-4 border-accent-warm">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center font-bold text-primary text-xs">K</div>
+<span class="font-bold text-sm">컬리 장보기</span>
+</div>
+</td>
+<td class="px-6 py-5 font-headline font-bold text-sm">₩68,900</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">1,850건</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">₩37.2</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">오늘 14:10</td>
+<td class="px-6 py-5">
+<span class="px-2 py-1 bg-secondary/10 text-secondary text-[10px] font-bold rounded-md">활성</span>
+</td>
+</tr>
+<!-- Normal Row -->
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="px-8 py-5 border-l-4 border-transparent">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center font-bold text-primary text-xs">O</div>
+<span class="font-bold text-sm">올리브영 글로벌</span>
+</div>
+</td>
+<td class="px-6 py-5 font-headline font-bold text-sm">₩31,400</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">940건</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">₩33.4</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">어제 22:45</td>
+<td class="px-6 py-5">
+<span class="px-2 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-md">대기</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-6 bg-surface-container-low flex justify-center">
+<nav class="flex gap-2">
+<button class="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-white text-xs font-bold">1</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-container-lowest text-on-surface text-xs font-bold hover:bg-primary-container hover:text-white transition-colors">2</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-container-lowest text-on-surface text-xs font-bold hover:bg-primary-container hover:text-white transition-colors">3</button>
+<span class="flex items-center px-1">...</span>
+<button class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-container-lowest text-on-surface text-xs font-bold hover:bg-primary-container hover:text-white transition-colors">12</button>
+</nav>
+</div>
+</div>
+</main>
+</body></html>
