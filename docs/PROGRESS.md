@@ -4,9 +4,9 @@
 > 프로젝트 경로: /Volumes/jayden-ssd/chatsio/
 
 ## 현재 위치
-- Epic: 프로젝트 기반 구축
-- Task: STEP 3 프로젝트 초기화 완료 → 개발 시작 대기
-- 상태: 완료
+- Epic: Phase 0 완료 → Phase 1 시작 대기
+- Task: Phase 0 전체 (Task 0-1 ~ 0-10) 완료
+- 상태: Phase 1 진행 준비
 
 ## 이번 세션 완료 내역
 - /office-hours: Chatsio 문제 정의 + 전제 도전 + 접근법 비교 (이전 세션)
@@ -23,13 +23,14 @@
 - STEP 3 완료: create-next-app (Next.js 16.2.2) + vitest + playwright + Hook + validate 스크립트
 
 ## 다음 세션 할 일
-1. Chatsio 폴더에서 Claude Code 열기: `cd /Volumes/jayden-ssd/chatsio && claude`
-2. PRD Phase 0 시작: 디자인 시스템 토큰 적용, Supabase 연결, Drizzle ORM, 모듈형 폴더 구조
-3. Vision AI 추출 테스트 (50장) — Pre-Phase 기술검증 #2
-4. `_chatsio_backup` 폴더 삭제: `rm -rf /Volumes/jayden-ssd/_chatsio_backup`
+1. Phase 1 시작: 인증 + 상품 관리 (Task 1-1 ~ 1-10)
+2. `.env.local`에 `DATABASE_URL` 추가 후 `drizzle-kit push`로 테이블 생성
+3. Supabase에 RLS 정책 적용 (`supabase/migrations/001_rls_policies.sql`)
+4. Vision AI 추출 테스트 (50장) — Pre-Phase 기술검증 #2
+5. `_chatsio_backup` 폴더 삭제: `rm -rf /Volumes/jayden-ssd/_chatsio_backup`
 
 ## 차단 요소
-- 없음
+- `.env.local`에 `DATABASE_URL` 미입력 (Supabase 대시보드 → Settings → Database → URI)
 
 ## 산출물 위치
 - CEO 플랜: ~/.gstack/projects/garrytan-gstack/ceo-plans/2026-04-05-chatsio-ai-visibility.md
@@ -39,7 +40,7 @@
 - 디자인 에셋: /Volumes/jayden-ssd/chatsio/docs/design-references/stitch-code/
 
 ## 마지막 업데이트
-- 날짜: 2026-04-05 22:30
+- 날짜: 2026-04-05 (세션 3)
 
 ---
 
@@ -56,3 +57,17 @@
 - **Status**: Complete
 - **Blockers**: None
 - **Next**: Phase 0 개발 시작
+
+### 2026-04-05 Session #3 — Phase 0 완료
+- **Goal**: Phase 0 전체 구현 (Task 0-2 ~ 0-10)
+- **Completed**:
+  - Task 0-2: 디자인 시스템 v3.0 토큰 (Light/Dark, 44개 색상, 그림자, 타이포)
+  - Task 0-7: 모듈형 폴더 구조 (src/ 마이그레이션, 3개 라우트 그룹, 17개 페이지)
+  - Task 0-3: Supabase 연결 (3종 클라이언트 + Zod 환경변수 검증)
+  - Task 0-4: Drizzle ORM 설정 (스키마 구조 준비)
+  - Task 0-8: V2 DB 스키마 설계 (6개 테이블 + RLS + Auth Trigger)
+  - Task 0-9: API Route 표준 구조 (응답/에러 포맷 + 5개 엔드포인트)
+  - Task 0-10: shadcn/ui + 공통 컴포넌트 4개 (KPICard, StatusBadge, EmptyState, PageHeader)
+- **Status**: Complete
+- **Blockers**: .env.local에 DATABASE_URL 미입력
+- **Next**: Phase 1 (인증 + 상품 관리)
