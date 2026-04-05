@@ -17,7 +17,7 @@
    ============================================================ */
 :root {
   /* Primary — Azure */
-  --primary: oklch(0.205 0 0);
+  --primary: #006195;
   --primary-container: #007aba;
   --primary-fixed: #cde5ff;
   --primary-fixed-dim: #94ccff;
@@ -27,7 +27,7 @@
   --on-primary-fixed-variant: #004b74;
 
   /* Secondary — Mint */
-  --secondary: oklch(0.97 0 0);
+  --secondary: #006c4d;
   --secondary-container: #87f4c6;
   --secondary-fixed: #8af7c9;
   --secondary-fixed-dim: #6ddaae;
@@ -102,43 +102,45 @@
   --radius-xl: 20px;
   --radius-2xl: 24px;
   --radius-full: 9999px;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  /* shadcn/ui 호환 변수 (Chatsio 토큰 매핑) */
+  --background: var(--surface);
+  --foreground: var(--on-surface);
+  --card: var(--surface-container-lowest);
+  --card-foreground: var(--on-surface);
+  --popover: var(--surface-container-lowest);
+  --popover-foreground: var(--on-surface);
+  --primary-foreground: var(--on-primary);
+  --secondary-foreground: var(--on-secondary);
+  --muted: var(--surface-container-high);
+  --muted-foreground: var(--on-surface-variant);
+  --accent: var(--surface-container);
+  --accent-foreground: var(--on-surface);
+  --destructive: var(--error);
+  --border: var(--outline-variant);
+  --input: var(--outline-variant);
+  --ring: var(--primary);
+  --chart-1: #006195;
+  --chart-2: #006c4d;
+  --chart-3: #525d6d;
+  --chart-4: #007aba;
+  --chart-5: #6ddaae;
+  --radius: 0.75rem;
+  --sidebar: var(--surface-container-low);
+  --sidebar-foreground: var(--on-surface);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--on-primary);
+  --sidebar-accent: var(--surface-container);
+  --sidebar-accent-foreground: var(--on-surface);
+  --sidebar-border: var(--outline-variant);
+  --sidebar-ring: var(--primary);
 }
 
 /* ============================================================
    2. 다크모드 토큰
    ============================================================ */
 .dark {
-  --primary: oklch(0.922 0 0);
+  --primary: #94ccff;
   --primary-container: #004b74;
   --primary-fixed: #cde5ff;
   --primary-fixed-dim: #94ccff;
@@ -147,7 +149,7 @@
   --on-primary-fixed: #001d32;
   --on-primary-fixed-variant: #004b74;
 
-  --secondary: oklch(0.269 0 0);
+  --secondary: #6ddaae;
   --secondary-container: #005139;
   --secondary-fixed: #8af7c9;
   --secondary-fixed-dim: #6ddaae;
@@ -184,7 +186,7 @@
   --on-surface: #dde3ec;
   --on-surface-variant: #bfc7d2;
   --on-background: #dde3ec;
-  --background: oklch(0.145 0 0);
+  --background: var(--surface);
 
   --outline: #899198;
   --outline-variant: #3f4850;
@@ -195,34 +197,36 @@
 
   --success: #4ade80;
   --warning: #fbbf24;
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+
+  /* shadcn/ui 호환 변수 (다크모드) */
+  --foreground: var(--on-surface);
+  --card: var(--surface-container-low);
+  --card-foreground: var(--on-surface);
+  --popover: var(--surface-container-low);
+  --popover-foreground: var(--on-surface);
+  --primary-foreground: var(--on-primary);
+  --secondary-foreground: var(--on-secondary);
+  --muted: var(--surface-container-high);
+  --muted-foreground: var(--on-surface-variant);
+  --accent: var(--surface-container);
+  --accent-foreground: var(--on-surface);
+  --destructive: var(--error);
+  --border: var(--outline-variant);
+  --input: var(--outline-variant);
+  --ring: var(--primary);
+  --chart-1: #94ccff;
+  --chart-2: #6ddaae;
+  --chart-3: #bcc7db;
+  --chart-4: #007aba;
+  --chart-5: #87f4c6;
+  --sidebar: var(--surface-container-lowest);
+  --sidebar-foreground: var(--on-surface);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--on-primary);
+  --sidebar-accent: var(--surface-container);
+  --sidebar-accent-foreground: var(--on-surface);
+  --sidebar-border: var(--outline-variant);
+  --sidebar-ring: var(--primary);
 }
 
 /* ============================================================
@@ -230,7 +234,7 @@
    ============================================================ */
 @theme inline {
   /* 폰트 패밀리 */
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-pretendard), "Pretendard Variable", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-display: var(--font-dm-sans), "DM Sans", sans-serif;
   --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", monospace;
 
