@@ -4,9 +4,9 @@
 > 프로젝트 경로: /Volumes/jayden-ssd/chatsio/
 
 ## 현재 위치
-- Epic: Phase 0 완료 → Phase 1 시작 대기
-- Task: Phase 0 전체 (Task 0-1 ~ 0-10) 완료
-- 상태: Phase 1 진행 준비
+- Epic: Phase 1 인증 + 상품 관리
+- Task: Task 1-4 완료 → Task 1-5 (온보딩 위저드) 대기
+- 상태: Phase 1 진행 중 (4/10 완료)
 
 ## 이번 세션 완료 내역
 - /office-hours: Chatsio 문제 정의 + 전제 도전 + 접근법 비교 (이전 세션)
@@ -23,14 +23,16 @@
 - STEP 3 완료: create-next-app (Next.js 16.2.2) + vitest + playwright + Hook + validate 스크립트
 
 ## 다음 세션 할 일
-1. Phase 1 시작: 인증 + 상품 관리 (Task 1-1 ~ 1-10)
-2. `.env.local`에 `DATABASE_URL` 추가 후 `drizzle-kit push`로 테이블 생성
-3. Supabase에 RLS 정책 적용 (`supabase/migrations/001_rls_policies.sql`)
-4. Vision AI 추출 테스트 (50장) — Pre-Phase 기술검증 #2
-5. `_chatsio_backup` 폴더 삭제: `rm -rf /Volumes/jayden-ssd/_chatsio_backup`
+1. Task 1-5: 온보딩 4단계 위저드
+2. Task 1-6: 상품 목록 페이지 (CRUD)
+3. Task 1-7~1-8: 상품 등록 + CSV 업로드
+4. Task 1-9: 레이아웃 (Sidebar + Header)
+5. Task 1-10: 다크모드
+6. Google Cloud Console에서 OAuth 클라이언트 ID 생성 → Supabase에 등록
 
 ## 차단 요소
-- `.env.local`에 `DATABASE_URL` 미입력 (Supabase 대시보드 → Settings → Database → URI)
+- DB 직접 연결(DATABASE_URL) 불가 — Supabase MCP로 마이그레이션 실행 중. 런타임은 Supabase JS 사용
+- 구글 소셜 로그인 작동하려면 Google Cloud Console + Supabase Provider 설정 필요
 
 ## 산출물 위치
 - CEO 플랜: ~/.gstack/projects/garrytan-gstack/ceo-plans/2026-04-05-chatsio-ai-visibility.md
@@ -71,3 +73,16 @@
 - **Status**: Complete
 - **Blockers**: .env.local에 DATABASE_URL 미입력
 - **Next**: Phase 1 (인증 + 상품 관리)
+
+### 2026-04-05~06 Session #4 — DB 구축 + Phase 1 인증
+- **Goal**: V2 DB 테이블 생성 + Phase 1 인증 기반 (Task 1-1~1-4)
+- **Completed**:
+  - V1 테이블 전체 DROP + V2 6개 테이블 생성 (Supabase MCP)
+  - V2 RLS 정책 + Auth Trigger 적용
+  - Task 1-1: Supabase Auth (미들웨어 세션, Server Actions, useUser 훅)
+  - Task 1-2: 로그인/회원가입 페이지 (2분할 Auth 레이아웃)
+  - Task 1-3: 구글 소셜 로그인 (signInWithGoogle, OAuth 콜백)
+  - Task 1-4: 미들웨어 인증 가드 (보호/공개 라우트 분기)
+- **Status**: Complete
+- **Blockers**: Google Cloud Console OAuth 설정 필요 (구글 로그인 실제 동작용)
+- **Next**: Task 1-5 (온보딩 위저드)
