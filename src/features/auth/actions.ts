@@ -47,6 +47,7 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
     return { error: error.message };
   }
 
+  // 미들웨어가 onboarding_completed 여부에 따라 /onboarding 또는 /products로 분기
   redirect("/products");
 }
 

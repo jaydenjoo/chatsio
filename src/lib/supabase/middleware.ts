@@ -58,5 +58,20 @@ export async function updateSession(
     return NextResponse.redirect(dashboardUrl);
   }
 
+  // 인증 사용자 → 온보딩 미완료 시 /onboarding으로 리다이렉트
+  if (user && !isPublicRoute && !pathname.startsWith("/onboarding")) {
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("onboarding_completed")
+      .eq("id", user.id)
+      .single();
+
+    if (profile && !profile.onboarding_completed) {
+      const onboardingUrl = request.nextUrl.clone();
+      onboardingUrl.pathname = "/onboarding";
+      return NextResponse.redirect(onboardingUrl);
+    }
+  }
+
   return supabaseResponse;
 }

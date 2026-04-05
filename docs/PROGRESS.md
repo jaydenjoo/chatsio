@@ -5,8 +5,8 @@
 
 ## 현재 위치
 - Epic: Phase 1 인증 + 상품 관리
-- Task: Task 1-4 완료 → Task 1-5 (온보딩 위저드) 대기
-- 상태: Phase 1 진행 중 (4/10 완료)
+- Task: Task 1-5 완료 → Task 1-9 (레이아웃 Sidebar+Header) 대기
+- 상태: Phase 1 진행 중 (5/10 완료)
 
 ## 이번 세션 완료 내역
 - /office-hours: Chatsio 문제 정의 + 전제 도전 + 접근법 비교 (이전 세션)
@@ -23,12 +23,11 @@
 - STEP 3 완료: create-next-app (Next.js 16.2.2) + vitest + playwright + Hook + validate 스크립트
 
 ## 다음 세션 할 일
-1. Task 1-5: 온보딩 4단계 위저드
+1. Task 1-9: 레이아웃 (Sidebar + Header + 반응형)
 2. Task 1-6: 상품 목록 페이지 (CRUD)
 3. Task 1-7~1-8: 상품 등록 + CSV 업로드
-4. Task 1-9: 레이아웃 (Sidebar + Header)
-5. Task 1-10: 다크모드
-6. Google Cloud Console에서 OAuth 클라이언트 ID 생성 → Supabase에 등록
+4. Task 1-10: 다크모드
+5. Google Cloud Console에서 OAuth 클라이언트 ID 생성 → Supabase에 등록
 
 ## 차단 요소
 - DB 직접 연결(DATABASE_URL) 불가 — Supabase MCP로 마이그레이션 실행 중. 런타임은 Supabase JS 사용
@@ -42,7 +41,7 @@
 - 디자인 에셋: /Volumes/jayden-ssd/chatsio/docs/design-references/stitch-code/
 
 ## 마지막 업데이트
-- 날짜: 2026-04-06 (세션 4)
+- 날짜: 2026-04-06 (세션 5)
 
 ---
 
@@ -86,3 +85,15 @@
 - **Status**: Complete
 - **Blockers**: Google Cloud Console OAuth 설정 필요 (구글 로그인 실제 동작용)
 - **Next**: Task 1-5 (온보딩 위저드)
+
+### 2026-04-06 Session #5 — Task 1-5 온보딩 위저드
+- **Goal**: 온보딩 4단계 위저드 구현
+- **Completed**:
+  - Task 1-5: 온보딩 위저드 (Welcome → ShopInfo → FirstProduct → Complete)
+  - Server Actions 3개 (createShop, addFirstProduct, completeOnboarding)
+  - Zod 검증 (쇼핑몰 이름/URL, 플랫폼/업종 enum)
+  - 미들웨어 온보딩 리다이렉트 (onboarding_completed === false → /onboarding)
+  - 프로그레스 바 + 디자인 시스템 토큰 적용
+- **Status**: Complete
+- **Blockers**: Google Cloud Console OAuth 설정 필요 (구글 로그인 실제 동작용)
+- **Next**: Task 1-9 (레이아웃 Sidebar + Header)
