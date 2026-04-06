@@ -6,17 +6,18 @@ import { Bell, Menu } from "lucide-react";
 import { SERVICE_NAV, SETTINGS_NAV } from "@/constants/nav";
 import { ThemeToggle } from "@/components/layouts/theme-toggle";
 
-/** NAV 상수에서 PAGE_META 자동 파생 */
+/** NAV 상수에서 PAGE_META 자동 파생 — immutable 변환 */
 const PAGE_META: Record<string, { group: string; title: string }> =
-  [...SERVICE_NAV.map((item) => ({ ...item, group: "Service" })),
-   ...SETTINGS_NAV.map((item) => ({ ...item, group: "Settings" })),
-  ].reduce<Record<string, { group: string; title: string }>>(
-    (acc, { href, label, group }) => {
-      acc[href] = { group, title: label };
-      return acc;
-    },
-    {},
-  );
+  Object.fromEntries([
+    ...SERVICE_NAV.map(
+      ({ href, label }) =>
+        [href, { group: "Service", title: label }] as const,
+    ),
+    ...SETTINGS_NAV.map(
+      ({ href, label }) =>
+        [href, { group: "Settings", title: label }] as const,
+    ),
+  ]);
 
 function getPageMeta(pathname: string): { group: string; title: string } {
   if (PAGE_META[pathname]) return PAGE_META[pathname];
