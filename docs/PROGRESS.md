@@ -4,9 +4,9 @@
 > **프로젝트 경로**: `/Users/jayden/projects/chatsio/` (Session #10에서 `/Volumes/jayden-ssd/chatsio`에서 이동 — 아래 "프로젝트 이동" 섹션 참조)
 
 ## 현재 위치
-- Epic: **Phase 2 진입 직전** (사전 정리 완료, Jayden의 외부 환경 준비 대기)
-- Task: 다음 세션 **Task 2-3 (최적화 실행 페이지)** — 단, `docs/phase2-prerequisites.md` 모든 체크박스 ✅ 후
-- 상태: Session #12 미커밋 변경 2건 (마이그레이션 003 로컬 파일 + Phase 2 사전준비 문서)
+- Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
+- Task: **Task 2-1 완료** (V7 → V8 Claude 전환 검증) → 다음 **Task 2-1b (DB 저장 재설계)** 대기
+- 상태: Session #13에서 Claude API 호출/응답 파싱 100% 성공 확인, DB 저장 단계에서 V7(V1 스키마 기반) ↔ V2 `optimizations` 테이블 불일치 발견 → 별도 Task로 분리
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -24,7 +24,69 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 완료 내역 (Session #12) — Phase 2 진입 사전 정리
+## 이번 세션 완료 내역 (Session #13) — Task 2-1: V7 GPT-4o → V8 Claude 전환
+
+Phase 2 본 작업 착수. V7 n8n 워크플로우(OpenAI GPT-4o)를 V8(Claude Sonnet 4.6 + Opus 4.6)로 전환.
+Claude 호출/응답 파싱은 완벽 작동, DB 저장 단계에서 V1 스키마 잔재 발견.
+
+### 1. n8n 워크플로우 파일 관리 체계
+- `docs/n8n-workflows/` 폴더 생성 + `.gitignore` 등록 (워크플로우 JSON은 내부 로직/프롬프트 포함)
+- V7 원본 JSON 백업 (Jayden 제공, 620 lines)
+- 변환 스크립트 `convert-v7-to-v8.js` (재사용 가능, gitignored)
+
+### 2. V8 JSON 생성 — 12개 노드 변환
+- **HTTP Request 6개** (B1, P1~P4, P6):
+  - URL: `api.openai.com/v1/chat/completions` → `api.anthropic.com/v1/messages`
+  - Credential: `openAiApi` → `anthropicApi` (predefined, ID `4ILopdRzvGVdIEcM`)
+  - **`anthropic-version: 2023-06-01` 헤더 명시 추가** (n8n predefined credential은 x-api-key만 주입)
+- **Prep 6개** (B1-Prep, P1~P4-Prep, P6-Prep):
+  - `model`: `gpt-4o` → `claude-sonnet-4-6` (5개) / `claude-opus-4-6` (P6만, 품질 검수)
+  - `messages: [{system}, {user}]` → `system` top-level + `messages: [{user}]`
+  - P6-Prep만 `max_tokens: 1500 → 2500` (Opus 응답 길이 대응)
+- **파싱 4개** (P1-Parse, P5, P7, B2):
+  - `extractJSON()` 함수가 이미 Anthropic `content[]` 호환 → **수정 없음** (SHA 해시 완전 동일 검증)
+- **검증 체크리스트 12/12 전부 통과**
+
+### 3. 테스트 페이로드 생성
+- `test-basic.json`, `test-premium.json` (의류 카테고리, 여성 구스다운 패딩)
+- 동일 상품 + `plan` 필드만 다르게 → Basic/Premium 결과 비교 가능
+- curl **절대 경로** 방식으로 터미널 폴더 무관 실행
+
+### 4. 엔드-투-엔드 테스트 — 3차 시도
+| 시도 | 단계 | 결과 |
+|---|---|---|
+| 1차 | curl Test URL | 404 "webhook not registered" — Test URL은 1회용 (Execute Workflow 선행 필요) |
+| 2차 | Production URL + Active | 400 "anthropic-version: header is required" — 변환 스크립트에 헤더 로직 추가, V8 재생성 |
+| 3차 | V8 재 Import 후 재테스트 | **B1. AI 최적화 통과 → B2. 최종 정리 통과 → B3. DB 저장 차단** ("Could not find the 'buying_guide' column of 'products'") |
+
+### 5. 근본 원인 분석 — V7은 V1 스키마 기반
+- V7 B3/P8 노드는 `products` 테이블을 `UPDATE` + `autoMapInputData`로 18~20개 필드를 동일 이름 컬럼에 저장
+- B2/P7 반환 구조: `optimized_title`, `buying_guide`, `faqs`, `eeat_score` 등 AI 결과 필드를 `products` 컬럼으로 직접 flatten
+- **V2 PRD**: AI 결과는 `optimizations.result_json` (jsonb)에 통째로 저장하도록 재설계됨
+- V7이 이 변경을 반영 안 한 상태로 방치 → Session #12 PRD-DB 갭 분석에서도 "기존 자동화 ↔ 현재 DB" 축은 누락
+
+### 6. Task 2-1 판정
+- **Claude 전환 자체는 100% 성공** (Task 2-1 Plan 범위 완료 — HTTP/Prep/파싱 전부 검증)
+- DB 저장 재설계는 Plan "안 건드리는 것" 영역이었으므로 **Task 2-1b로 분리**
+- 비유: 새 냉장고(Claude) 설치까지 완벽, 냉장고 바닥 배수 라인(DB 저장)이 옛날 싱크대 규격이라 연결이 안 되는 상황
+
+### 다음 세션 첫 작업 — Task 2-1b Plan
+1. Supabase `optimizations` 테이블 스키마 재확인 (Session #12에서 확인: idempotency_key/result_json/jsonld/score/status/...)
+2. B2/P7 JS 재작성: 반환 구조를 `optimizations` 컬럼에 맞춤 (`result_json` jsonb 활용)
+3. B3/P8 노드: `products` UPDATE → `optimizations` INSERT
+4. `idempotency_key` 매핑 (order_id 또는 product_id + timestamp)
+5. V8 재생성 → 재 Import → 엔드-투-엔드 테스트
+
+### Status
+- **Status**: Task 2-1 (Claude 전환) 완료, Task 2-1b (DB 재설계) 대기
+- **Blockers**:
+  - Task 2-1b 진행 (B2/P7/B3/P8 수정 필요)
+  - (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+- **Next**: Task 2-1b Plan 작성 → 승인 → 구현
+
+---
+
+## 이전 세션 — Session #12 — Phase 2 진입 사전 정리
 
 Phase 1 클로저 후 Phase 2(AI 구조화 파이프라인) 진입 직전 사전 정리.
 **코드 작업 0줄, 환경 + DB + 문서 정리만** — n8n 외부 의존이 강한 Phase라

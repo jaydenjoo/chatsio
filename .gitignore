@@ -42,6 +42,9 @@ yarn-error.log*
 qa-*.png
 qa-*.jpeg
 
+# n8n workflow exports (may contain secrets/internal prompts)
+docs/n8n-workflows/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
