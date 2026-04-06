@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
+import type { AuthChangeEvent, AuthError, Session, User } from "@supabase/supabase-js";
 
 export function useUser(): {
   user: User | null;
@@ -14,10 +14,14 @@ export function useUser(): {
   useEffect(() => {
     const supabase = createClient();
 
-    supabase.auth.getUser().then(({ data }: { data: { user: User | null } }) => {
-      setUser(data.user);
-      setLoading(false);
-    });
+    supabase.auth.getUser().then(
+      ({ data, error }: { data: { user: User | null }; error: AuthError | null }) => {
+        if (!error) {
+          setUser(data.user);
+        }
+        setLoading(false);
+      }
+    );
 
     const {
       data: { subscription },

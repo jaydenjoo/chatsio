@@ -74,7 +74,10 @@ export default function OnboardingPage(): React.ReactElement {
             <FirstProductStep
               shopId={shopId}
               onNext={() => setCurrentStep(3)}
-              onBack={() => setCurrentStep(1)}
+              onBack={() => {
+                setShopId(null);
+                setCurrentStep(1);
+              }}
             />
           )}
           {currentStep === 3 && <CompleteStep />}

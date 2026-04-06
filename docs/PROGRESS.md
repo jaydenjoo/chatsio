@@ -5,33 +5,45 @@
 
 ## 현재 위치
 - Epic: Phase 1 인증 + 상품 관리
-- Task: Task 1-5 완료 → Task 1-9 (레이아웃 Sidebar+Header) 대기
-- 상태: Phase 1 진행 중 (5/10 완료)
+- Task: Task 1-9 완료 → Task 1-6 (상품 목록 페이지) 대기
+- 상태: Phase 1 진행 중 (6/10 완료)
 
 ## 이번 세션 완료 내역
-- /office-hours: Chatsio 문제 정의 + 전제 도전 + 접근법 비교 (이전 세션)
-- /plan-ceo-review (HOLD SCOPE): 11개 섹션 리뷰 + Codex 독립검토 25개 발견
-  - 핵심 결정: Cafe24 우선순차, 에러 3원칙, 🔴 보안등급, 필드별 품질 계층, 데이터 동기화
-  - 3개 cross-model tension 해결 (시뮬레이터 연기, 필드 품질, 데이터 동기화)
-- /plan-eng-review: 아키텍처 3이슈 해결 (통신방식, 멱등성, DB스키마)
-  - 테스트 다이어그램 21갭, 4-lane 병렬화 전략
-- PRD.md 업데이트: CEO+Eng 리뷰 결정사항 12개 반영 (부록 E 추가)
-- CLAUDE.md 업데이트: 🟡→🔴, Next.js 16.2, CEO/Eng 결정사항 전체 반영
-- 바이브코딩_통합가이드 vs gstack 충돌 검증: 3개 충돌 + 2개 순서 조정 확인
-- Pre-Phase 기술검증 #1: Cafe24 ScriptTag API로 JSON-LD 주입 GO 판정
-- 외장 SSD 볼륨 이름 변경: "jayden ssd " → "jayden-ssd" (공백 제거)
-- STEP 3 완료: create-next-app (Next.js 16.2.2) + vitest + playwright + Hook + validate 스크립트
+- Task 1-9: 레이아웃 (Sidebar + Header + 반응형)
+  - Sidebar (260px 고정, 네비게이션 2그룹, 사용자 Footer)
+  - Header (Glassmorphism, 브레드크럼, 다크모드/알림 placeholder)
+  - MobileSidebar (Sheet 기반, 768px 이하)
+  - DashboardShell (Server Component layout + Client Shell 분리)
+  - NAV 상수 추출 (`constants/nav.ts`), SidebarUserFooter 컴포넌트 분리
+- 전체 코드 리뷰 (Phase 0 + Task 1-1~1-5 + Task 1-9)
+  - 3개 병렬 리뷰 에이전트 실행 → 총 25개 이슈 발견
+- 코드 리뷰 이슈 21개 수정 (CRITICAL 5 + HIGH 8 + MEDIUM+LOW 8)
+  - C1: auth actions Zod 검증 추가
+  - C2: OAuth callback open redirect 방지
+  - C3: Supabase 에러 메시지 안전 매핑
+  - C4: /api/* 인증 우회 → 화이트리스트 방식
+  - C5: addFirstProduct IDOR 방지 (shopId 소유권 검증)
+  - H1: 미들웨어 onboarding DB 쿼리 → 쿠키 캐싱
+  - H2: OAuth origin fallback 체인
+  - H3: useUser getUser() 에러 처리
+  - H4: Geist 폰트 제거 (디자인 시스템 충돌)
+  - H5: Supabase 브라우저 클라이언트 싱글턴
+  - H6: API 응답 success 필드 + meta 키 통일
+  - H7: error.tsx 내부 에러 노출 제거
+  - H8: 온보딩 뒤로가기 shopId 초기화
+  - M1-M8, L1-L4: 반환 타입, utils, login UX, products placeholder 등
 
 ## 다음 세션 할 일
-1. Task 1-9: 레이아웃 (Sidebar + Header + 반응형)
-2. Task 1-6: 상품 목록 페이지 (CRUD)
-3. Task 1-7~1-8: 상품 등록 + CSV 업로드
+1. Task 1-6: 상품 목록 페이지 (CRUD + 검색 + 필터 + 페이지네이션)
+2. Task 1-7: 상품 등록 (URL 입력 + 이미지 업로드)
+3. Task 1-8: CSV 벌크 업로드 + 검증 + 에러 표시
 4. Task 1-10: 다크모드
 5. Google Cloud Console에서 OAuth 클라이언트 ID 생성 → Supabase에 등록
+6. M3 (inline style → Tailwind 클래스) 미수정 — 온보딩 steps 파일들
 
 ## 차단 요소
-- DB 직접 연결(DATABASE_URL) 불가 — Supabase MCP로 마이그레이션 실행 중. 런타임은 Supabase JS 사용
-- 구글 소셜 로그인 작동하려면 Google Cloud Console + Supabase Provider 설정 필요
+- Google Cloud Console OAuth 설정 필요 (구글 로그인 실제 동작용)
+- DB 직접 연결(DATABASE_URL) 불가 — Supabase MCP로 마이그레이션 실행 중
 
 ## 산출물 위치
 - CEO 플랜: ~/.gstack/projects/garrytan-gstack/ceo-plans/2026-04-05-chatsio-ai-visibility.md
@@ -41,7 +53,7 @@
 - 디자인 에셋: /Volumes/jayden-ssd/chatsio/docs/design-references/stitch-code/
 
 ## 마지막 업데이트
-- 날짜: 2026-04-06 (세션 5)
+- 날짜: 2026-04-06 (세션 6)
 
 ---
 
@@ -97,3 +109,16 @@
 - **Status**: Complete
 - **Blockers**: Google Cloud Console OAuth 설정 필요 (구글 로그인 실제 동작용)
 - **Next**: Task 1-9 (레이아웃 Sidebar + Header)
+
+### 2026-04-06 Session #6 — Task 1-9 레이아웃 + 전체 코드 리뷰
+- **Goal**: 대시보드 레이아웃 + 누적 코드 품질/보안 리뷰
+- **Completed**:
+  - Task 1-9: Sidebar + Header + MobileSidebar + DashboardShell (반응형)
+  - 전체 코드 리뷰 3영역 병렬 실행 (Phase 0, 인증 1-1~1-4, 온보딩 1-5)
+  - 25개 이슈 발견 → 21개 수정 (CRITICAL 5, HIGH 8, MEDIUM+LOW 8)
+  - 보안: Zod 검증, Open Redirect, IDOR, 에러 노출, API 인증 우회 등 해결
+  - 성능: 미들웨어 onboarding 쿠키 캐싱, Supabase 클라이언트 싱글턴
+  - 아키텍처: Server/Client Component 분리, NAV 상수 추출, enum 단일 소스
+- **Status**: Complete
+- **Blockers**: Google Cloud Console OAuth 설정 필요
+- **Next**: Task 1-6 (상품 목록 페이지)

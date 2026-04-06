@@ -11,6 +11,7 @@ import { signIn, signInWithGoogle } from "@/features/auth";
 export default function LoginPage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   async function handleSubmit(formData: FormData): Promise<void> {
     setError(null);
@@ -55,9 +56,15 @@ export default function LoginPage(): React.ReactElement {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">비밀번호</Label>
-            <span className="text-xs text-on-surface-variant">
+            <button
+              type="button"
+              className="text-xs text-primary hover:underline"
+              onClick={() => {
+                // TODO: 비밀번호 재설정 페이지 (향후 구현)
+              }}
+            >
               비밀번호를 잊으셨나요?
-            </span>
+            </button>
           </div>
           <Input
             id="password"
@@ -94,10 +101,14 @@ export default function LoginPage(): React.ReactElement {
       </div>
 
       {/* 구글 로그인 */}
-      <form action={signInWithGoogle}>
+      <form action={async () => {
+        setGoogleLoading(true);
+        await signInWithGoogle();
+      }}>
         <Button
           type="submit"
           variant="outline"
+          disabled={googleLoading}
           className="h-11 w-full gap-2"
         >
         <svg className="size-4" viewBox="0 0 24 24">
@@ -118,7 +129,7 @@ export default function LoginPage(): React.ReactElement {
             fill="#EA4335"
           />
         </svg>
-        Google로 계속하기
+        {googleLoading ? "연결 중..." : "Google로 계속하기"}
         </Button>
       </form>
 

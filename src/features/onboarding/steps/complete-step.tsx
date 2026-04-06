@@ -23,6 +23,8 @@ export function CompleteStep(): React.ReactElement {
     }
 
     router.push("/products");
+    // 네비게이션 실패 시를 대비하여 타임아웃 후 loading 해제
+    setTimeout(() => setLoading(false), 5000);
   }
 
   return (

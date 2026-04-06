@@ -38,7 +38,12 @@ export default function OnboardingError({
             className="mb-6 text-sm"
             style={{ color: "var(--on-surface-variant)" }}
           >
-            {error.message || "잠시 후 다시 시도해주세요."}
+            잠시 후 다시 시도해주세요.
+            {error.digest && (
+              <span className="block mt-1 text-xs opacity-50">
+                코드: {error.digest}
+              </span>
+            )}
           </p>
           <Button onClick={reset} variant="outline">
             다시 시도

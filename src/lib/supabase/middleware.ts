@@ -38,10 +38,11 @@ export async function updateSession(
 
   // 공개 라우트 — 인증 불필요
   const publicRoutes = ["/", "/login", "/signup"];
+  const publicApiPaths = ["/api/health"];
   const isPublicRoute =
     publicRoutes.includes(pathname) ||
     pathname.startsWith("/auth/") ||
-    pathname.startsWith("/api/");
+    publicApiPaths.includes(pathname);
 
   // 미인증 사용자 → 보호 라우트 접근 차단
   if (!user && !isPublicRoute) {
@@ -58,18 +59,32 @@ export async function updateSession(
     return NextResponse.redirect(dashboardUrl);
   }
 
+  // API 라우트는 개별 핸들러에서 인증 처리
   // 인증 사용자 → 온보딩 미완료 시 /onboarding으로 리다이렉트
-  if (user && !isPublicRoute && !pathname.startsWith("/onboarding")) {
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("onboarding_completed")
-      .eq("id", user.id)
-      .single();
+  if (user && !isPublicRoute && !pathname.startsWith("/onboarding") && !pathname.startsWith("/api/")) {
+    // 온보딩 완료 여부를 쿠키로 캐싱하여 매 요청 DB 쿼리 방지
+    const onboardingDone = request.cookies.get("onboarding_done")?.value;
 
-    if (profile && !profile.onboarding_completed) {
-      const onboardingUrl = request.nextUrl.clone();
-      onboardingUrl.pathname = "/onboarding";
-      return NextResponse.redirect(onboardingUrl);
+    if (onboardingDone !== "1") {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("onboarding_completed")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!profile || !profile.onboarding_completed) {
+        const onboardingUrl = request.nextUrl.clone();
+        onboardingUrl.pathname = "/onboarding";
+        return NextResponse.redirect(onboardingUrl);
+      }
+
+      // 온보딩 완료 확인 후 쿠키 설정 (1시간 캐싱)
+      supabaseResponse.cookies.set("onboarding_done", "1", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 3600,
+      });
     }
   }
 

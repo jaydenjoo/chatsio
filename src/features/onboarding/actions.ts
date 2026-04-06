@@ -1,7 +1,8 @@
 "use server";
 
-import { z } from "zod";
+import { z } from "zod/v4";
 import { createClient } from "@/lib/supabase/server";
+import { shopPlatformEnum, industryEnum } from "@/lib/db/schema/enums";
 
 // ============================================================
 // Zod 스키마
@@ -10,8 +11,8 @@ import { createClient } from "@/lib/supabase/server";
 const shopInfoSchema = z.object({
   name: z.string().min(1, "쇼핑몰 이름을 입력해주세요").max(100),
   url: z.string().url("올바른 URL을 입력해주세요"),
-  platform: z.enum(["cafe24", "imweb", "godomall", "other"]),
-  industry: z.enum(["clothing", "food", "furniture", "other"]),
+  platform: z.enum(shopPlatformEnum.enumValues),
+  industry: z.enum(industryEnum.enumValues),
 });
 
 const firstProductSchema = z.object({
@@ -93,6 +94,18 @@ export async function addFirstProduct(
 
   if (!user) {
     return { success: false, error: "인증이 필요합니다" };
+  }
+
+  // shopId 소유권 검증 (IDOR 방지)
+  const { data: shop, error: shopError } = await supabase
+    .from("shops")
+    .select("id")
+    .eq("id", shopId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (shopError || !shop) {
+    return { success: false, error: "쇼핑몰을 찾을 수 없습니다" };
   }
 
   const { error } = await supabase.from("products").insert({

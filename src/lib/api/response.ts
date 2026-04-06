@@ -19,8 +19,8 @@ export function apiSuccess<T>(
   status = 200
 ): NextResponse {
   return NextResponse.json(
-    pagination ? { data, pagination } : { data },
-    { status }
+    { success: true, data, ...(pagination && { meta: pagination }) },
+    { status },
   );
 }
 
