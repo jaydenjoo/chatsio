@@ -21,29 +21,56 @@ export default async function DashboardLayout({
 }>): Promise<React.ReactElement> {
   const supabase = await createClient();
 
+  // 1) 인증 검증
+  // authError는 Supabase Auth 서비스 장애 시 발생한다.
+  // 현재는 fail-secure (→ /login) 동작을 유지하되, 원인 추적을 위해 로깅한다.
+  // 프로덕션에서는 모니터링/알림으로 승격할 것.
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
+
+  if (authError) {
+    console.error("[DashboardLayout] auth.getUser failed:", authError.message);
+  }
 
   if (!user) {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
+  // 2) 온보딩 완료 여부 검증
+  // profileError는 DB 트랜지언트 장애 시 발생한다.
+  // fail-secure 유지: 에러 시에도 `profile`은 null이 되어 /onboarding으로 리다이렉트.
+  const { data: profile, error: profileError } = await supabase
     .from("user_profiles")
     .select("onboarding_completed")
     .eq("id", user.id)
     .maybeSingle();
 
+  if (profileError) {
+    console.error(
+      "[DashboardLayout] user_profiles query failed:",
+      profileError.message,
+    );
+  }
+
   if (!profile?.onboarding_completed) {
     redirect("/onboarding");
   }
 
-  const { data: shop } = await supabase
+  // 3) 쇼핑몰 존재 검증
+  const { data: shop, error: shopError } = await supabase
     .from("shops")
     .select("id")
     .eq("user_id", user.id)
     .maybeSingle();
+
+  if (shopError) {
+    console.error(
+      "[DashboardLayout] shops query failed:",
+      shopError.message,
+    );
+  }
 
   if (!shop) {
     redirect("/onboarding");

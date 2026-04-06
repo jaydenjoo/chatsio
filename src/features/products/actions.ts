@@ -142,14 +142,16 @@ export async function getProducts(
     .select("id, name, url, status, source, created_at, updated_at", { count: "exact" })
     .eq("shop_id", shop.id);
 
-  // 검색 — PostgREST .or() 필터 메타문자 + LIKE 와일드카드 이스케이프
-  // 이유: PostgREST는 `,` `(` `)` `.`로 조건을 파싱하므로 사용자 입력에 포함되면
-  // 쿼리 구조가 조작될 수 있다. `.eq("shop_id")` 앞 체인 덕에 실제 데이터 유출은
-  // 어렵지만 구조적으로 안전한 값만 주입한다.
+  // 검색 — LIKE 와일드카드 이스케이프 + PostgREST OR-list 구분자(`,`) 제거
+  // 이유: `.or()`의 조건 구분자는 `,` 하나뿐이다. `(` `)` `.`는 PostgREST
+  // 문법상 값 위치에서 리터럴로 취급되므로 그대로 둔다. 한국 상품명에
+  // 흔히 포함되는 "ABC Co., Ltd.", "나이키(운동화)", "1.5L 생수" 같은
+  // 검색어의 의도를 보존하기 위함. `shop_id` .eq 체인 + RLS로 실질 공격
+  // 표면은 닫혀 있다.
   if (query) {
     const safeQuery = query
       .replace(/[\\%_]/g, "\\$&") // LIKE wildcards: %, _, \
-      .replace(/[,().]/g, ""); // PostgREST filter delimiters
+      .replace(/,/g, ""); // PostgREST .or() separator
     if (safeQuery) {
       listQuery = listQuery.or(
         `name.ilike.%${safeQuery}%,url.ilike.%${safeQuery}%`,
