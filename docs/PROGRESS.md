@@ -5,10 +5,23 @@
 
 ## 현재 위치
 - Epic: Phase 1 인증 + 상품 관리
-- Task: Task 1-9 완료 → Task 1-6 (상품 목록 페이지) 대기
-- 상태: Phase 1 진행 중 (6/10 완료)
+- Task: Task 1-6 완료 → Task 1-7 (상품 등록) 대기
+- 상태: Phase 1 진행 중 (7/10 완료)
 
-## 이번 세션 완료 내역
+## 이번 세션 완료 내역 (Session #6 이어서)
+- Task 1-6: 상품 목록 페이지
+  - Server Actions: getProducts (검색/필터/정렬/페이지네이션/KPI), deleteProduct (소유권 검증)
+  - UI 컴포넌트 3개: ProductSearchBar, ProductTable, ProductEmptyState
+  - products/page.tsx: Server Component, KPI Bento 그리드 + SearchBar + Table
+  - loading.tsx + error.tsx (스켈레톤 + 에러 바운더리)
+  - shadcn checkbox + select 추가
+- DB 경계 규칙 수립
+  - Chatsio + Findably가 동일 Supabase 프로젝트 공유 확인
+  - Findably 8개 테이블 발견 (profiles, diagnoses, payments, reports 등)
+  - 메모리에 "내가 만든 것만 건드린다" 규칙 영구 저장
+  - PROGRESS.md/learnings.md에 Session #4 V1 DROP 사고 교훈 기록
+
+## 세션 #6 초반 완료 내역
 - Task 1-9: 레이아웃 (Sidebar + Header + 반응형)
   - Sidebar (260px 고정, 네비게이션 2그룹, 사용자 Footer)
   - Header (Glassmorphism, 브레드크럼, 다크모드/알림 placeholder)
@@ -34,16 +47,22 @@
   - M1-M8, L1-L4: 반환 타입, utils, login UX, products placeholder 등
 
 ## 다음 세션 할 일
-1. Task 1-6: 상품 목록 페이지 (CRUD + 검색 + 필터 + 페이지네이션)
-2. Task 1-7: 상품 등록 (URL 입력 + 이미지 업로드)
-3. Task 1-8: CSV 벌크 업로드 + 검증 + 에러 표시
-4. Task 1-10: 다크모드
-5. Google Cloud Console에서 OAuth 클라이언트 ID 생성 → Supabase에 등록
-6. M3 (inline style → Tailwind 클래스) 미수정 — 온보딩 steps 파일들
+1. Task 1-7: 상품 등록 (URL 입력 + 이미지 업로드)
+2. Task 1-8: CSV 벌크 업로드 + 검증 + 에러 표시
+3. Task 1-10: 다크모드
+4. Google Cloud Console에서 OAuth 클라이언트 ID 생성 → Supabase에 등록
+5. M3 (inline style → Tailwind 클래스) 미수정 — 온보딩 steps 파일들
 
 ## 차단 요소
 - Google Cloud Console OAuth 설정 필요 (구글 로그인 실제 동작용)
 - DB 직접 연결(DATABASE_URL) 불가 — Supabase MCP로 마이그레이션 실행 중
+
+## 🚫 DB 작업 경계 (CRITICAL)
+- Supabase 프로젝트 `chatsio-v1`(souqwsdwabhqbbvpwfpe)은 Chatsio + Findably 공유
+- Chatsio 허용 테이블: user_profiles, shops, products, optimizations, prompts, prompt_versions
+- Findably 테이블 (작업 금지): profiles, diagnoses, diagnosis_items, payments, reports, gift_codes, gift_code_uses, analytics_events
+- 원칙: "내가 만든 것만 건드린다". Findably는 진행 중이라 신규 마이그레이션이 계속 추가됨
+- 메모리 영구 저장: ~/.claude/projects/-Volumes-jayden-ssd-chatsio/memory/findably_db_boundary.md
 
 ## 산출물 위치
 - CEO 플랜: ~/.gstack/projects/garrytan-gstack/ceo-plans/2026-04-05-chatsio-ai-visibility.md
@@ -53,7 +72,7 @@
 - 디자인 에셋: /Volumes/jayden-ssd/chatsio/docs/design-references/stitch-code/
 
 ## 마지막 업데이트
-- 날짜: 2026-04-06 (세션 6)
+- 날짜: 2026-04-06 (세션 6 — Task 1-9 + 코드리뷰 + Task 1-6 + DB경계)
 
 ---
 
@@ -110,15 +129,20 @@
 - **Blockers**: Google Cloud Console OAuth 설정 필요 (구글 로그인 실제 동작용)
 - **Next**: Task 1-9 (레이아웃 Sidebar + Header)
 
-### 2026-04-06 Session #6 — Task 1-9 레이아웃 + 전체 코드 리뷰
-- **Goal**: 대시보드 레이아웃 + 누적 코드 품질/보안 리뷰
+### 2026-04-06 Session #6 — Task 1-9 + 코드 리뷰 + Task 1-6 + DB 경계
+- **Goal**: 레이아웃 + 누적 코드 리뷰 + 상품 목록 + DB 경계 설정
 - **Completed**:
   - Task 1-9: Sidebar + Header + MobileSidebar + DashboardShell (반응형)
   - 전체 코드 리뷰 3영역 병렬 실행 (Phase 0, 인증 1-1~1-4, 온보딩 1-5)
   - 25개 이슈 발견 → 21개 수정 (CRITICAL 5, HIGH 8, MEDIUM+LOW 8)
-  - 보안: Zod 검증, Open Redirect, IDOR, 에러 노출, API 인증 우회 등 해결
-  - 성능: 미들웨어 onboarding 쿠키 캐싱, Supabase 클라이언트 싱글턴
-  - 아키텍처: Server/Client Component 분리, NAV 상수 추출, enum 단일 소스
+    - 보안: Zod 검증, Open Redirect, IDOR, 에러 노출, API 인증 우회
+    - 성능: 미들웨어 onboarding 쿠키 캐싱, Supabase 클라이언트 싱글턴
+    - 아키텍처: Server/Client Component 분리, NAV 상수 추출, enum 단일 소스
+  - Task 1-6: 상품 목록 페이지
+    - Server Actions (getProducts, deleteProduct) + 소유권 검증
+    - UI 3개 (SearchBar, Table, EmptyState) + page.tsx + loading + error
+    - 검색/필터/정렬/페이지네이션/KPI Bento 그리드
+  - DB 경계 확립: Chatsio + Findably 공유 프로젝트 확인 → "내가 만든 것만 건드린다" 규칙
 - **Status**: Complete
 - **Blockers**: Google Cloud Console OAuth 설정 필요
-- **Next**: Task 1-6 (상품 목록 페이지)
+- **Next**: Task 1-7 (상품 등록)

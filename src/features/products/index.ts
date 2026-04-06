@@ -1,1 +1,2 @@
-// products 모듈 진입점
+export { getProducts, deleteProduct } from "./actions";
+export type { ProductRow, ProductKpi, GetProductsResult, GetProductsInput } from "./actions";
