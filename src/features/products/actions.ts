@@ -142,9 +142,19 @@ export async function getProducts(
     .select("id, name, url, status, source, created_at, updated_at", { count: "exact" })
     .eq("shop_id", shop.id);
 
-  // 검색
+  // 검색 — PostgREST .or() 필터 메타문자 + LIKE 와일드카드 이스케이프
+  // 이유: PostgREST는 `,` `(` `)` `.`로 조건을 파싱하므로 사용자 입력에 포함되면
+  // 쿼리 구조가 조작될 수 있다. `.eq("shop_id")` 앞 체인 덕에 실제 데이터 유출은
+  // 어렵지만 구조적으로 안전한 값만 주입한다.
   if (query) {
-    listQuery = listQuery.or(`name.ilike.%${query}%,url.ilike.%${query}%`);
+    const safeQuery = query
+      .replace(/[\\%_]/g, "\\$&") // LIKE wildcards: %, _, \
+      .replace(/[,().]/g, ""); // PostgREST filter delimiters
+    if (safeQuery) {
+      listQuery = listQuery.or(
+        `name.ilike.%${safeQuery}%,url.ilike.%${safeQuery}%`,
+      );
+    }
   }
 
   // 상태 필터
