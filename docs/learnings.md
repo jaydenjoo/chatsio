@@ -144,6 +144,70 @@
   3. **"X를 고쳤는데 Y가 안 변함" 패턴에서 의심할 점**: 두 도구가 사실 같은 설정을 공유하고 있다는 가정이 틀렸을 수 있음. 각자의 설정 파일을 독립적으로 확인.
   4. **이 교훈은 다른 도구에도 일반화**: `.dockerignore`, `.prettierignore`, Jest `testPathIgnorePatterns`, Vite `server.watch.ignored` 등 모두 같은 패턴. 새 툴 도입 시 "이 툴의 ignore 설정은 무엇인가?"를 체크.
 
+### 2026-04-06 — [Environment/Critical] Turbopack LevelDB persistence × exFAT 외장 SSD 비호환
+- **증상**: Session #10에서 루트 `/` 랜딩 placeholder 구현 후 `pnpm dev` 시작 시 `[Error: Failed to open database / Caused by: Loading persistence directory failed / invalid digit found in string]` 에러. `pnpm build`와 `pnpm lint`는 통과하지만 **dev server만 시작 불가**. `.next` 캐시를 완전히 지워도 재발. Session #9의 "Turbopack dev 500 에러"(globals.css `@import` 위치)와 증상이 비슷하지만 완전히 다른 원인.
+- **원인 깊이 분석**:
+  1. 프로젝트가 외장 SSD `/Volumes/jayden-ssd`에 있었고 이 볼륨은 **exFAT** 파일시스템이었음 (`diskutil info`로 확인). exFAT는 Windows 호환용이지만 **macOS의 xattr(extended attributes) 저장 공간 없음**
+  2. macOS는 보존 못 하는 xattr을 `._원본파일명` 형태의 **AppleDouble 파일**로 분리 저장 → 모든 파일 옆에 그림자 파일이 자동 생성됨
+  3. Next.js 16.2 Turbopack은 Rust 기반 LevelDB를 persistence 캐시로 사용. `.next/dev/cache/turbopack/<hash>/` 경로에 `.sst`, `CURRENT`, `LOG`, `MANIFEST-*` 파일 생성
+  4. 외장 SSD에서는 `._00000001.sst`, `._CURRENT` 같은 가짜 AppleDouble 파일이 LevelDB 파일 옆에 자동 생성
+  5. LevelDB 로더가 디렉토리를 스캔하며 `._*` 파일을 진짜 SST 파일로 오인 → 파일 헤더의 버전 숫자(매직 바이트)를 파싱하려다 Rust `str::parse` 실패 → "invalid digit found in string" panic
+  6. **빌드는 왜 통과했나**: `next build`는 LevelDB persistence를 쓰지 않고 static/SSG 결과만 생성. dev는 incremental caching을 위해 LevelDB 필수.
+- **해결 여정**:
+  1. 1차 시도 — `.next` 전체 삭제 후 재시작 → **재현** (원인이 `.next` 외부에 있음을 확인)
+  2. 2차 시도 — `find .next -name '._*' -delete` 정리 후 재시작 → dev 시작 중 파일이 재생성되어 **재현**
+  3. 3차 시도 — `next dev --webpack` 플래그로 Turbopack 우회 → **성공** (webpack은 LevelDB 미사용)
+  4. 근본 해결 — 프로젝트를 **내장 SSD (APFS)로 전체 이동** → Turbopack 정상 작동 (`Ready in 248ms`)
+- **왜 Session #9의 AppleDouble 정리 작업으로 방지 못 했나**:
+  - Session #9에서는 git tracked `._*` 21개 정리 + ESLint ignore만 추가
+  - **파일시스템 자체가 exFAT인 한 AppleDouble은 매번 자동 재생성**됨. 정리는 임시방편이었을 뿐
+  - 이번엔 Turbopack이 `.next` 내부의 AppleDouble을 보기 전에 막을 방법이 없었음 (생성 속도 vs 읽기 속도 경쟁)
+- **규칙**:
+  1. **macOS에서 Node.js/Next.js 프로젝트는 반드시 APFS 파일시스템에 둘 것**. 외장 드라이브가 exFAT/FAT32이면:
+     - a) 내장 SSD로 이동 (가장 간단), 또는
+     - b) 외장을 APFS로 재포맷(Mac 전용 포기), 또는
+     - c) 2-파티션(APFS + exFAT)으로 분할, 또는
+     - d) exFAT 안에 APFS sparsebundle 이미지 생성 후 그 안에서 작업
+  2. **새 외장 드라이브 구매/포맷 시 파일시스템 매트릭스**:
+     - Mac 전용 개발 → **APFS**
+     - Windows 공유만 → exFAT
+     - Mac 개발 + Windows 공유 → 2-파티션 또는 sparsebundle
+  3. **"invalid digit / invalid number / parse error"가 빌드 툴/런타임에서 나면 파일시스템 아티팩트 의심**: macOS `._*`, Windows `desktop.ini`/`Thumbs.db`, Linux `.directory`/`.Trash-*` 등 숨김 메타데이터 파일이 스캐너에 껴들어가는 케이스
+  4. **Session #9 "빌드 통과 ≠ dev 통과" 교훈 연장**: 이번엔 CSS import 순서가 아니라 파일시스템 호환성. dev server의 런타임 로더는 production build보다 더 엄격하고 신생 도구(Turbopack, Rust LevelDB)는 이런 edge case 방어가 부족. **Playwright/curl QA는 여전히 dev 전용 버그 탐지의 마지막 방어선**.
+  5. **신생 도구 채택 전 파일시스템 호환성 검증**: Turbopack, Rspack, Bun, Vite 등의 "초고속" 도구는 대부분 Rust/네이티브 바인딩 + 바이너리 캐시 DB를 씀. 채택 전 "어떤 캐시 DB를 쓰는가?", "파일 이름 스캔 방식?", "AppleDouble 회피 패치 있는가?" 확인.
+  6. **노이즈가 지속되는 환경 에러는 뿌리를 뽑는다**: learnings.md에 이미 "`.gitignore` ≠ ESLint ignore", "AppleDouble 메타데이터 정리" 교훈이 있었음. 같은 뿌리(**exFAT**)에서 나온 3번째 이슈가 이번. **한 번의 근본 조치(APFS 이동)가 세 번의 임시방편보다 낫다**.
+
+### 2026-04-06 — [Process] macOS 프로젝트 경로 이동 템플릿 (exFAT → APFS)
+- **증상/상황**: 위 exFAT × Turbopack 이슈의 근본 해결책으로 chatsio 프로젝트 전체를 `/Volumes/jayden-ssd/chatsio` → `/Users/jayden/projects/chatsio`로 이동해야 했음. Git 저장소, node_modules, 환경변수, Claude Code 메모리 디렉토리, 실행 중인 dev server 등 여러 상태를 동시에 안전하게 다뤄야 함.
+- **성공한 프로세스 (복사부터 검증까지 소요 5분 미만)**:
+  1. **사전 확인**: dev server PID(`lsof -i :3800`), git status, 내장 SSD 여유 공간(`df -h /`), 예상 복사 크기
+  2. **dev server 종료**: `kill <pid>` (ungraceful OK, 파일 락 해제 목적)
+  3. **대상 디렉토리 생성**: `mkdir -p /Users/jayden/projects`
+  4. **rsync 복사** (최소 세트만):
+     - `rsync -a --exclude='node_modules' --exclude='.next' --exclude='._*' --exclude='.DS_Store' src/ dst/`
+     - `node_modules` 제외 이유: pnpm store로 재생성이 빠르고 깨끗 (exFAT 아티팩트 완전 배제)
+     - `.next` 제외 이유: 재빌드 시 자동 생성
+     - `._*` 제외 이유: 복사 시점에 AppleDouble 청소
+  5. **복사 무결성 검증**: git status, git log, .env.local 존재, 중요 파일 크기/타임스탬프 확인
+  6. **Claude Code 메모리 디렉토리 복사**:
+     - 규칙: 프로젝트 경로의 `/` → `-`로 치환이 디렉토리 이름
+     - 예: `/Volumes/jayden-ssd/chatsio` → `~/.claude/projects/-Volumes-jayden-ssd-chatsio/`
+     - 예: `/Users/jayden/projects/chatsio` → `~/.claude/projects/-Users-jayden-projects-chatsio/`
+     - `cp -a OLD/memory NEW/`로 MEMORY.md + 개별 메모리 파일 보존
+  7. **새 위치에서 `pnpm install`**: pnpm의 content-addressable store가 기존 내려받은 패키지를 symlink로 링크 → 대형 프로젝트도 수 초 내 완료 (실측: 15GB node_modules → 3.4초)
+  8. **검증 게이트**: `typecheck + lint + build` + dev server 실제 시작 + HTTP 200 확인
+  9. **원본은 별도 승인 후 삭제**: 검증 완료 후에도 며칠 병행 유지해서 숨은 의존성 발견 시 롤백 가능하게 유지. Jayden 명시적 "삭제 OK" 전까지 보존.
+- **실수할 뻔했던 부분**:
+  1. 초반에 `.next` 전체를 `rm -rf`로 지우려다 careful hook 차단 발동 → 진단이 오히려 정확해지는 계기 (백업 가치 재확인)
+  2. 이동 전에 랜딩 코드 변경사항을 커밋할까 고민 — rsync가 working tree + untracked 전부 복사하므로 커밋 없이도 안전하게 이동. 단, rsync 중단 리스크 대비해서는 사전 WIP 커밋도 나쁘지 않은 옵션
+  3. 현재 Claude Code 세션의 cwd는 여전히 구 경로 → 새 경로 작업은 `cd /Users/jayden/projects/chatsio &&` 접두사 또는 **새 세션 시작**이 필요. Edit/Write/Read 같은 절대 경로 도구는 문제없음
+- **규칙**:
+  1. **프로젝트 이동은 Copy-Verify-Delete 3단계**로 분리. 절대 `mv`로 한 번에 하지 말 것. 원본이 며칠 더 보존되어야 복사본에서 발견되는 숨은 문제를 롤백 가능
+  2. **node_modules는 복사 대신 재생성**: 파일시스템 변경(특히 exFAT → APFS) 시 권한/메타데이터 이관이 복잡. pnpm/npm/yarn store에서 재생성이 훨씬 깨끗하고 종종 더 빠름
+  3. **Claude Code 메모리 디렉토리 이동을 잊지 말 것**: 프로젝트 경로가 바뀌면 메모리 디렉토리 이름도 바뀜. 놓치면 과거 세션에서 축적한 MEMORY.md + 개별 메모리 파일 유실. `~/.claude/projects/<프로젝트경로-대시치환>/memory/` 복사 필수
+  4. **이동 후 반드시 Turbopack dev + curl HTTP로 실제 렌더링 검증**: typecheck/lint/build만으로는 환경 이슈를 못 잡음 (Session #9 교훈과 동일)
+  5. **이동 후 PROGRESS.md에 경로 변경 사실을 맨 위에 명시**: 다음 세션에서 혼란 방지. "프로젝트 경로: `/Users/jayden/projects/chatsio/`" 한 줄이 미래 비용을 크게 줄임
+
 ### 2026-04-05 — [AI-Pitfall] shadcn/ui init이 디자인 시스템 CSS 변수 덮어쓰기
 - **증상**: `npx shadcn@latest init` 실행 후 `--primary`, `--secondary` 등이 oklch 값으로 교체됨
 - **원인**: shadcn이 globals.css의 `:root`와 `.dark` 블록에 자체 변수를 주입

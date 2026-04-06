@@ -1,12 +1,84 @@
 # Chatsio Progress Journal
 
 > 매 세션 시작 시 이 파일부터 업데이트.
-> 프로젝트 경로: /Volumes/jayden-ssd/chatsio/
+> **프로젝트 경로**: `/Users/jayden/projects/chatsio/` (Session #10에서 `/Volumes/jayden-ssd/chatsio`에서 이동 — 아래 "프로젝트 이동" 섹션 참조)
 
 ## 현재 위치
-- Epic: Phase 1 인증 + 상품 관리 ✅ **완료 (10/10)**
-- Task: Task 1-10 완료 + Playwright QA + globals.css hotfix → Phase 2 진입 대기
-- 상태: Phase 1 전체 완료 — Phase 2 시작 준비
+- Epic: Phase 2 진입 전 정리 (Phase 1 완료 후)
+- Task: **루트 `/` 랜딩 placeholder** (구현 완료, 커밋 대기 중) + **프로젝트 경로 이동** (완료)
+- 상태: 구현 완료 / 검증 통과 / **커밋 + 원본 삭제 결정 대기**
+
+## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
+
+Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체를 내장 SSD(APFS)로 이동**:
+
+| 항목 | Before | After |
+|---|---|---|
+| 경로 | `/Volumes/jayden-ssd/chatsio` | **`/Users/jayden/projects/chatsio`** |
+| 파일시스템 | exFAT (외장) | APFS (내장) |
+| Turbopack | ❌ LevelDB persistence 에러 | ✅ `Ready in 248ms` |
+| AppleDouble (`._*`) | 자동 생성 (쓰레기) | 생성 안 됨 (clean) |
+| Claude 메모리 | `-Volumes-jayden-ssd-chatsio/` | `-Users-jayden-projects-chatsio/` |
+
+**원본 상태**: `/Volumes/jayden-ssd/chatsio`는 **그대로 보존**. Jayden이 검증 후 "삭제 OK" 지시 시 제거.
+
+**이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
+
+## 이번 세션 완료 내역 (Session #10)
+
+### 1. 루트 `/` 랜딩 placeholder 구현 (Phase 2 진입 전 정리)
+- **계획 단계**: 스코프 협상 4회 (헤드라인 / CTA1 / CTA2 / 로고 컨셉)
+  - 헤드라인: "쇼핑몰 상품을 AI가 읽을 수 있게." (부드러움)
+  - CTA1: "지금 시작 →" / CTA2: "로그인"
+  - 로고: 모노그램 "C" SVG (컨셉 A)
+  - **Not Doing**: 풀 랜딩 섹션(Task 3-3 정식 작업), Pricing, 마케팅 카피 — placeholder 스코프 유지
+- **신규 파일**:
+  - `src/components/brand/logo.tsx` — 모노그램 SVG 컴포넌트 (size prop, `--primary`/`--on-primary` 토큰 직접 `style` 주입, 라이트/다크 자동 전환, `aria-label="Chatsio"`)
+- **전체 재작성**:
+  - `src/app/(public)/page.tsx` — Next.js 기본 스캐폴딩 완전 제거, Server Component로 재구현
+    - 상단 Nav: Logo + 로그인 링크
+    - Hero: Beta 뱃지 / 2줄 헤드라인 (두 번째 줄 `--primary` 강조) / 서브카피 / CTA pair
+    - Footer: © 2026 Chatsio · 상품 데이터 인프라
+    - 디자인 시스템: 배경 도트 텍스처, 2레이어 그림자(CTA primary), `font-display` (DM Sans), 호버 translateY + shadow 강화, focus-visible ring
+    - metadata export (title + description)
+- **검증**: typecheck ✅ / lint ✅ (pre-existing warning 1개 무관) / build ✅ / Turbopack dev `Ready in 248ms` ✅ / curl HTTP 200 + 제목/헤드라인/CTA/Logo SVG 확인 ✅
+
+### 2. 환경 크리티컬 이슈 발견 + 해결
+- **증상**: Task 구현 후 `pnpm dev`가 `Failed to open database / Loading persistence directory failed / invalid digit found in string` 에러로 시작 실패. build는 통과.
+- **디버깅 여정**:
+  1. `.next` 삭제 시도 → 같은 에러 재발
+  2. 파일시스템 확인 → `/Volumes/jayden-ssd`가 **exFAT**임을 발견
+  3. `.next/dev/cache/turbopack/*/`에 LevelDB `.sst`, `CURRENT`, `LOG` 파일 존재 확인
+  4. macOS가 exFAT에서 xattr 저장 못 해서 `._*` AppleDouble 자동 생성 → LevelDB 스캐너가 `._*.sst`를 진짜 파일로 오인 → 매직 바이트 파싱 실패
+  5. 임시 우회: webpack dev로 시도 → 성공 (그러나 Turbopack 포기)
+- **근본 해결**: 프로젝트를 내장 SSD(APFS)로 이동
+  - `rsync -a --exclude=node_modules --exclude=.next --exclude='._*' ...` — 764개 파일, 26MB, 1초 미만
+  - Claude Code 메모리 디렉토리 복사 (`-Volumes-jayden-ssd-chatsio` → `-Users-jayden-projects-chatsio`, 3개 파일 보존)
+  - `pnpm install` 3.4초 (pnpm store 링크)
+  - Turbopack dev 정상 작동 확인
+
+### 3. 교훈 기록 (learnings.md에 2건 추가)
+- `[Environment/Critical] Turbopack LevelDB × exFAT 외장 SSD 비호환`
+- `[Process] macOS 프로젝트 이동 템플릿 (rsync + 메모리 + pnpm + 검증)`
+
+## 다음 세션 할 일
+
+1. **새 Claude Code 세션을 `/Users/jayden/projects/chatsio`에서 시작** (CLAUDE.md / 메모리 / PROGRESS.md 새 경로 기준 로드)
+2. **랜딩 코드 커밋** — `src/app/(public)/page.tsx` + `src/components/brand/logo.tsx`
+   - 제안 메시지: `feat: 루트 / 랜딩 placeholder — 모노그램 로고 + Hero + CTA (Task 3-3 정식 랜딩 전 임시)`
+   - Jayden 최종 확인 후 커밋
+3. **원본 `/Volumes/jayden-ssd/chatsio` 삭제 결정** — 새 경로에서 며칠 작업하며 안정성 확인 후 Jayden 판단
+4. **Phase 2 진입 전 정리 Task 묶음**:
+   - Task 1-7.5 이미지 업로드 (Supabase Storage 버킷 + RLS + Server Action, ~1h)
+   - L1 리팩토링: `products/new/page.tsx` 중복 인증/shop 쿼리 제거
+   - M3 리팩토링: `header.tsx` reduce mutation 제거
+5. **Phase 2: AI 구조화 파이프라인** (n8n webhook → Claude API → JSON-LD + 네이버EP)
+6. **다른 프로젝트(Findably, afg) 이동 전략 결정** — 같은 exFAT × Turbopack 이슈 재발 가능성
+
+## 차단 요소
+- **원본 경로 삭제 결정 대기** (Jayden 확인 필요)
+- Google Cloud Console OAuth 설정 (Phase 1부터 이월된 외부 의존)
+- DB 직접 연결(DATABASE_URL) 불가 — Supabase MCP 사용 중
 
 ## QA 결과 (Session #9 말미)
 Playwright MCP로 public 페이지 (`/login`, `/signup`, `/`) 다크모드 동작 검증:
@@ -179,11 +251,30 @@ Playwright MCP로 public 페이지 (`/login`, `/signup`, `/`) 다크모드 동�
 - 디자인 에셋: /Volumes/jayden-ssd/chatsio/docs/design-references/stitch-code/
 
 ## 마지막 업데이트
-- 날짜: 2026-04-06 (세션 9 — Task 1-10 + Playwright QA + globals.css hotfix → **Phase 1 완료**)
+- 날짜: 2026-04-06 (세션 10 — 랜딩 placeholder 구현 + **exFAT × Turbopack 비호환 발견 + 프로젝트 내장 SSD 이동**)
 
 ---
 
 ## Session Log
+
+### 2026-04-06 Session #10 — 랜딩 placeholder + 프로젝트 경로 이동
+- **Goal**: 루트 `/` Next.js 기본 스캐폴딩 정리 (Phase 2 진입 전 첫인상 정돈)
+- **Completed**:
+  - 루트 `/` 랜딩 placeholder 구현
+    - `Logo` 컴포넌트 신규 (모노그램 "C" SVG, 디자인 토큰 직접 사용)
+    - `(public)/page.tsx` 전체 재작성 (Nav + Hero + Footer, Server Component, 디자인 시스템 v3.0 토큰)
+    - metadata export
+  - 검증: typecheck + lint + build + Turbopack dev + curl HTTP 200 모두 통과
+  - **환경 크리티컬 이슈 발견 + 해결**: Turbopack LevelDB persistence가 exFAT 외장 SSD의 `._*` AppleDouble 파일 때문에 DB 로드 실패
+  - **프로젝트 전체 이동**: `/Volumes/jayden-ssd/chatsio` → `/Users/jayden/projects/chatsio` (APFS)
+    - rsync 764개 파일 26MB (node_modules/.next/`._*` 제외)
+    - Claude Code 메모리 디렉토리 복사
+    - pnpm install 3.4초 (store 링크)
+    - Turbopack 정상 작동 확인 (`Ready in 248ms`)
+  - learnings.md 교훈 2건 추가 (exFAT × Turbopack 비호환, 프로젝트 이동 템플릿)
+- **Status**: 구현 완료, **랜딩 코드 커밋 + 원본 삭제 결정 대기**
+- **Blockers**: 원본 `/Volumes/jayden-ssd/chatsio` 삭제 결정 필요
+- **Next**: 새 세션을 새 경로에서 시작 → 랜딩 커밋 → Phase 2 진입 전 정리 Task (1-7.5 이미지 업로드, L1/M3 리팩토링)
 
 ### 2026-04-05 Session #1 — Initial Setup (cc-init-next)
 - **Goal**: 프로젝트 초기 설정
