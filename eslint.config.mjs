@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // macOS AppleDouble 메타데이터 (외장 SSD/exFAT에서 자동 생성) — 파싱 불가
+    "**/._*",
   ]),
 ]);
 
