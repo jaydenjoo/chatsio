@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { createProduct } from "@/features/products";
 import type { CreateProductInput } from "@/features/products";
 import { CsvUploadForm } from "./csv-upload-form";
+import { ImageUploadForm } from "./image-upload-form";
 
 type TabKey = "url" | "image" | "csv";
 
@@ -21,7 +22,7 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { key: "url", label: "URL 입력", icon: <LinkIcon className="size-4" />, disabled: false },
-  { key: "image", label: "이미지 업로드", icon: <ImageIcon className="size-4" />, disabled: true },
+  { key: "image", label: "이미지 업로드", icon: <ImageIcon className="size-4" />, disabled: false },
   { key: "csv", label: "CSV 일괄 등록", icon: <FileText className="size-4" />, disabled: false },
 ];
 
@@ -182,21 +183,11 @@ export function ProductCreateForm(): React.ReactElement {
           </form>
         )}
 
+        {/* 이미지 업로드 탭 */}
+        {activeTab === "image" && <ImageUploadForm />}
+
         {/* CSV 벌크 업로드 탭 */}
         {activeTab === "csv" && <CsvUploadForm />}
-
-        {/* 이미지 탭 — 준비 중 */}
-        {activeTab === "image" && (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <div className="flex size-14 items-center justify-center rounded-full bg-[var(--surface-container)]">
-              <ImageIcon className="size-6 text-[var(--on-surface-variant)]" />
-            </div>
-            <h3 className="text-lg font-bold text-[var(--on-surface)]">준비 중입니다</h3>
-            <p className="max-w-sm text-sm text-[var(--on-surface-variant)]">
-              이미지 업로드 기능은 곧 제공됩니다. 지금은 URL 입력 또는 CSV로 등록해주세요.
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Bento 정보 카드 */}

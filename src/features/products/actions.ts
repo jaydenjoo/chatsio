@@ -8,6 +8,11 @@ import {
   BULK_MAX_NAME,
   BULK_MAX_URL,
   hasFormulaInjection,
+  IMAGE_MAX_FILES,
+  IMAGE_MAX_BYTES,
+  isAllowedImageMime,
+  sanitizeFilename,
+  sniffImageMime,
 } from "./validation";
 
 // ============================================================
@@ -427,6 +432,230 @@ export async function createProductsBulk(
     successCount,
     failedRows,
   };
+}
+
+// ============================================================
+// 이미지 업로드로 상품 등록
+// ============================================================
+//
+// FormData 기반 — File은 직렬화 불가 타입이므로 일반 객체 인자 대신
+// FormData를 통해 전달받는다. Next.js Server Actions가 이를 표준 지원.
+//
+// 흐름:
+//   1. name 파싱/검증 (Zod)
+//   2. images[] 파싱/검증 (개수/크기/MIME)
+//   3. 인증 + shop 소유권 확인
+//   4. products INSERT → productId 획득
+//   5. 각 파일을 {shop_id}/{product_id}/{index}-{sanitized} 경로로 upload
+//      - 사용자 세션 클라이언트 → RLS가 경로 첫 폴더(shop_id) 검증
+//      - upload 실패 시 rollback: 이미 업로드된 파일 + product row 제거
+//   6. publicUrl 목록을 products.image_urls에 UPDATE
+//      - update 실패 시 rollback: 모든 파일 + product row 제거
+//
+// 주의 — 원자성: INSERT + uploads + UPDATE는 트랜잭션이 아니다. 프로세스가
+// 중간에 종료되면 orphan 상태가 남을 수 있다. MVP에서는 rollback best-effort
+// + Phase 2에 orphan cleanup cron을 추가할 예정.
+
+const createProductWithImagesNameSchema = z
+  .string()
+  .min(1, "상품명을 입력해주세요")
+  .max(200, "상품명은 200자 이하로 입력해주세요");
+
+export interface CreateProductWithImagesResult {
+  success: boolean;
+  error: string | null;
+  productId?: string;
+}
+
+export async function createProductWithImages(
+  formData: FormData,
+): Promise<CreateProductWithImagesResult> {
+  // 1. name 파싱
+  const rawName = formData.get("name");
+  if (typeof rawName !== "string") {
+    return { success: false, error: "상품명을 입력해주세요" };
+  }
+  const nameParsed = createProductWithImagesNameSchema.safeParse(rawName.trim());
+  if (!nameParsed.success) {
+    return {
+      success: false,
+      error: nameParsed.error.issues[0]?.message ?? "상품명을 확인해주세요",
+    };
+  }
+  const name = nameParsed.data;
+
+  // 2. images 파싱 + 검증
+  const rawImages = formData.getAll("images");
+  const files: File[] = rawImages.filter((v): v is File => v instanceof File);
+
+  if (files.length === 0) {
+    return { success: false, error: "이미지를 1개 이상 선택해주세요" };
+  }
+  if (files.length > IMAGE_MAX_FILES) {
+    return {
+      success: false,
+      error: `이미지는 최대 ${IMAGE_MAX_FILES}개까지 업로드할 수 있습니다`,
+    };
+  }
+
+  // 파일별 기본 검증 (크기 + 선언된 MIME) + magic bytes 스니핑
+  // sniffedTypes[i]가 검증된 실제 MIME. 이후 upload contentType에 사용한다.
+  const sniffedTypes: string[] = [];
+  for (const file of files) {
+    if (file.size === 0) {
+      return { success: false, error: "빈 파일은 업로드할 수 없습니다" };
+    }
+    if (file.size > IMAGE_MAX_BYTES) {
+      const mb = (IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0);
+      return {
+        success: false,
+        error: `파일 크기는 ${mb}MB 이하여야 합니다 (${file.name})`,
+      };
+    }
+    // 1차 — 선언된 MIME (client-controlled, 빠른 거부)
+    if (!isAllowedImageMime(file.type)) {
+      return {
+        success: false,
+        error: "JPEG, PNG, WebP 이미지만 업로드할 수 있습니다",
+      };
+    }
+    // 2차 — 실제 magic bytes 확인 (spoofing 방어)
+    const actualMime = await sniffImageMime(file);
+    if (!actualMime) {
+      return {
+        success: false,
+        error: "이미지 형식을 확인할 수 없습니다. 파일이 손상되었거나 지원하지 않는 형식입니다.",
+      };
+    }
+    sniffedTypes.push(actualMime);
+  }
+
+  // 3. 인증 + shop 소유권
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "인증이 필요합니다." };
+  }
+
+  const { data: shop } = await supabase
+    .from("shops")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!shop) {
+    return {
+      success: false,
+      error: "쇼핑몰 정보가 없습니다. 온보딩을 먼저 완료해주세요.",
+    };
+  }
+
+  // 4. products INSERT
+  const { data: inserted, error: insertError } = await supabase
+    .from("products")
+    .insert({
+      shop_id: shop.id,
+      name,
+      url: null,
+      source: "image",
+      status: "pending",
+      image_urls: [],
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !inserted) {
+    return { success: false, error: "상품 등록에 실패했습니다." };
+  }
+
+  const { id: productId } = inserted;
+
+  // 5. 파일 업로드 (순차)
+  const uploadedPaths: string[] = [];
+  const publicUrls: string[] = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const safeName = sanitizeFilename(file.name);
+    const path = `${shop.id}/${productId}/${i}-${safeName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("product-images")
+      .upload(path, file, {
+        // 스니핑된 실제 MIME 사용 — 클라이언트가 조작한 file.type을 신뢰하지 않음
+        contentType: sniffedTypes[i],
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      await rollbackUploads(supabase, uploadedPaths, productId, "upload_failed");
+      return {
+        success: false,
+        error: "이미지 업로드에 실패했습니다. 다시 시도해주세요.",
+      };
+    }
+
+    uploadedPaths.push(path);
+    const { data: publicUrlData } = supabase.storage
+      .from("product-images")
+      .getPublicUrl(path);
+    publicUrls.push(publicUrlData.publicUrl);
+  }
+
+  // 6. products.image_urls UPDATE
+  const { error: updateError } = await supabase
+    .from("products")
+    .update({ image_urls: publicUrls })
+    .eq("id", productId);
+
+  if (updateError) {
+    await rollbackUploads(supabase, uploadedPaths, productId, "update_failed");
+    return { success: false, error: "상품 등록에 실패했습니다." };
+  }
+
+  revalidatePath("/products");
+  return { success: true, error: null, productId };
+}
+
+// Rollback helper — 실패한 트랜잭션을 best-effort로 되돌린다.
+// 중요: Storage 삭제나 DB 삭제가 실패해도 함수 전체는 return하지 않고
+// 모든 단계를 시도한다. 실패한 단계는 console.error로 기록하여 Phase 2
+// orphan-cleanup cron이 수동 추적할 수 있는 단서를 남긴다.
+// (`console.log`는 금지이지만 catch/실패 분기의 `console.error`는 허용)
+async function rollbackUploads(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  uploadedPaths: string[],
+  productId: string,
+  reason: string,
+): Promise<void> {
+  if (uploadedPaths.length > 0) {
+    const { error: removeError } = await supabase.storage
+      .from("product-images")
+      .remove(uploadedPaths);
+    if (removeError) {
+      console.error("[createProductWithImages] storage rollback failed", {
+        reason,
+        productId,
+        paths: uploadedPaths,
+        message: removeError.message,
+      });
+    }
+  }
+  const { error: deleteError } = await supabase
+    .from("products")
+    .delete()
+    .eq("id", productId);
+  if (deleteError) {
+    console.error("[createProductWithImages] product row rollback failed", {
+      reason,
+      productId,
+      message: deleteError.message,
+    });
+  }
 }
 
 export async function deleteProduct(productId: string): Promise<{ success: boolean; error: string | null }> {

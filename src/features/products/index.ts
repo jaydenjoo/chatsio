@@ -2,6 +2,7 @@ export {
   getProducts,
   createProduct,
   createProductsBulk,
+  createProductWithImages,
   deleteProduct,
 } from "./actions";
 export type {
@@ -14,6 +15,7 @@ export type {
   BulkRowInput,
   BulkFailedRow,
   CreateProductsBulkResult,
+  CreateProductWithImagesResult,
 } from "./actions";
 
 // 클라이언트/서버 공유 검증 유틸 — validation.ts에서 직접 re-export
@@ -22,6 +24,13 @@ export {
   BULK_MAX_NAME,
   BULK_MAX_URL,
   hasFormulaInjection,
+  IMAGE_MAX_FILES,
+  IMAGE_MAX_BYTES,
+  IMAGE_ALLOWED_MIME,
+  isAllowedImageMime,
+  sanitizeFilename,
 } from "./validation";
+export type { ImageMime } from "./validation";
 
 export { CsvUploadForm } from "./components/csv-upload-form";
+export { ImageUploadForm } from "./components/image-upload-form";
