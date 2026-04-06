@@ -5,21 +5,25 @@
 
 ## 현재 위치
 - Epic: Phase 1 인증 + 상품 관리
-- Task: Task 1-6 완료 → Task 1-7 (상품 등록) 대기
-- 상태: Phase 1 진행 중 (7/10 완료)
+- Task: Task 1-7 완료 → Task 1-8 (CSV 벌크) 또는 1-10 (다크모드) 대기
+- 상태: Phase 1 진행 중 (8/10 완료)
 
-## 이번 세션 완료 내역 (Session #6 이어서)
-- Task 1-6: 상품 목록 페이지
-  - Server Actions: getProducts (검색/필터/정렬/페이지네이션/KPI), deleteProduct (소유권 검증)
-  - UI 컴포넌트 3개: ProductSearchBar, ProductTable, ProductEmptyState
-  - products/page.tsx: Server Component, KPI Bento 그리드 + SearchBar + Table
-  - loading.tsx + error.tsx (스켈레톤 + 에러 바운더리)
-  - shadcn checkbox + select 추가
-- DB 경계 규칙 수립
-  - Chatsio + Findably가 동일 Supabase 프로젝트 공유 확인
-  - Findably 8개 테이블 발견 (profiles, diagnoses, payments, reports 등)
-  - 메모리에 "내가 만든 것만 건드린다" 규칙 영구 저장
-  - PROGRESS.md/learnings.md에 Session #4 V1 DROP 사고 교훈 기록
+## 이번 세션 완료 내역 (Session #7)
+- **Task 1-7**: 상품 등록 페이지 (URL 입력)
+  - `createProduct` Server Action (Zod + http/https 스킴 화이트리스트 + IDOR 방어)
+  - `/products/new` 페이지 (Server Component, 인증 + shop 검증)
+  - `ProductCreateForm` Client Component (3탭 Segmented Control — URL 활성, 이미지/CSV Soon)
+  - loading.tsx + error.tsx + metadata export
+  - 코드 리뷰 6개 MEDIUM 즉시 수정 (URL 스킴 화이트리스트, router.refresh 제거, dead code 제거, metadata, barrel import, setError fallback)
+- **Task 1-7.1**: 보안 강화 (Task 1-7 리뷰에서 발견된 2건)
+  - `(dashboard)/layout.tsx` → async Server Component로 전환, 매 요청 DB 검증 (user_profiles + shops)
+  - 미들웨어 `onboarding_done` 쿠키 조작 우회 차단 (쿠키 캐싱은 UX 용도로 유지)
+  - `getProducts` `.or()` PostgREST injection 방어 (LIKE 와일드카드 이스케이프 + `,` 제거)
+- **Task 1-7.1 follow-up**: 리뷰 후속 수정 2건
+  - PostgREST 구분자 처리 완화 — `(` `)` `.` 보존 (한국 상품명 UX)
+  - layout.tsx getUser/profile/shop 에러 분리 로깅
+- **총 커밋 3건**: 3faa882 → ac70734 → 8bb28d8
+- **변경 통계**: 7파일, +534/-6
 
 ## 세션 #6 초반 완료 내역
 - Task 1-9: 레이아웃 (Sidebar + Header + 반응형)
@@ -47,11 +51,19 @@
   - M1-M8, L1-L4: 반환 타입, utils, login UX, products placeholder 등
 
 ## 다음 세션 할 일
-1. Task 1-7: 상품 등록 (URL 입력 + 이미지 업로드)
-2. Task 1-8: CSV 벌크 업로드 + 검증 + 에러 표시
-3. Task 1-10: 다크모드
-4. Google Cloud Console에서 OAuth 클라이언트 ID 생성 → Supabase에 등록
-5. M3 (inline style → Tailwind 클래스) 미수정 — 온보딩 steps 파일들
+1. **Task 1-8**: CSV 벌크 업로드 + 검증 + 에러 표시 (예상 1.5~2h)
+2. **Task 1-10**: 다크모드 토글 (예상 30~60m)
+3. **Task 1-7.5**: 이미지 업로드 (Supabase Storage 버킷 + RLS + Server Action, 예상 1h)
+4. **L1 리팩토링** (LOW): `products/new/page.tsx`의 중복 인증/shop 쿼리 제거 — layout에서 검증된 값을 Context/prop으로 전달 (20~30m)
+5. Google Cloud Console에서 OAuth 클라이언트 ID 생성 → Supabase에 등록
+6. M3 (inline style → Tailwind 클래스) 미수정 — 온보딩 steps 파일들
+
+## 수동 QA 미검증 (Jayden 확인 필요)
+- [ ] `/products/new` 정상 등록 → `/products` 반영
+- [ ] `javascript:` URL 입력 → 화이트리스트 에러
+- [ ] 쿠키 조작 (`document.cookie = "onboarding_done=1"`) → 여전히 `/onboarding` 리다이렉트
+- [ ] 검색 `"나이키(운동화)"`, `"ABC Co."` → 괄호/마침표 보존
+- [ ] 검색 `"test,status.neq.optimized"` → 쉼표만 제거
 
 ## 차단 요소
 - Google Cloud Console OAuth 설정 필요 (구글 로그인 실제 동작용)
@@ -72,7 +84,7 @@
 - 디자인 에셋: /Volumes/jayden-ssd/chatsio/docs/design-references/stitch-code/
 
 ## 마지막 업데이트
-- 날짜: 2026-04-06 (세션 6 — Task 1-9 + 코드리뷰 + Task 1-6 + DB경계)
+- 날짜: 2026-04-06 (세션 7 — Task 1-7 상품 등록 + 1-7.1 보안 강화 + follow-up)
 
 ---
 
@@ -146,3 +158,23 @@
 - **Status**: Complete
 - **Blockers**: Google Cloud Console OAuth 설정 필요
 - **Next**: Task 1-7 (상품 등록)
+
+### 2026-04-06 Session #7 — Task 1-7 상품 등록 + 1-7.1 보안 강화
+- **Goal**: 상품 등록 페이지 구현 + Task 내 리뷰 사이클 확립
+- **Completed**:
+  - Task 1-7: 상품 등록 페이지 (URL 입력)
+    - createProduct Server Action + http/https 스킴 화이트리스트 + IDOR 방어
+    - /products/new 페이지 + ProductCreateForm (3탭 Segmented Control)
+    - loading.tsx + error.tsx + metadata export
+  - Task 1-7 리뷰 (code-reviewer + security-reviewer 병렬) → 6개 MEDIUM 즉시 수정
+  - Task 1-7.1 보안 강화: 리뷰에서 발견된 2건 수정
+    - 미들웨어 쿠키 조작 우회 → `(dashboard)/layout.tsx`를 진짜 보안 경계로 전환
+    - getProducts `.or()` PostgREST injection 방어
+  - Task 1-7.1 리뷰 → 2건 MEDIUM follow-up 수정
+    - 검색 UX 보존 (한국 상품명의 `(` `)` `.` 보존)
+    - layout 에러 분리 로깅 (운영 안정성)
+  - **리뷰 사이클 확립**: Task → 구현 → 리뷰 → 즉시 수정 → 커밋 → 다음 Task
+    - Session #6처럼 25개 이슈 누적하지 않고 Task별 즉시 처리
+- **Status**: Complete
+- **Blockers**: Google Cloud Console OAuth 설정 필요
+- **Next**: Task 1-8 (CSV 벌크) 또는 1-10 (다크모드)
