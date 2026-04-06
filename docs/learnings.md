@@ -208,6 +208,114 @@
   4. **이동 후 반드시 Turbopack dev + curl HTTP로 실제 렌더링 검증**: typecheck/lint/build만으로는 환경 이슈를 못 잡음 (Session #9 교훈과 동일)
   5. **이동 후 PROGRESS.md에 경로 변경 사실을 맨 위에 명시**: 다음 세션에서 혼란 방지. "프로젝트 경로: `/Users/jayden/projects/chatsio/`" 한 줄이 미래 비용을 크게 줄임
 
+### 2026-04-06 — [Security/Config] Next.js Server Actions bodySizeLimit 기본 1MB — 파일 업로드 시 반드시 override
+- **증상**: Session #11에서 이미지 업로드(createProductWithImages) 구현 중 security-reviewer가 "next.config.ts에 bodySizeLimit이 없으면 정상 사용자도 5MB 이미지 2장 이상 업로드 불가"라고 지적. 실제로 Next.js 16.2 Server Actions의 기본 body size limit은 **1MB**. FormData로 5장×5MB=25MB를 전송하면 프레임워크 레벨에서 413 Payload Too Large로 잘리고 Server Action 자체가 실행되지 않음. 클라/서버 검증 코드는 아무것도 잡을 기회가 없음.
+- **원인**: Next.js App Router Server Actions는 `fetch` API를 통해 RPC처럼 동작하지만, Next.js가 자체적으로 body size limit을 강제함 (DoS 방어 목적). 기본값 1MB는 폼 텍스트에 최적화된 값이고, 파일 업로드 유스케이스는 명시적 override가 필요. 문서에는 있지만 튜토리얼 레벨에는 노출되지 않아서 파일 업로드 기능 처음 만들 때 거의 확실히 걸림.
+- **해결**: `next.config.ts`에 명시:
+  ```ts
+  const nextConfig: NextConfig = {
+    experimental: {
+      serverActions: {
+        bodySizeLimit: "26mb", // IMAGE_MAX_FILES(5) × IMAGE_MAX_BYTES(5MB) + FormData overhead
+      },
+    },
+  };
+  ```
+  숫자는 애플리케이션 상한 + 오버헤드(~1MB). 너무 크게 잡으면 DoS 표면이 증가하므로 실제 최대값 + 여유분만.
+- **규칙**:
+  1. **파일 업로드 Server Action 구현 시 맨 먼저 `next.config.ts` 수정**. 코드 짜고 나중에 "왜 413 에러?" 디버깅하지 말 것. 파일 업로드 Task 체크리스트에 "bodySizeLimit 확인" 포함.
+  2. **bodySizeLimit 계산식**: `최대_파일수 × 최대_파일크기 + FormData_오버헤드(1MB)`. 예: 5×5MB+1=26MB. 오버헤드는 multipart boundary + JSON 필드 포함.
+  3. **클라이언트 검증은 서버 진입 **전에** 동작하는 것이 아니다**. 클라 검증은 UX 용도이고, 프레임워크 body limit → RLS → Zod/수동 검증 → DB 제약 순서로 여러 겹이 쌓임. 첫 번째 장벽이 **Next.js 자체 limit**이라는 사실을 잊지 말 것.
+  4. **MVP 범위 밖 일반화**: Express/Fastify/Hono 등 다른 프레임워크도 body limit 기본값이 있음. 새 백엔드 채택 시 "기본 body size limit은 얼마인가?"를 항상 확인. Next.js만의 함정이 아님.
+
+### 2026-04-06 — [Security] 파일 업로드 MIME 검증은 magic bytes 필수 — `file.type`은 spoofing 가능
+- **증상**: Task 1-7.5 초기 구현에서 `isAllowedImageMime(file.type)`으로만 MIME을 검증했는데, code-reviewer와 security-reviewer가 **둘 다 독립적으로** 같은 지적을 냄: "`File.type`은 브라우저가 확장자/OS MIME 레지스트리에서 추론한 값이라 사용자가 조작 가능. `exploit.html`을 `exploit.jpg`로 이름만 바꾸면 `file.type === 'image/jpeg'`로 서버에 도달". Supabase Storage 버킷의 `allowed_mime_types` 검사조차 client-sent Content-Type에 의존하므로 같은 방식으로 우회 가능.
+- **원인**: `File.type`은 W3C File API 스펙에 따라 **UA가 추론한 MIME**을 반환. Chrome/Safari는 확장자 룩업 + 간단한 매직 바이트 sniff를 하지만, 공격자는 `new File([bytes], "a.jpg", { type: "image/jpeg" })`로 임의 값을 직접 설정하거나 FormData를 수동 조작해서 `Content-Type: image/jpeg` 헤더를 붙일 수 있음. 브라우저는 아무 방어를 안 함. 이 값을 서버가 신뢰하면 폴리글랏 공격 (JPEG 헤더 + HTML/JS body) + 클라이언트 측 MIME 우회가 뚫림.
+- **해결**: `sniffImageMime()` 유틸 추가 — 실제 파일의 첫 12바이트를 읽어 magic number로 판별:
+  ```ts
+  export async function sniffImageMime(file: File): Promise<ImageMime | null> {
+    const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+    // JPEG: FF D8 FF
+    if (head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) return "image/jpeg";
+    // PNG: 89 50 4E 47
+    if (head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47) return "image/png";
+    // WebP: "RIFF" + size + "WEBP"
+    if (head[0] === 0x52 && head[1] === 0x49 && head[2] === 0x46 && head[3] === 0x46 &&
+        head[8] === 0x57 && head[9] === 0x45 && head[10] === 0x42 && head[11] === 0x50) return "image/webp";
+    return null;
+  }
+  ```
+  서버 액션에서 두 단계 검증: 1) `isAllowedImageMime(file.type)`로 빠른 거부 → 2) `sniffImageMime(file)`로 실제 바이트 확인 → 스니핑된 MIME을 `upload()`의 `contentType`으로 사용 (client-sent value 신뢰 제거).
+- **규칙**:
+  1. **클라이언트가 제공하는 모든 MIME 정보는 신뢰 불가**: `file.type`, `Content-Type` 헤더, 파일 확장자 전부. 서버는 반드시 실제 바이트를 확인.
+  2. **magic bytes 테이블** (자주 쓰는 이미지):
+     - JPEG: `FF D8 FF`
+     - PNG: `89 50 4E 47 0D 0A 1A 0A`
+     - WebP: `"RIFF" + 4바이트 size + "WEBP"`
+     - GIF: `"GIF87a"` 또는 `"GIF89a"`
+     - AVIF: `"ftyp" ... "avif"` (OFFSET 4, more complex)
+  3. **Storage 버킷의 `allowed_mime_types`는 추가 방어선이지 유일한 방어선이 아니다**. Supabase도 client-sent `Content-Type`을 기준으로 하므로 서버 측 sniffing이 없으면 우회됨.
+  4. **두 리뷰어가 동시에 같은 지적 = 반드시 수정**. 다른 카테고리(코드 품질 vs 보안)에서 온 리뷰가 동일 이슈를 지적하면 근본적 결함. 무시하거나 "나중에" 보류하지 말 것.
+  5. **Phase 2 고려사항**: 현재는 헤더 12바이트만 검사. 더 엄격한 검증을 원하면 `sharp`/`file-type` 같은 라이브러리로 풀 decode 시도 (+ EXIF sanitization, + 이미지 resize). MVP에서는 magic bytes로 충분하고 Edge Function으로 분리할 때 라이브러리 추가.
+
+### 2026-04-06 — [Security] Supabase Storage 버킷 생성 시 기본 RLS는 공백 — 항상 경로 스코프 강화
+- **증상**: Task 1-7.5 구현 시작 시 `product-images` 버킷을 확인했는데 기존 `Users can upload product images` 정책이 이미 존재. 내용을 보니 `WITH CHECK (bucket_id = 'product-images')` **단일 조건**. `authenticated` role 체크도 없고, 경로 스코프 체크도 없음. **anon 키만 있으면 누구나 다른 사용자의 shop_id 경로로 파일을 업로드**할 수 있는 공백. Session #10 이전 어느 시점에 Supabase 대시보드 "Enable simple RLS" 또는 유사 기능으로 자동 생성된 것으로 추정.
+- **원인**: Supabase는 새 Storage 버킷 생성 시 "Allow authenticated users" 같은 기본 템플릿을 버튼 클릭으로 추가할 수 있게 하는데, 이 템플릿이 **버킷 존재 확인** 수준의 느슨한 정책을 생성. 특히 Supabase 초기 setup wizard나 dashboard "Create bucket" 흐름에서 기본으로 제안됨. 개발자가 "정책이 이미 있네"라고 안심하고 넘어가기 쉬움.
+- **해결**: 느슨한 정책 DROP → 강화된 정책 신규 생성:
+  ```sql
+  DROP POLICY IF EXISTS "Users can upload product images" ON storage.objects;
+
+  CREATE POLICY "shop_owners_upload_product_images"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'product-images'
+    AND auth.uid() IS NOT NULL
+    AND (storage.foldername(name))[1] = (
+      SELECT s.id::text FROM public.shops s WHERE s.user_id = auth.uid()
+    )
+  );
+  ```
+  핵심: `(storage.foldername(name))[1]`이 경로의 첫 폴더(객체 key를 `/`로 split한 배열)이고, 이것이 요청자의 `shops.id`와 일치해야만 업로드 허용. 업로드 코드에서 `{shop_id}/{product_id}/{filename}` 패턴을 강제하면 IDOR + 경로 주입 동시 차단.
+- **규칙**:
+  1. **새 Supabase Storage 버킷 생성 시 반드시 4개 정책을 모두 검토**: SELECT / INSERT / UPDATE / DELETE. 대시보드 기본 템플릿은 쓰지 말고 SQL로 명시 작성.
+  2. **INSERT/UPDATE/DELETE 정책에는 항상 경로 스코프 체크**: `(storage.foldername(name))[1] = <user 또는 tenant ID>`. 버킷만 공유하고 경로는 isolate하는 것이 표준 패턴.
+  3. **버킷 생성 직후 penetration 테스트**: `curl`이나 Supabase 대시보드 "Insert" 버튼으로 **다른 사용자의 경로**에 업로드 시도 → RLS가 차단해야 함. 실패하면 정책을 고칠 것.
+  4. **`bucket_id` 체크만 있는 정책 = 사실상 방어 없음**: `bucket_id`는 RLS 전에 이미 결정되는 값이라 조건이 아님. 다른 조건 (`auth.uid()`, `foldername(name)`, `(metadata->>'owner')::uuid`)을 반드시 조합.
+  5. **정책 네이밍 규칙**: `<주체>_<동작>_<자원>` 형식 권장. 예: `shop_owners_upload_product_images`. 기본 템플릿의 `Users can upload X` 같은 문장형 이름은 애매하고 검색하기 어려움.
+  6. **이 규칙은 Storage 뿐만 아니라 모든 RLS에 일반화**: DB 테이블 RLS도 "Authenticated users can SELECT"만 걸어두면 공유 DB에서 tenant isolation이 뚫림. Session #4의 V1 DROP 사고와 같은 뿌리 — **공유 자원 + 느슨한 정책 = 재앙**.
+
+### 2026-04-06 — [Architecture] Next.js App Router 3-레이어 방어 — middleware / layout / Server Action 역할 분리
+- **증상**: Task 1-7.5 구현 후 Task 3에서 `products/new/page.tsx`의 인증+shop 쿼리가 `(dashboard)/layout.tsx`와 중복됨을 발견. "어디서 방어해야 하는가?"라는 질문이 반복되고 있음. Session #7 "쿠키 캐싱은 보안 경계 아님" 교훈과 Session #11 "Server Action은 브라우저 직접 호출 가능" 규칙이 연결됨을 깨달음.
+- **원인**: Next.js 15/16 App Router는 3개의 서로 다른 방어 계층을 제공하는데, 각각의 역할이 다르고 혼동되기 쉬움:
+  1. **Middleware**: 모든 요청을 가로챔 (Edge Runtime). 빠른 리다이렉트/라우팅 전용. 쿠키 기반 캐싱이 가능하지만 **쿠키는 클라이언트가 조작 가능**하므로 보안 판단 근거로 쓰면 안 됨 (Session #7 교훈).
+  2. **Layout (Server Component)**: 라우트 트리의 특정 segment 아래 모든 페이지 진입 전에 실행. DB 쿼리로 실제 사용자 상태 검증 가능. 실패 시 `redirect()`로 하위 page 렌더 자체를 차단. **진짜 보안 경계**.
+  3. **Server Action**: 페이지와 무관하게 브라우저에서 직접 `fetch` 호출 가능. layout 방어를 우회할 수 있음. **최종 검증의 책임**.
+  개발자가 이 차이를 모르고 "layout에서 검증했으니 Server Action에서는 생략"하거나 반대로 "Server Action에서 하니까 layout은 불필요"하게 되면 보안 공백 발생.
+- **해결**: 3-레이어의 역할을 명시적으로 정의:
+  | 레이어 | 목적 | 실패 대응 | 신뢰할 수 있는가? |
+  |---|---|---|---|
+  | **Middleware** | 라우팅 최적화, UX 리다이렉트 | redirect | ❌ 쿠키 기반 = 우회 가능 |
+  | **Layout** | 진짜 보안 경계, 페이지 진입 차단 | redirect | ✅ 서버 DB 검증 |
+  | **Server Action** | 실제 데이터 변경의 최종 검증 | 에러 반환 | ✅ 매 요청 자체 검증 |
+
+  Task 3에서 `products/new/page.tsx`의 중복 쿼리는 layout이 이미 처리했으므로 제거. 하지만 `createProduct` / `createProductWithImages` / `createProductsBulk` Server Action의 `auth.getUser` + `shops` 조회는 **의도적으로 유지**. 코드에 레이어링 의도를 JSDoc으로 명시:
+  ```tsx
+  /**
+   * 인증/온보딩/shop 검증은 상위 `(dashboard)/layout.tsx`에서 매 요청마다 수행된다.
+   * 이 페이지가 렌더된다는 것은 이미 다음이 보장된 상태...
+   *
+   * 주의: Server Action은 브라우저에서 직접 호출 가능하므로 각자 스스로 재검증한다.
+   * 이 레이어 분리는 의도된 것 — layout 방어를 Server Action에서 신뢰하지 말 것.
+   */
+  ```
+- **규칙**:
+  1. **Page (Server Component)는 layout의 방어를 신뢰해도 된다**: Next.js App Router에서 layout이 page보다 먼저 실행되고 `redirect()`가 하위 렌더를 차단하는 것은 프레임워크 불변식. 같은 검증을 page에서 반복하면 DB 왕복 낭비 + 코드 부패.
+  2. **Server Action은 layout의 방어를 신뢰하면 안 된다**: Server Action은 페이지 URL과 무관하게 `<form action={myAction}>` 또는 `fetch`로 호출 가능. layout은 돌지 않음. 매 Server Action 시작에 `auth.getUser()` + 소유권 검증 블록이 있어야 함.
+  3. **Middleware는 UX 전용**: `onboarding_done` 같은 쿠키 기반 캐싱은 빠른 리다이렉트 UX로만 쓰고, 실제 권한 판단은 layout + Server Action에서. "미들웨어에서 막았으니 안전"은 위험한 사고방식.
+  4. **코드 리뷰에서 "중복 같은데?" 지적 시 레이어 확인**: 같은 검증 코드가 layout과 page에 동시 있으면 **page쪽은 제거**. 같은 검증이 layout과 Server Action에 있으면 **둘 다 유지**. 구조적 의미가 다름.
+  5. **경계 문서화 필수**: 프로젝트마다 "어디서 무엇을 검증하는가" 레이어 다이어그램을 `docs/ARCHITECTURE.md` 또는 JSDoc 주석으로 남길 것. 다음 세션/개발자가 같은 함정을 반복하지 않도록.
+  6. **Session #7 + Session #11 통합 교훈**: "쿠키 ≠ 보안 경계" + "Server Action ≠ layout 신뢰"는 같은 원칙의 두 얼굴 — **공격자가 통과할 수 있는 경로마다 독립적 검증이 필요**. 신뢰 경계를 잘못 그으면 한 경로가 뚫릴 때 전체가 뚫림.
+
 ### 2026-04-05 — [AI-Pitfall] shadcn/ui init이 디자인 시스템 CSS 변수 덮어쓰기
 - **증상**: `npx shadcn@latest init` 실행 후 `--primary`, `--secondary` 등이 oklch 값으로 교체됨
 - **원인**: shadcn이 globals.css의 `:root`와 `.dark` 블록에 자체 변수를 주입

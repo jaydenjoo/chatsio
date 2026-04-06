@@ -4,9 +4,9 @@
 > **프로젝트 경로**: `/Users/jayden/projects/chatsio/` (Session #10에서 `/Volumes/jayden-ssd/chatsio`에서 이동 — 아래 "프로젝트 이동" 섹션 참조)
 
 ## 현재 위치
-- Epic: Phase 2 진입 전 정리 (Phase 1 완료 후)
-- Task: **루트 `/` 랜딩 placeholder** (구현 완료, 커밋 대기 중) + **프로젝트 경로 이동** (완료)
-- 상태: 구현 완료 / 검증 통과 / **커밋 + 원본 삭제 결정 대기**
+- Epic: **Phase 2 진입 준비 완료** (Phase 1 + Phase 2 진입 전 정리 묶음 전부 완료)
+- Task: 다음 세션에서 **Phase 2 PRD 재검토 + Task 분해** (AI 구조화 파이프라인)
+- 상태: 정리 묶음 4건 커밋 완료 / 미푸시 4개 커밋 로컬 대기
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -23,6 +23,82 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 **원본 상태**: `/Volumes/jayden-ssd/chatsio`는 **그대로 보존**. Jayden이 검증 후 "삭제 OK" 지시 시 제거.
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
+
+## 이번 세션 완료 내역 (Session #11) — 풀코스 4 Task
+
+새 경로(`/Users/jayden/projects/chatsio`)에서 첫 세션. 환경 검증 후 Phase 2 진입 전
+정리 묶음 4건을 전부 처리.
+
+### 0. 환경 검증 (exFAT → APFS 이전 후 첫 확인)
+- 파일시스템 APFS 확인 / Node v25.5.0 / pnpm 10.28.2
+- `.env.local` + `.env.example` + `node_modules` 존재 확인
+- Claude 메모리 디렉토리 `-Users-jayden-projects-chatsio/` 정상
+- `typecheck + lint + build + dev` 검증 게이트 전부 통과 (`Ready in 249ms`)
+
+### 1. Task 1 — 랜딩 placeholder 커밋 (`5615605`)
+- Session #10에서 구현·검증 완료된 미커밋 변경 2건 커밋
+- 파일: `src/app/(public)/page.tsx` + `src/components/brand/logo.tsx`
+- +138 / -55
+
+### 2. Task 2 — Task 1-7.5 이미지 업로드 (`13fdece`, 7파일 +781/-15)
+
+**DB 마이그레이션 2건 (Supabase MCP 적용 + 로컬 002 파일)**
+- `product_source` enum에 `'image'` 추가 (enum ALTER는 별도 migration 필요 —
+  `apply_migration` 트랜잭션 제약)
+- `product-images` 버킷 제약 강화: `file_size_limit=5MB`,
+  `allowed_mime_types=['image/jpeg','image/png','image/webp']`
+- Storage RLS 강화: 기존 `Users can upload product images` 정책이 `bucket_id`
+  체크만 있어서 anon도 업로드 가능한 공백 발견 → 제거 후
+  `shop_owners_upload_product_images` (authenticated + 경로 첫 폴더 = shop_id)
+  + `shop_owners_delete_product_images` 신규
+
+**Server Action + 검증 유틸**
+- `createProductWithImages(FormData)` — INSERT → upload → UPDATE 흐름
+- `rollbackUploads()` 헬퍼로 rollback 경로 분리, 실패 시 `console.error` 로깅
+  (Phase 2 orphan cleanup cron 단서)
+- `sniffImageMime()` — magic bytes (JPEG `FF D8 FF` / PNG `89 50 4E 47` /
+  WebP `RIFF...WEBP`) 기반 실제 MIME 판별. client-controlled `file.type` 신뢰 제거
+- `sanitizeFilename()` — NFKC + 제어문자/경로구분자 strip + 길이 제한
+- `IMAGE_MAX_FILES=5`, `IMAGE_MAX_BYTES=5MB`, `IMAGE_ALLOWED_MIME` 상수
+
+**Client Component**
+- `ImageUploadForm` 신규 — 드래그앤드롭 + 다중 파일 미리보기 그리드
+- object URL 수명 관리 (개별 제거 즉시 revoke + unmount cleanup)
+- `ProductCreateForm` 이미지 탭 활성화 + 배선
+
+**Next.js 설정**
+- `next.config.ts`에 `experimental.serverActions.bodySizeLimit: "26mb"` 추가
+  (Next.js 기본 1MB → 5MB×5장+FormData 오버헤드 수용. 안 하면 정상 사용자도 업로드 불가)
+
+**리뷰 사이클 (code-reviewer + security-reviewer 병렬)**
+- CRITICAL 1(로컬 migration 누락) + HIGH 3(magic bytes, bodySizeLimit, rollback 로깅)
+  + MEDIUM 1(`as string` 캐스팅) 즉시 수정 반영
+- LOW 4건은 스코프 밖으로 보류 (useRef cleanup 리팩토링, aria-dropeffect,
+  `IMAGE_MAX_MB` 상수, try/finally 패턴)
+
+### 3. Task 3 — L1 리팩토링 (`f7e8713`, +18/-25)
+- `products/new/page.tsx`의 인증 + shop 쿼리 제거
+- `(dashboard)/layout.tsx`가 매 요청 동일 검증을 수행하고 실패 시 redirect로
+  page 진입 자체를 차단하므로 중복. Next.js App Router layout→page 렌더 순서
+  불변식에 의존
+- `async` 제거, `Promise<ReactElement>` → `ReactElement` 반환
+- 레이어링 의도를 JSDoc으로 명시: layout = 진짜 보안 경계, Server Action =
+  브라우저 직접 호출 가능성으로 자체 재검증 유지
+- DB 왕복 -2회/페이지 로드
+
+### 4. Task 4 — M3 리팩토링 (`32aaf1d`, +11/-10)
+- `header.tsx` `PAGE_META` reduce 콜백의 in-place mutation 제거
+- `[..., ...].reduce((acc, x) => { acc[x.href] = ...; return acc; }, {})`
+  → `Object.fromEntries([...map1, ...map2])`
+- 중간 `{...item, group}` spread 간접층도 함께 제거
+- `as const`로 튜플 타입 고정 → 타입 추론 정확도 향상
+- O(n²) → O(n), immutability 원칙 준수
+
+### 5. 교훈 기록 (learnings.md에 4건 추가)
+- `[Security/Config] Next.js Server Actions bodySizeLimit 기본 1MB`
+- `[Security] 파일 업로드 MIME 검증은 magic bytes 필수 — file.type은 spoofing 가능`
+- `[Security] Supabase Storage 버킷 생성 시 기본 RLS는 공백 — 항상 경로 스코프 강화`
+- `[Architecture] Next.js App Router 3-레이어 방어 — middleware / layout / Server Action 역할 분리`
 
 ## 이번 세션 완료 내역 (Session #10)
 
@@ -63,17 +139,26 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 ## 다음 세션 할 일
 
-1. **새 Claude Code 세션을 `/Users/jayden/projects/chatsio`에서 시작** (CLAUDE.md / 메모리 / PROGRESS.md 새 경로 기준 로드)
-2. **랜딩 코드 커밋** — `src/app/(public)/page.tsx` + `src/components/brand/logo.tsx`
-   - 제안 메시지: `feat: 루트 / 랜딩 placeholder — 모노그램 로고 + Hero + CTA (Task 3-3 정식 랜딩 전 임시)`
-   - Jayden 최종 확인 후 커밋
-3. **원본 `/Volumes/jayden-ssd/chatsio` 삭제 결정** — 새 경로에서 며칠 작업하며 안정성 확인 후 Jayden 판단
-4. **Phase 2 진입 전 정리 Task 묶음**:
-   - Task 1-7.5 이미지 업로드 (Supabase Storage 버킷 + RLS + Server Action, ~1h)
-   - L1 리팩토링: `products/new/page.tsx` 중복 인증/shop 쿼리 제거
-   - M3 리팩토링: `header.tsx` reduce mutation 제거
-5. **Phase 2: AI 구조화 파이프라인** (n8n webhook → Claude API → JSON-LD + 네이버EP)
+1. **원격 푸시 여부 판단** — Session #11 로컬 커밋 4개 미푸시 (`5615605`, `13fdece`,
+   `f7e8713`, `32aaf1d` + docs 저장 커밋). Jayden 확인 후 `git push` 실행
+2. **Phase 2 PRD 재검토 + Task 분해** — AI 구조화 파이프라인
+   - n8n webhook → Claude API → JSON-LD + 네이버EP 생성
+   - `extraction_jobs` 테이블 설계 + 상태 전이 (queued/processing/completed/failed)
+   - Cafe24 API 우선 vs OCR fallback 분기 (위험 필드 = 가격/성분)
+   - 추출 실패 → `status='manual_review'` + 알림 (Silent Failure 금지)
+   - JSON-LD 주입 후 크롤링 검증 (실제 적용 확인)
+3. **이미지 업로드 수동 QA** — 로그인 후 `/products/new` 이미지 탭에서 실제 업로드
+   테스트. 다음 케이스 확인:
+   - 정상: 1~5장 JPEG/PNG/WebP 업로드 → Storage 저장 + DB `image_urls` 채워짐
+   - 엣지: 6장 선택 → 클라 차단 / 6MB 파일 → 클라 차단 / `.pdf` → 클라 차단
+   - 보안: DevTools로 `file.type` 조작 후 HTML을 이미지로 위장 → magic bytes가 거부하는지
+4. **원본 `/Volumes/jayden-ssd/chatsio` 삭제 결정** — 새 경로에서 정상 작업 확인됨
+   (Session #11에서 4 Task 전부 성공). Jayden 판단으로 삭제 가능
+5. **Google Cloud Console OAuth 클라이언트 ID 생성** → Supabase에 등록 (Phase 1 외부 의존)
 6. **다른 프로젝트(Findably, afg) 이동 전략 결정** — 같은 exFAT × Turbopack 이슈 재발 가능성
+7. **Middleware → Proxy 리네이밍** (Next.js 16.2 deprecation 경고) — 별도 Task로 분리,
+   `/careful` + `/freeze` 필요 (쿠키 캐싱 + onboarding 보안 레이어)
+8. **Pre-existing lint 경고 정리** — `product-search-bar.tsx:59` `handleClear` 미사용
 
 ## 차단 요소
 - **원본 경로 삭제 결정 대기** (Jayden 확인 필요)
