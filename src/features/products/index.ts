@@ -1,2 +1,9 @@
-export { getProducts, deleteProduct } from "./actions";
-export type { ProductRow, ProductKpi, GetProductsResult, GetProductsInput } from "./actions";
+export { getProducts, createProduct, deleteProduct } from "./actions";
+export type {
+  ProductRow,
+  ProductKpi,
+  GetProductsResult,
+  GetProductsInput,
+  CreateProductInput,
+  CreateProductResult,
+} from "./actions";

@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod/v4";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 // ============================================================
@@ -45,6 +46,25 @@ const getProductsSchema = z.object({
 });
 
 export type GetProductsInput = z.infer<typeof getProductsSchema>;
+
+const createProductSchema = z.object({
+  name: z.string().min(1, "상품명을 입력해주세요").max(200, "상품명은 200자 이하로 입력해주세요"),
+  url: z
+    .string()
+    .url("올바른 상품 URL을 입력해주세요")
+    .refine(
+      (url) => url.startsWith("http://") || url.startsWith("https://"),
+      "http:// 또는 https:// URL만 허용됩니다",
+    ),
+});
+
+export type CreateProductInput = z.infer<typeof createProductSchema>;
+
+export interface CreateProductResult {
+  success: boolean;
+  error: string | null;
+  productId?: string;
+}
 
 // ============================================================
 // Server Actions
@@ -168,6 +188,58 @@ export async function getProducts(
   };
 }
 
+export async function createProduct(
+  input: CreateProductInput,
+): Promise<CreateProductResult> {
+  const parsed = createProductSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "잘못된 요청입니다.",
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "인증이 필요합니다." };
+  }
+
+  // 현재 유저의 shop 조회 (온보딩 완료 여부)
+  const { data: shop } = await supabase
+    .from("shops")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!shop) {
+    return { success: false, error: "쇼핑몰 정보가 없습니다. 온보딩을 먼저 완료해주세요." };
+  }
+
+  const { data: inserted, error } = await supabase
+    .from("products")
+    .insert({
+      shop_id: shop.id,
+      name: parsed.data.name,
+      url: parsed.data.url,
+      source: "url",
+      status: "pending",
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    return { success: false, error: "상품 등록에 실패했습니다." };
+  }
+
+  revalidatePath("/products");
+
+  return { success: true, error: null, productId: inserted.id };
+}
+
 export async function deleteProduct(productId: string): Promise<{ success: boolean; error: string | null }> {
   if (!productId) {
     return { success: false, error: "상품 ID가 필요합니다." };
@@ -212,6 +284,8 @@ export async function deleteProduct(productId: string): Promise<{ success: boole
   if (error) {
     return { success: false, error: "상품 삭제에 실패했습니다." };
   }
+
+  revalidatePath("/products");
 
   return { success: true, error: null };
 }
