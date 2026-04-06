@@ -115,6 +115,24 @@
   3. **보안 규칙과 동일한 원칙이 a11y에도 적용**: "서버가 모르는 상태를 클라이언트 값으로 추측하지 말 것". Session #7의 "쿠키 ≠ 보안 경계" 교훈과 구조가 같음 — 서버가 진실을 모르면 UX 상에서도 **중립 상태**로 렌더해야 함. 추측 렌더는 사용자에게 잘못된 정보를 짧은 시간이라도 보여주게 됨.
   4. **code-reviewer의 리뷰 제안을 그대로 따르지 말 것**. 리뷰어는 "Option A — 동적 aria-label"과 "Option B — aria-pressed" 중 Option A를 더 흔하다고 소개했으나, SSR 특성상 Option B가 본질적으로 안전. **리뷰 제안은 힌트이지 정답이 아님** — 프로젝트 컨텍스트(SSR, next-themes)를 감안해 직접 판단.
 
+### 2026-04-06 — [AI-Pitfall] `.gitignore` ≠ ESLint ignore — 툴별 ignore는 독립적
+- **증상**: Task 1-10 완료 후 `._*` AppleDouble 파일 정리 작업에서 `git rm --cached`로 21개 파일을 untrack하고 `.gitignore`에 `._*` 패턴도 확인했는데도 `pnpm lint`에서 여전히 107개 "Parsing error: Invalid character" 발생. "gitignore에 넣었으니 당연히 lint도 무시하겠지"라는 기본 가정이 틀렸음.
+- **원인**: `.gitignore`는 **git이 tracking하는 파일**을 제어할 뿐, 다른 도구의 파일 시스템 스캔에는 영향이 없음. ESLint는 git과 완전히 독립적으로 프로젝트 디렉터리를 재귀 스캔 → ignore 설정을 ESLint 자체 설정(`eslint.config.mjs`의 `globalIgnores`)에 넣어야 함. Prettier(`.prettierignore`), TypeScript(`tsconfig.json`의 `exclude`), Vitest(`test.exclude`) 등 모든 도구가 **각자의 ignore 설정을 가짐**.
+- **해결**: `eslint.config.mjs`의 `globalIgnores` 배열에 `"**/._*"` 패턴 추가. 즉시 107 → 0 에러.
+  ```js
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    // ...
+    "**/._*",  // macOS AppleDouble
+  ]),
+  ```
+- **규칙**:
+  1. **"git이 무시한다" ≠ "모든 도구가 무시한다"**. 파일 시스템 레벨 도구(ESLint, Prettier, TypeScript, test runner, bundler)는 각자 독립적인 ignore 설정을 가짐. 한 번에 모두 정리하려면 프로젝트별로 필요한 ignore 설정들을 체크리스트로 관리.
+  2. **노이즈가 지속되는 lint/typecheck 에러는 뿌리를 뽑는다**. 매 세션마다 `grep -v`로 필터링하고 있다면 이미 root cause 해결이 늦어진 상태. "검증 게이트 노이즈 = 기술 부채"로 취급하고 작은 세션에 집중 정리.
+  3. **"X를 고쳤는데 Y가 안 변함" 패턴에서 의심할 점**: 두 도구가 사실 같은 설정을 공유하고 있다는 가정이 틀렸을 수 있음. 각자의 설정 파일을 독립적으로 확인.
+  4. **이 교훈은 다른 도구에도 일반화**: `.dockerignore`, `.prettierignore`, Jest `testPathIgnorePatterns`, Vite `server.watch.ignored` 등 모두 같은 패턴. 새 툴 도입 시 "이 툴의 ignore 설정은 무엇인가?"를 체크.
+
 ### 2026-04-05 — [AI-Pitfall] shadcn/ui init이 디자인 시스템 CSS 변수 덮어쓰기
 - **증상**: `npx shadcn@latest init` 실행 후 `--primary`, `--secondary` 등이 oklch 값으로 교체됨
 - **원인**: shadcn이 globals.css의 `:root`와 `.dark` 블록에 자체 변수를 주입
