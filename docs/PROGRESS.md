@@ -4,9 +4,9 @@
 > **프로젝트 경로**: `/Users/jayden/projects/chatsio/` (Session #10에서 `/Volumes/jayden-ssd/chatsio`에서 이동 — 아래 "프로젝트 이동" 섹션 참조)
 
 ## 현재 위치
-- Epic: **Phase 2 진입 준비 완료** (Phase 1 + Phase 2 진입 전 정리 묶음 전부 완료)
-- Task: 다음 세션에서 **Phase 2 PRD 재검토 + Task 분해** (AI 구조화 파이프라인)
-- 상태: 정리 묶음 4건 커밋 완료 / 미푸시 4개 커밋 로컬 대기
+- Epic: **Phase 2 진입 직전** (사전 정리 완료, Jayden의 외부 환경 준비 대기)
+- Task: 다음 세션 **Task 2-3 (최적화 실행 페이지)** — 단, `docs/phase2-prerequisites.md` 모든 체크박스 ✅ 후
+- 상태: Session #12 미커밋 변경 2건 (마이그레이션 003 로컬 파일 + Phase 2 사전준비 문서)
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -24,7 +24,99 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 완료 내역 (Session #11) — 풀코스 4 Task
+## 이번 세션 완료 내역 (Session #12) — Phase 2 진입 사전 정리
+
+Phase 1 클로저 후 Phase 2(AI 구조화 파이프라인) 진입 직전 사전 정리.
+**코드 작업 0줄, 환경 + DB + 문서 정리만** — n8n 외부 의존이 강한 Phase라
+사전 준비 없이 들어가면 막힘. 비유: 가스/전기 인입 확인 후 가전 들이는 것.
+
+### 0. Push (Session #11 잔여)
+- Session #11의 미푸시 4개 커밋 `git push origin main` 완료
+  (`b51a4bd..dba8be9`)
+
+### 1. Phase 2 PRD 재독 + 갭 분석
+- `docs/PRD.md` Phase 2 섹션 + CEO Review 결정사항 + 부록 C(DB 스키마) 재독
+- **PRD vs V2 DB 갭 3건 발견**:
+  | PRD 부록 C | V2 현황 | 결정 |
+  |---|---|---|
+  | `optimization_history` | 없음 | ✅ V2 `optimizations` 테이블이 이미 흡수 (별도 작업 불필요) |
+  | `llms_txt_versions` | 없음 | 🆕 마이그레이션 003에서 신규 추가 |
+  | `extraction_logs` | 없음 | 💡 `optimizations.result_json` (jsonb)로 흡수, Phase 4 어드민 분석 시 별도 분리 검토 |
+  | `cost_tracking` | 없음 | ⏸ Phase 4(어드민 비용 모니터링)로 이연 |
+
+- **`optimizations` 테이블이 이미 Phase 2 핵심 컬럼을 모두 보유**:
+  `idempotency_key`, `result_json`, `jsonld`, `score`, `error_message`,
+  `duration_ms`, `retry_count`, `plan(basic/premium)`, `status(queued/processing/completed/failed)`
+- `products.status` enum에 `manual_review` 값도 이미 존재 → CEO Review
+  "수동확인필요" 흐름 즉시 사용 가능
+
+### 2. Pre-2A — 마이그레이션 003 작성 + 적용
+- **추가 발견**: `optimizations.idempotency_key`에 UNIQUE 제약 누락 →
+  멱등성이 코드 레벨에서만 강제되고 race condition에서 뚫림. 003에서 같이 추가
+- 로컬 파일: `supabase/migrations/003_phase2_prerequisites.sql`
+- Supabase MCP 적용 (트랜잭션 제약 회피 위해 2건 분리):
+  1. `optimizations_idempotency_key_unique` — UNIQUE constraint
+  2. `llms_txt_versions_table` — 테이블 + RLS 2개 정책 + 인덱스
+- 검증 (`execute_sql`):
+  - UNIQUE 제약 존재 + 정의 정확
+  - `llms_txt_versions` 테이블 존재, RLS enabled, 정책 2개, 인덱스 3개
+- Findably 테이블 무영향 (참조 없음, 6개 화이트리스트만 사용)
+
+### 3. Pre-2B + Pre-2C — 사전 준비 문서화
+- **방향 전환**: `.env*` 파일이 LLM 권한 정책상 차단되어 있어 **보안상 더 좋음**
+  (LLM이 시크릿 덮어쓰는 사고 방지). Pre-2B(n8n 체크리스트) + Pre-2C(환경변수)를
+  한 문서로 통합 → Jayden이 한 곳에서 보고 직접 처리
+- 신규 파일: `docs/phase2-prerequisites.md`
+  - 1. 환경변수 명세 (`N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET`, `ANTHROPIC_API_KEY`)
+    + `.env.example` 추가 블록 그대로 + `.env.local` 값 출처 표 + grep 검증 명령
+  - 2. n8n 환경 점검 체크리스트
+    - Elest.io 인스턴스 Running
+    - v8 워크플로우 Active + Anthropic 사용 확인 (OpenAI 잔재 시 Task 2-1 별도 필요)
+    - curl 핑 테스트 (200/401/403 OK, 404/timeout 비정상)
+    - Anthropic API key 잔액 + 일/월 상한 설정
+    - n8n 환경변수에 `ANTHROPIC_API_KEY` 설정 + 워크플로우 재시작
+  - 3. Phase 2 본 작업 진입 조건
+  - 4. n8n 준비 지연 시 우회 경로 (Task 2-9 llms.txt, Task 2-6 mock UI 등)
+
+### 4. 검증
+- `pnpm typecheck` ✅
+- `pnpm lint` ⚠️ 1 warning (`product-search-bar.tsx:59` `handleClear` unused)
+  → 이번 세션 변경과 무관한 pre-existing dead code (Phase 1 잔재). 별도 cleanup task로 분리
+- `pnpm build` 생략 (SQL + 마크다운 추가만이라 결과 동일)
+
+### 5. Phase 2 Task 분해 (다음 세션을 위한 청사진)
+- **n8n 영역 (코드 외)**: Task 2-1 (Claude 전환), Task 2-2 (의류 프롬프트)
+  → Jayden 또는 별도 세션에서 n8n UI 작업
+- **코드 영역 (Next.js)**:
+  - Task 2-3: 최적화 실행 페이지 (`/optimizations/new`) — 1.5h
+  - Task 2-4: n8n webhook API Route (`/api/v1/optimize`) — 1.5h
+  - Task 2-5: 로딩 UI + 90초+ 비동기 패턴 — 1h
+  - Task 2-6: 결과 보기 페이지 (`/optimizations/[id]`) — 2h
+  - Task 2-7: 결과 수동 편집 + JSON-LD 재생성 — 1.5h
+  - Task 2-8: 최적화 이력 — 1h
+  - Task 2-9: llms.txt 자동 생성 — 1.5h
+- **에러 3원칙 분배**:
+  - ① 추출 실패 → 수동확인필요: Task 2-6에서 처리
+  - ② JSON-LD 주입 후 검증: Phase 3로 이연 (Loader 후)
+  - ③ 결제 후 실패 환불: Phase 7로 이연
+
+### 다음 세션 첫 작업
+1. `/start` → Session #13 시작
+2. `docs/phase2-prerequisites.md` 체크박스 상태 확인
+3. 모두 ✅ → **Task 2-3 Plan 작성** → Jayden 승인 → 구현
+4. 미체크 항목 있으면 → 그것부터 해결 (또는 우회 경로 Task 2-9로 시작)
+
+### Status
+- **Status**: Phase 2 진입 사전 정리 완료, Jayden 외부 환경 준비 대기
+- **Blockers**:
+  - n8n Elest.io 인스턴스 + v8 워크플로우 Anthropic 전환 상태 미확인
+  - `.env.local`에 `N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET`, `ANTHROPIC_API_KEY` 미입력
+  - (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+- **Next**: Session #13에서 Task 2-3 (단, prerequisites 체크박스 ✅ 후)
+
+---
+
+## 이전 세션 — Session #11 (풀코스 4 Task)
 
 새 경로(`/Users/jayden/projects/chatsio`)에서 첫 세션. 환경 검증 후 Phase 2 진입 전
 정리 묶음 4건을 전부 처리.
