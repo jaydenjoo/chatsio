@@ -96,6 +96,25 @@
   3. **보안 검증 함수는 캡슐화**. 정규식을 호출부마다 복붙하지 말고 `hasFormulaInjection()` 같은 이름의 함수로 통일 → 이번처럼 우회가 발견됐을 때 한 곳만 수정
   4. **learnings.md "과잉 이스케이프" 교훈과의 균형**: 방어 대상을 정확히 좁혀 이스케이프하되, 유니코드 우회는 반드시 정규화 단계를 거친 후 검사. "최소 방어"와 "충분한 방어"는 병립 가능
 
+### 2026-04-06 — [AI-Pitfall] React 19 `react-hooks/set-state-in-effect` — mounted flag 패턴 금지
+- **증상**: Task 1-10 다크모드 토글 첫 구현에서 `useEffect(() => { setMounted(true); }, [])` 패턴으로 SSR hydration mismatch를 회피하려 했더니, `pnpm lint`에서 `react-hooks/set-state-in-effect` 에러 발생 — "Calling setState synchronously within an effect can trigger cascading renders". React 19의 새 린터 규칙이 이 관용 패턴을 안티패턴으로 분류.
+- **원인**: React 19 공식 가이드라인이 "`useEffect` 바디에서 `setState` 직접 호출"을 cascading render 유발 패턴으로 규정. 대신 `useSyncExternalStore` 또는 CSS-only 접근을 권장. 지난 수년간 next-themes 커뮤니티에서 관용적으로 쓰이던 `mounted` flag 패턴이 이제 린트 게이트를 통과하지 못함.
+- **해결**: CSS-only 아이콘 스왑으로 전환. `<Moon className="dark:hidden" />` + `<Sun className="hidden dark:block" />`. next-themes가 하이드레이션 **전에** `<html>`에 `.dark` 클래스를 주입하므로 JS 없이 Tailwind `dark:` variant만으로 정확한 아이콘이 초기 렌더됨. mounted flag 완전 제거.
+- **규칙**:
+  1. **React 19에서 `useEffect` + `setState` 마운트 플래그 패턴 금지**. 린터가 잡아줌. 대안: ① CSS-only (`dark:` variant 등 class 기반 스타일 토글), ② `useSyncExternalStore`로 외부 상태 구독, ③ `suppressHydrationWarning`로 mismatch 무해화 — 이 3가지 중 상황에 맞게 선택.
+  2. **next-themes + Tailwind 조합의 정석은 CSS-only**. `attribute="class"` + `<html>.dark` 토글 + `dark:` variant로 JS 의존 없이 FOUC-free 전환 가능. mounted 패턴은 aria-label 같은 텍스트 속성이 테마에 따라 바뀔 때만 필요하고, 그 경우는 `aria-pressed`로 대체하는 게 더 깔끔.
+  3. **새 React/Next.js 버전 업그레이드 후 "당연히 되던" 패턴 재검증**. 린터 규칙은 버전업마다 추가/강화됨. 관용 패턴이 갑자기 안티패턴이 될 수 있음.
+
+### 2026-04-06 — [Architecture] next-themes + SSR에서 `aria-pressed`가 동적 aria-label보다 안전
+- **증상**: Task 1-10 code-reviewer 리뷰에서 HIGH — "aria-label이 정적이라 스크린리더가 현재 상태를 알 수 없다"는 지적. 첫 반응은 `useTheme()`에서 `resolvedTheme`을 읽어 `` `${isDark ? "라이트" : "다크"} 모드로 전환` ``으로 동적 라벨 생성하는 것이었음. 그런데 서버는 테마를 모르므로 SSR에서 `resolvedTheme === undefined` → 기본 분기("다크 모드로 전환") 렌더. 클라이언트 하이드레이션 직후에도 여전히 `undefined` (next-themes가 effect로 주입). 사용자가 이미 다크 모드인 상태로 접속하면 서버는 "다크 모드로 전환"이라고 속삭이는 **거짓 안내** 상태로 첫 paint를 렌더.
+- **원인**: SSR에서는 사용자 테마 선호를 알 수 없음(쿠키로 전달하지 않는 한). `next-themes`는 의도적으로 첫 렌더에서 `resolvedTheme`을 `undefined`로 반환 → 클라이언트 마운트 후 script가 `<html>` class를 읽고 값을 주입. 즉 **aria-label을 동적 텍스트로 만들면 하이드레이션 전 구간에서 스크린리더에 잘못된 안내가 나감**.
+- **해결**: `aria-label`은 정적 "다크 모드 토글" 유지 + `aria-pressed={resolvedTheme === "dark"}` 추가. `undefined === "dark"`는 `false`로 평가되므로 서버와 클라이언트 첫 렌더 모두 `aria-pressed="false"`로 일치 → hydration mismatch 없음. 이후 next-themes가 실제 값을 주입하면 React가 자연스럽게 업데이트. 스크린리더는 "토글 버튼, 눌림/눌리지 않음" 상태를 표준 방식으로 안내.
+- **규칙**:
+  1. **SSR 환경에서 토글 버튼 접근성은 `aria-pressed` 우선**. 동적 `aria-label` 텍스트는 하이드레이션 전에 거짓 안내를 낼 수 있음. `aria-pressed`는 boolean이라 `undefined === "dark" → false` 같은 일관된 초기값이 가능.
+  2. **`undefined === value` 비교는 hydration 친화적**. 서버/클라이언트가 같은 `undefined`를 쓰는 한 mismatch가 나지 않음. 이걸 역이용해서 "아직 모름" 상태를 "기본값"으로 자연스럽게 처리.
+  3. **보안 규칙과 동일한 원칙이 a11y에도 적용**: "서버가 모르는 상태를 클라이언트 값으로 추측하지 말 것". Session #7의 "쿠키 ≠ 보안 경계" 교훈과 구조가 같음 — 서버가 진실을 모르면 UX 상에서도 **중립 상태**로 렌더해야 함. 추측 렌더는 사용자에게 잘못된 정보를 짧은 시간이라도 보여주게 됨.
+  4. **code-reviewer의 리뷰 제안을 그대로 따르지 말 것**. 리뷰어는 "Option A — 동적 aria-label"과 "Option B — aria-pressed" 중 Option A를 더 흔하다고 소개했으나, SSR 특성상 Option B가 본질적으로 안전. **리뷰 제안은 힌트이지 정답이 아님** — 프로젝트 컨텍스트(SSR, next-themes)를 감안해 직접 판단.
+
 ### 2026-04-05 — [AI-Pitfall] shadcn/ui init이 디자인 시스템 CSS 변수 덮어쓰기
 - **증상**: `npx shadcn@latest init` 실행 후 `--primary`, `--secondary` 등이 oklch 값으로 교체됨
 - **원인**: shadcn이 globals.css의 `:root`와 `.dark` 블록에 자체 변수를 주입

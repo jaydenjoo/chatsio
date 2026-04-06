@@ -4,11 +4,37 @@
 > 프로젝트 경로: /Volumes/jayden-ssd/chatsio/
 
 ## 현재 위치
-- Epic: Phase 1 인증 + 상품 관리
-- Task: Task 1-8 완료 → Task 1-10 (다크모드) 또는 1-7.5 (이미지 업로드) 대기
-- 상태: Phase 1 진행 중 (9/10 완료)
+- Epic: Phase 1 인증 + 상품 관리 ✅ **완료 (10/10)**
+- Task: Task 1-10 완료 → Phase 2 진입 대기
+- 상태: Phase 1 전체 완료 — Phase 2 시작 준비
 
-## 이번 세션 완료 내역 (Session #8)
+## 이번 세션 완료 내역 (Session #9)
+- **Task 1-10**: 다크모드 토글 (예상 35~55m → 실소요 ~50m)
+  - `next-themes@0.4.6` 도입 (attribute="class" + system 추적)
+  - `ThemeProvider` 얇은 래퍼 (Client Component) 신규 + RootLayout wrap
+  - `RootLayout`에 `suppressHydrationWarning` 추가
+  - `ThemeToggle` 신규 — CSS-only 아이콘 스왑 (`dark:hidden` / `hidden dark:block`)
+    - **React 19 `react-hooks/set-state-in-effect` 린터 규칙 회피**
+    - mounted flag + setState-in-effect 안티패턴 제거
+  - Header Moon 버튼 → `<ThemeToggle />` 교체 (스타일 보존)
+  - `disableTransitionOnChange` 활성 — 토글 시 색상 깜빡임 방지
+- **Task 1-10 리뷰 사이클**:
+  - code-reviewer 단독 (🟢 등급, security-reviewer 생략)
+  - HIGH 1 + MEDIUM 3 + LOW 3 발견
+  - 내 변경 관련 4건 즉시 수정:
+    - **H1 aria-label 정적 → aria-pressed 동적화** (SSR/CSR 첫 렌더 모두 `undefined === "dark"` → `false`로 일치, hydration mismatch 없음)
+    - **M2 `handleToggle` `resolvedTheme` undefined 가드** (하이드레이션 직후 짧은 창에 OS 선호와 반대 방향 토글 방지)
+    - **M4 `title` 속성 제거** (`aria-label`과 중복 안내 방지)
+    - **L5 `focus-visible` ring 추가** (WCAG 2.4.7, `--ring` 토큰)
+  - 스코프 밖 3건 보류:
+    - M3 `header.tsx` reduce mutation (pre-existing, Session #6 NAV 추출 시 추가됨)
+    - L6 `ReactElement` 타입 너비 (사소한 스타일, 빌드 통과)
+    - L7 `globals.css .dark body::before` (pre-existing)
+- **총 커밋 1건**: c7b1e89 (feat: Task 1-10 다크모드 토글 + 리뷰 4건 수정)
+- **변경 통계**: 6파일, +90/-9 (2 신규 + 4 수정 + 1 패키지 추가)
+
+## 세션 #8 완료 내역 (직전 세션)
+- **Task 1-8**: CSV 벌크 상품 등록 (예상 1.5~2h → 실소요 ~2h)
 - **Task 1-8**: CSV 벌크 상품 등록 (예상 1.5~2h → 실소요 ~2h)
   - `papaparse` 도입 (클라이언트 CSV 파싱)
   - `validation.ts` 신규 — `BULK_MAX_ROWS/NAME/URL` + `hasFormulaInjection()` 서버/클라이언트 공유
@@ -71,12 +97,17 @@
   - H8: 온보딩 뒤로가기 shopId 초기화
   - M1-M8, L1-L4: 반환 타입, utils, login UX, products placeholder 등
 
-## 다음 세션 할 일
-1. **Task 1-10**: 다크모드 토글 (예상 30~60m) — Phase 1 마지막 작업
-2. **Task 1-7.5**: 이미지 업로드 (Supabase Storage 버킷 + RLS + Server Action, 예상 1h)
-3. **L1 리팩토링** (LOW): `products/new/page.tsx`의 중복 인증/shop 쿼리 제거 — layout에서 검증된 값을 Context/prop으로 전달 (20~30m)
-4. Google Cloud Console에서 OAuth 클라이언트 ID 생성 → Supabase에 등록
-5. M3 (inline style → Tailwind 클래스) 미수정 — 온보딩 steps 파일들
+## 다음 세션 할 일 (Phase 2 시작)
+1. **Phase 2 진입 전 정리 Task** (짧은 작업들 묶음, 예상 1~1.5h):
+   - **Task 1-7.5**: 이미지 업로드 (Supabase Storage 버킷 + RLS + Server Action, ~1h)
+   - **L1 리팩토링**: `products/new/page.tsx` 중복 인증/shop 쿼리 제거 — layout 검증값을 Context/prop 전달 (20~30m)
+   - **M3 리팩토링**: `header.tsx` reduce mutation 제거 (3줄, 5m)
+2. **Phase 2: AI 구조화 파이프라인** — PRD 재검토 후 Task 분해
+   - n8n webhook → Claude API → JSON-LD + 네이버EP 생성
+   - `extraction_jobs` 테이블 + 상태 전이 (queued/processing/completed/failed)
+   - Cafe24 API 우선 vs OCR fallback 분기
+3. Google Cloud Console에서 OAuth 클라이언트 ID 생성 → Supabase에 등록 (Phase 1 외부 의존)
+4. M3 (inline style → Tailwind 클래스) 미수정 — 온보딩 steps 파일들 (Phase 2 중 편의에 따라)
 
 ## 수동 QA 미검증 (Jayden 확인 필요)
 ### Task 1-7 (이전 세션)
@@ -86,7 +117,19 @@
 - [ ] 검색 `"나이키(운동화)"`, `"ABC Co."` → 괄호/마침표 보존
 - [ ] 검색 `"test,status.neq.optimized"` → 쉼표만 제거
 
-### Task 1-8 (이번 세션)
+### Task 1-10 (이번 세션)
+- [ ] Header 우상단 Moon 버튼 클릭 → 다크 전환 (페이지 전체 토큰 반영)
+- [ ] 다시 클릭 → 라이트 복귀 (Sun → Moon 아이콘 스왑 확인)
+- [ ] 새로고침 시 선택한 테마 유지 (localStorage)
+- [ ] 새로고침 시 깜빡임(FOUC) 없음 (next-themes 스크립트 주입 확인)
+- [ ] OS 다크모드 토글 → 수동 선택 안 한 상태면 자동 반영 (defaultTheme=system)
+- [ ] Sidebar/Header/Card/Table/Form 모든 컴포넌트 가독성 OK (모든 페이지 순회)
+- [ ] 특히 `/products`, `/onboarding`, `/login` 3페이지 최소 확인
+- [ ] Tab 키로 토글 버튼 포커스 → 파란 ring 표시 (focus-visible)
+- [ ] 스크린리더로 토글 버튼 포커스 → "다크 모드 토글, 토글 버튼, 눌림/눌리지 않음" 안내
+- [ ] 라이트 → 다크 → 라이트 반복 토글 시 트랜지션 깜빡임 없음 (disableTransitionOnChange)
+
+### Task 1-8 (직전 세션)
 - [ ] `/products/new` → CSV 탭 → 샘플 다운로드 → 3건 업로드 → `/products` 반영
 - [ ] 드래그앤드롭 동작 (드롭존에 파일 떨어뜨리기, 드래그 중 시각 피드백)
 - [ ] 100행 초과 CSV → 상한 안내 에러
@@ -118,7 +161,7 @@
 - 디자인 에셋: /Volumes/jayden-ssd/chatsio/docs/design-references/stitch-code/
 
 ## 마지막 업데이트
-- 날짜: 2026-04-06 (세션 8 — Task 1-8 CSV 벌크 상품 등록 + 리뷰 10건 수정)
+- 날짜: 2026-04-06 (세션 9 — Task 1-10 다크모드 토글 + 리뷰 4건 수정 → **Phase 1 완료**)
 
 ---
 
@@ -192,6 +235,26 @@
 - **Status**: Complete
 - **Blockers**: Google Cloud Console OAuth 설정 필요
 - **Next**: Task 1-7 (상품 등록)
+
+### 2026-04-06 Session #9 — Task 1-10 다크모드 토글 → Phase 1 완료
+- **Goal**: Phase 1의 마지막 Task — 다크모드 토글 구현 + Phase 1 클로저
+- **Completed**:
+  - Task 1-10: 다크모드 토글
+    - `next-themes@0.4.6` 도입 (attribute="class" + defaultTheme="system" + disableTransitionOnChange)
+    - ThemeProvider 얇은 래퍼 + RootLayout wrap + suppressHydrationWarning
+    - ThemeToggle CSS-only 아이콘 스왑 (`dark:hidden` / `hidden dark:block`)
+    - Header Moon 버튼 → <ThemeToggle /> 교체
+  - 리뷰 사이클 (code-reviewer 단독, 🟢 등급) → HIGH 1 + MEDIUM 3 + LOW 3
+    - H1 aria-label 정적 → aria-pressed 동적화 (SSR 안전)
+    - M2 handleToggle undefined 가드
+    - M4 title 중복 제거
+    - L5 focus-visible ring (WCAG 2.4.7)
+    - 보류 3건: M3(pre-existing header mutation), L6(ReactElement 타입), L7(pre-existing globals)
+  - **React 19 린터 함정 발견**: `react-hooks/set-state-in-effect` 규칙이 mounted flag 패턴을 금지. CSS-only variant로 우회.
+  - **Phase 1 완료**: 1-1~1-10 전부 완료 (10/10)
+- **Status**: Complete — Phase 1 CLOSED
+- **Blockers**: Google Cloud Console OAuth 설정 필요 (Phase 1 외부 의존만 남음)
+- **Next**: Phase 2 AI 구조화 파이프라인 진입 전 정리 Task(1-7.5 이미지 업로드 + L1/M3 리팩토링)
 
 ### 2026-04-06 Session #8 — Task 1-8 CSV 벌크 상품 등록
 - **Goal**: CSV 파일로 상품 일괄 등록 (100행/1MB 상한)
