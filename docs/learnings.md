@@ -68,6 +68,34 @@
   3. **한국어 사용자 데이터**: 상품명/업체명에 `,` `.` `(` `)` `%` 등이 매우 흔함. 이스케이프 시 "정상 입력이 살아남는가"를 먼저 테스트.
   4. **보안 리뷰는 2단계**: 1차(공격 차단) + 2차(정상 UX 유지). code-reviewer가 이 UX 손상을 잡아냈음 — **품질 리뷰가 보안 리뷰의 과잉을 견제**하는 구조가 중요.
 
+### 2026-04-06 — [Architecture] `"use server"` 파일은 동기 함수/상수 export 불가 → 공유 유틸 분리
+- **증상**: Task 1-8에서 `actions.ts`("use server")에 `hasFormulaInjection()` 동기 함수와 `BULK_MAX_*` 상수를 정의하고 클라이언트 컴포넌트(`csv-upload-form.tsx`)에서 import하려고 했더니, Next.js 15 "use server" 제약으로 모든 export가 async Server Action으로 취급되어 동기 호출 불가
+- **원인**: `"use server"` 파일의 모든 export는 RPC 엔드포인트가 됨. 동기 함수도 네트워크 왕복이 필요해지고, 행별 검증 시 100번의 HTTP 호출이 발생 (성능/UX 재앙). 상수도 RPC로 취급됨
+- **해결**: `src/features/products/validation.ts` 별도 파일 신규 생성 (지시어 없음). `BULK_MAX_ROWS/NAME/URL` 상수 + `hasFormulaInjection()` 함수를 여기에 두고, `actions.ts`(서버)와 `csv-upload-form.tsx`(클라이언트) 양쪽에서 동일하게 import. `index.ts`에서 `validation.ts`의 심볼을 별도로 re-export
+- **규칙**:
+  1. **`"use server"` 파일에는 async Server Action만 둔다**. 상수/동기 유틸/타입가드/Zod 스키마는 사이드 파일로 분리
+  2. **서버/클라이언트 공유 검증 로직**은 항상 `features/*/validation.ts` 같은 중립 파일에 모은다. 이 파일은 지시어 없이 양쪽에서 import 가능
+  3. **Next.js 15에서 features 폴더 구조**: `actions.ts` (use server) + `validation.ts` (공유) + `components/*.tsx` (use client) + `index.ts` (barrel)로 3-4파일 분할이 안전한 패턴
+
+### 2026-04-06 — [Security] CSV Formula Injection 유니코드 우회 (full-width, NBSP)
+- **증상**: Task 1-8 보안 리뷰에서 `FORMULA_PREFIX = /^[=+\-@\t\r]/` 정규식이 ASCII 코드포인트만 잡음을 발견. 다음 페이로드가 우회됨:
+  - `＝SUM(A1:A10)` — full-width `＝` (U+FF1D)는 `=`(U+003D)가 아니므로 정규식 통과
+  - `\u00A0=HYPERLINK("http://evil.com","click")` — NBSP(U+00A0)는 JavaScript `String.trim()`에 제거되지 않으므로 leading whitespace 후 `=` 탐지 실패
+  - `\uFEFF=cmd` — BOM/ZWNBSP는 `\s`에 포함되지 않음
+- **원인**: "OWASP Formula Injection" 기본 방어는 ASCII 프리픽스 체크만 다룸. 사용자 입력이 유니코드 전 영역이라는 것을 간과. 한국 사용자 CSV는 Excel/Numbers에서 저장되며 NBSP/full-width 문자가 섞여 올 가능성이 큼
+- **해결**: `hasFormulaInjection()` 함수로 캡슐화 + 두 단계 정규화:
+  ```ts
+  const normalized = input.normalize("NFKC").replace(/^[\s\u00A0\uFEFF]+/, "");
+  return /^[=+\-@\t\r]/.test(normalized);
+  ```
+  - `normalize("NFKC")`: full-width `＝＋－@` → ASCII `=+-@` 자동 변환
+  - leading strip: 표준 whitespace + NBSP(U+00A0) + BOM(U+FEFF) 명시적 제거
+- **규칙**:
+  1. **유니코드 입력을 받는 모든 문자열 검증은 NFKC 정규화 후 검사**. full-width, 위첨자, 리가처 등 시각적으로 같은 문자의 다양한 코드포인트를 ASCII로 정규화
+  2. **`.trim()` 믿지 말 것**. 표준 `trim()`은 NBSP(U+00A0)와 BOM(U+FEFF)을 제거하지 않음. 보안 목적이면 명시적 `/[\s\u00A0\uFEFF]+/` 패턴 사용
+  3. **보안 검증 함수는 캡슐화**. 정규식을 호출부마다 복붙하지 말고 `hasFormulaInjection()` 같은 이름의 함수로 통일 → 이번처럼 우회가 발견됐을 때 한 곳만 수정
+  4. **learnings.md "과잉 이스케이프" 교훈과의 균형**: 방어 대상을 정확히 좁혀 이스케이프하되, 유니코드 우회는 반드시 정규화 단계를 거친 후 검사. "최소 방어"와 "충분한 방어"는 병립 가능
+
 ### 2026-04-05 — [AI-Pitfall] shadcn/ui init이 디자인 시스템 CSS 변수 덮어쓰기
 - **증상**: `npx shadcn@latest init` 실행 후 `--primary`, `--secondary` 등이 oklch 값으로 교체됨
 - **원인**: shadcn이 globals.css의 `:root`와 `.dark` 블록에 자체 변수를 주입

@@ -5,10 +5,31 @@
 
 ## 현재 위치
 - Epic: Phase 1 인증 + 상품 관리
-- Task: Task 1-7 완료 → Task 1-8 (CSV 벌크) 또는 1-10 (다크모드) 대기
-- 상태: Phase 1 진행 중 (8/10 완료)
+- Task: Task 1-8 완료 → Task 1-10 (다크모드) 또는 1-7.5 (이미지 업로드) 대기
+- 상태: Phase 1 진행 중 (9/10 완료)
 
-## 이번 세션 완료 내역 (Session #7)
+## 이번 세션 완료 내역 (Session #8)
+- **Task 1-8**: CSV 벌크 상품 등록 (예상 1.5~2h → 실소요 ~2h)
+  - `papaparse` 도입 (클라이언트 CSV 파싱)
+  - `validation.ts` 신규 — `BULK_MAX_ROWS/NAME/URL` + `hasFormulaInjection()` 서버/클라이언트 공유
+  - `createProductsBulk` Server Action — Zod 이중 검증(배열 길이 → 행별) + 단일 배열 insert
+  - `CsvUploadForm` Client Component — 3 Phase 흐름(idle → preview → result) + 드래그앤드롭
+  - `ProductCreateForm` CSV 탭 활성화 + 인라인 style 제거
+  - `public/templates/products-sample.csv` 샘플 제공
+- **Task 1-8 리뷰 사이클**:
+  - code-reviewer + security-reviewer 병렬 리뷰 → HIGH 5 + MEDIUM 5 발견
+  - 전부 즉시 수정 후 2차 커밋 없이 단일 커밋으로 landing
+  - 주요 수정:
+    - **H1 Formula injection 유니코드 우회**: NFKC 정규화 + NBSP/BOM leading strip (full-width `＝`, `\u00A0=HYPERLINK(...)` 차단)
+    - **H2 DB DoS 표면 축소**: 개별 insert 100회 루프 → 단일 배열 insert 1회
+    - **H3 0-success UX**: `successCount === 0` 시 빨강 XCircle + "등록 실패" 분기
+    - **H4 상수 중복 제거**: `validation.ts` 단일 소스 import
+    - **H5 드래그앤드롭 실구현**: `onDragEnter/Over/Leave/Drop` + 시각 피드백
+    - M1~M5: exhaustive throw, 인라인 style 제거, 코멘트 일치, isRecord 타입가드, 에러 한국어화
+- **총 커밋 1건**: cfac951 (feat: Task 1-8 CSV 벌크 상품 등록 + 리뷰 10건 수정)
+- **변경 통계**: 8파일, +801/-16 (3 신규 + 5 수정)
+
+## 세션 #7 완료 내역
 - **Task 1-7**: 상품 등록 페이지 (URL 입력)
   - `createProduct` Server Action (Zod + http/https 스킴 화이트리스트 + IDOR 방어)
   - `/products/new` 페이지 (Server Component, 인증 + shop 검증)
@@ -51,19 +72,32 @@
   - M1-M8, L1-L4: 반환 타입, utils, login UX, products placeholder 등
 
 ## 다음 세션 할 일
-1. **Task 1-8**: CSV 벌크 업로드 + 검증 + 에러 표시 (예상 1.5~2h)
-2. **Task 1-10**: 다크모드 토글 (예상 30~60m)
-3. **Task 1-7.5**: 이미지 업로드 (Supabase Storage 버킷 + RLS + Server Action, 예상 1h)
-4. **L1 리팩토링** (LOW): `products/new/page.tsx`의 중복 인증/shop 쿼리 제거 — layout에서 검증된 값을 Context/prop으로 전달 (20~30m)
-5. Google Cloud Console에서 OAuth 클라이언트 ID 생성 → Supabase에 등록
-6. M3 (inline style → Tailwind 클래스) 미수정 — 온보딩 steps 파일들
+1. **Task 1-10**: 다크모드 토글 (예상 30~60m) — Phase 1 마지막 작업
+2. **Task 1-7.5**: 이미지 업로드 (Supabase Storage 버킷 + RLS + Server Action, 예상 1h)
+3. **L1 리팩토링** (LOW): `products/new/page.tsx`의 중복 인증/shop 쿼리 제거 — layout에서 검증된 값을 Context/prop으로 전달 (20~30m)
+4. Google Cloud Console에서 OAuth 클라이언트 ID 생성 → Supabase에 등록
+5. M3 (inline style → Tailwind 클래스) 미수정 — 온보딩 steps 파일들
 
 ## 수동 QA 미검증 (Jayden 확인 필요)
+### Task 1-7 (이전 세션)
 - [ ] `/products/new` 정상 등록 → `/products` 반영
 - [ ] `javascript:` URL 입력 → 화이트리스트 에러
 - [ ] 쿠키 조작 (`document.cookie = "onboarding_done=1"`) → 여전히 `/onboarding` 리다이렉트
 - [ ] 검색 `"나이키(운동화)"`, `"ABC Co."` → 괄호/마침표 보존
 - [ ] 검색 `"test,status.neq.optimized"` → 쉼표만 제거
+
+### Task 1-8 (이번 세션)
+- [ ] `/products/new` → CSV 탭 → 샘플 다운로드 → 3건 업로드 → `/products` 반영
+- [ ] 드래그앤드롭 동작 (드롭존에 파일 떨어뜨리기, 드래그 중 시각 피드백)
+- [ ] 100행 초과 CSV → 상한 안내 에러
+- [ ] 1MB 초과 파일 → 상한 안내 에러
+- [ ] `.txt` 파일 업로드 → 거부
+- [ ] Formula injection:
+  - `=cmd|'/c calc'!A1` → 거부 (기본)
+  - `＝SUM(A1)` full-width → 거부 (NFKC 정규화)
+  - `\u00A0=HYPERLINK(...)` NBSP + = → 거부 (leading WS strip)
+- [ ] 모든 행 URL 잘못된 CSV → 빨강 "등록 실패" 화면 (0-success 분기)
+- [ ] 헤더 누락 CSV → "name, url 컬럼 필요" 에러
 
 ## 차단 요소
 - Google Cloud Console OAuth 설정 필요 (구글 로그인 실제 동작용)
@@ -84,7 +118,7 @@
 - 디자인 에셋: /Volumes/jayden-ssd/chatsio/docs/design-references/stitch-code/
 
 ## 마지막 업데이트
-- 날짜: 2026-04-06 (세션 7 — Task 1-7 상품 등록 + 1-7.1 보안 강화 + follow-up)
+- 날짜: 2026-04-06 (세션 8 — Task 1-8 CSV 벌크 상품 등록 + 리뷰 10건 수정)
 
 ---
 
@@ -158,6 +192,27 @@
 - **Status**: Complete
 - **Blockers**: Google Cloud Console OAuth 설정 필요
 - **Next**: Task 1-7 (상품 등록)
+
+### 2026-04-06 Session #8 — Task 1-8 CSV 벌크 상품 등록
+- **Goal**: CSV 파일로 상품 일괄 등록 (100행/1MB 상한)
+- **Completed**:
+  - Task 1-8: CSV 벌크 등록
+    - papaparse 도입 (클라이언트 파싱)
+    - validation.ts 신규 — 상한 + hasFormulaInjection 서버/클라이언트 공유
+    - createProductsBulk Server Action (Zod 이중 검증 + 단일 배열 insert)
+    - CsvUploadForm (idle → preview → result 3-Phase + 드래그앤드롭)
+    - 샘플 CSV 제공 (/templates/products-sample.csv)
+  - 리뷰 사이클 (code-reviewer + security-reviewer 병렬) → HIGH 5 + MEDIUM 5 즉시 수정
+    - H1 Formula injection 유니코드 우회(NFKC + NBSP/BOM)
+    - H2 DB 쿼리 100회 → 1회 (DoS 축소)
+    - H3 0-success 실패 UI 분기
+    - H4 상수 중복 제거 (validation.ts 단일 소스)
+    - H5 드래그앤드롭 실구현
+    - M1~M5: exhaustive throw, 인라인 style, 코멘트, 타입가드, 에러 한국어화
+  - **`"use server"` 제약 발견**: 동기 함수 export 불가 → validation.ts 분리 패턴 확립
+- **Status**: Complete
+- **Blockers**: Google Cloud Console OAuth 설정 필요
+- **Next**: Task 1-10 (다크모드) 또는 1-7.5 (이미지 업로드)
 
 ### 2026-04-06 Session #7 — Task 1-7 상품 등록 + 1-7.1 보안 강화
 - **Goal**: 상품 등록 페이지 구현 + Task 내 리뷰 사이클 확립
