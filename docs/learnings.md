@@ -115,6 +115,17 @@
   3. **보안 규칙과 동일한 원칙이 a11y에도 적용**: "서버가 모르는 상태를 클라이언트 값으로 추측하지 말 것". Session #7의 "쿠키 ≠ 보안 경계" 교훈과 구조가 같음 — 서버가 진실을 모르면 UX 상에서도 **중립 상태**로 렌더해야 함. 추측 렌더는 사용자에게 잘못된 정보를 짧은 시간이라도 보여주게 됨.
   4. **code-reviewer의 리뷰 제안을 그대로 따르지 말 것**. 리뷰어는 "Option A — 동적 aria-label"과 "Option B — aria-pressed" 중 Option A를 더 흔하다고 소개했으나, SSR 특성상 Option B가 본질적으로 안전. **리뷰 제안은 힌트이지 정답이 아님** — 프로젝트 컨텍스트(SSR, next-themes)를 감안해 직접 판단.
 
+### 2026-04-06 — [Bug/Build] Turbopack dev CSS 파서가 production build보다 엄격 — `@import` 위치
+- **증상**: Task 1-10 완료 후 Playwright QA 시작하자마자 `/login` 500 에러. 콘솔에 `./src/app/globals.css:6696:8 Parsing CSS source code failed` + `@import rules must precede all rules aside from @charset and @layer statements`. 그런데 같은 코드가 **pnpm build는 통과**했음. dev만 실패.
+- **원인**: CSS 스펙상 `@import`는 `@charset`/`@layer` 외의 모든 규칙보다 파일 최상단에 와야 함. globals.css에 `@import "tailwindcss"` → `@import url("...pretendard...")` → `@import "tw-animate-css"` 순서로 되어 있었는데, Tailwind v4의 `@import "tailwindcss"`가 PostCSS 확장되면 **수천 줄의 내부 규칙**이 인라인으로 펼쳐져 CDN Pretendard `@import`가 다른 규칙들 뒤로 밀려나 스펙 위반. **build는 PostCSS가 모든 @import를 빌드 시점에 inline 처리하여 관대**하지만, **Turbopack dev는 CSS 파서가 스펙을 엄격 적용**.
+- **해결**: CDN `@import url(...)`을 `@import "tailwindcss"`보다 **앞으로** 이동. 모든 `@import`가 파일 최상단에 연속 배치되면 순서는 상관없음. 1줄 이동으로 즉시 해결.
+- **규칙**:
+  1. **`pnpm build` 통과 ≠ `pnpm dev` 정상 동작**. Turbopack dev 파서는 production build보다 CSS 스펙을 더 엄격하게 적용. 검증 게이트에 `typecheck + lint + build`만 있으면 dev 환경 버그를 놓칠 수 있음. **실제 브라우저로 dev 서버 확인**이 진짜 검증의 마지막 단계.
+  2. **CSS `@import` 위치 규칙**: 모든 `@import`는 파일 최상단에 연속 배치. `@charset`과 `@layer`만 더 앞에 허용. 다른 규칙(변수 정의, 주석 블록, 셀렉터)이 중간에 끼면 후속 `@import`는 스펙 위반.
+  3. **Tailwind v4 + CDN 폰트 조합 시 주의**: `@import "tailwindcss"`는 확장되면 매우 길어짐. **CDN/외부 `@import url(...)`는 반드시 `@import "tailwindcss"`보다 앞**에 배치해야 안전. 또는 `next/font`로 로컬 호스팅 전환.
+  4. **Playwright QA는 dev 전용 버그 탐지의 마지막 방어선**. 타입 체크와 빌드로 잡히지 않는 런타임/파서 버그(이 케이스)는 실제 서버 실행 + 페이지 접근으로만 드러남. 주요 Task 완료 후 최소 1회 Playwright로 핵심 페이지 돌려보는 게 원칙.
+  5. **Turbopack에 의존하지 않는 추가 예방**: 주기적으로 `pnpm dev` 수동 실행 또는 CI에 smoke test 추가. "빌드는 되는데 dev는 500" 같은 환경 격차를 조기에 감지.
+
 ### 2026-04-06 — [AI-Pitfall] `.gitignore` ≠ ESLint ignore — 툴별 ignore는 독립적
 - **증상**: Task 1-10 완료 후 `._*` AppleDouble 파일 정리 작업에서 `git rm --cached`로 21개 파일을 untrack하고 `.gitignore`에 `._*` 패턴도 확인했는데도 `pnpm lint`에서 여전히 107개 "Parsing error: Invalid character" 발생. "gitignore에 넣었으니 당연히 lint도 무시하겠지"라는 기본 가정이 틀렸음.
 - **원인**: `.gitignore`는 **git이 tracking하는 파일**을 제어할 뿐, 다른 도구의 파일 시스템 스캔에는 영향이 없음. ESLint는 git과 완전히 독립적으로 프로젝트 디렉터리를 재귀 스캔 → ignore 설정을 ESLint 자체 설정(`eslint.config.mjs`의 `globalIgnores`)에 넣어야 함. Prettier(`.prettierignore`), TypeScript(`tsconfig.json`의 `exclude`), Vitest(`test.exclude`) 등 모든 도구가 **각자의 ignore 설정을 가짐**.

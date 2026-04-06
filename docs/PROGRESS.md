@@ -5,8 +5,19 @@
 
 ## 현재 위치
 - Epic: Phase 1 인증 + 상품 관리 ✅ **완료 (10/10)**
-- Task: Task 1-10 완료 → Phase 2 진입 대기
+- Task: Task 1-10 완료 + Playwright QA + globals.css hotfix → Phase 2 진입 대기
 - 상태: Phase 1 전체 완료 — Phase 2 시작 준비
+
+## QA 결과 (Session #9 말미)
+Playwright MCP로 public 페이지 (`/login`, `/signup`, `/`) 다크모드 동작 검증:
+- ✅ `.dark` 클래스 `<html>` 주입 정상 (next-themes)
+- ✅ `color-scheme: dark` 적용 (브라우저 네이티브 UI 다크 전환)
+- ✅ body 배경 토큰 `rgb(14, 20, 25)` 정상
+- ✅ `localStorage` 저장 + 새로고침 유지
+- ✅ 라이트/다크 전환 시 Pretendard 폰트, 폼 필드, 버튼, 글래스모피즘 카드 모두 가독성 OK
+- ⏳ Header ThemeToggle 실제 클릭 동작 / Sun↔Moon 아이콘 스왑 / aria-pressed / focus-visible ring — **로그인 필요**로 수동 확인 필요
+- 🔴 **QA 중 pre-existing 버그 발견 → 즉시 hotfix**: globals.css CDN `@import` 위치 → Turbopack dev 500 에러
+- 🟡 **QA 중 스코프 밖 이슈 발견**: 루트 `/` 페이지가 Next.js 기본 스캐폴딩 상태 (page.tsx 미구현, 깨진 SVG). **별도 Task 필요**
 
 ## 이번 세션 완료 내역 (Session #9)
 - **Task 1-10**: 다크모드 토글 (예상 35~55m → 실소요 ~50m)
@@ -97,17 +108,24 @@
   - H8: 온보딩 뒤로가기 shopId 초기화
   - M1-M8, L1-L4: 반환 타입, utils, login UX, products placeholder 등
 
-## 다음 세션 할 일 (Phase 2 시작)
-1. **Phase 2 진입 전 정리 Task** (짧은 작업들 묶음, 예상 1~1.5h):
+## 다음 세션 할 일 (Phase 2 시작 전 정리)
+1. **Jayden 직접 대시보드 다크모드 QA** (로그인 후, ~5m)
+   - Header 우상단 ThemeToggle 클릭 → Sun↔Moon 스왑 확인
+   - Tab 키로 포커스 → 파란 ring 확인
+   - Sidebar/Card/Table 다크 토큰 가독성 확인
+   - 반복 토글 시 트랜지션 깜빡임 없음 확인 (disableTransitionOnChange)
+   - `/onboarding` 다크 확인 (신규 계정 또는 onboarding_completed=false)
+2. **Phase 2 진입 전 정리 Task 묶음** (예상 1~1.5h):
    - **Task 1-7.5**: 이미지 업로드 (Supabase Storage 버킷 + RLS + Server Action, ~1h)
    - **L1 리팩토링**: `products/new/page.tsx` 중복 인증/shop 쿼리 제거 — layout 검증값을 Context/prop 전달 (20~30m)
    - **M3 리팩토링**: `header.tsx` reduce mutation 제거 (3줄, 5m)
-2. **Phase 2: AI 구조화 파이프라인** — PRD 재검토 후 Task 분해
+   - **루트 `/` 랜딩 페이지 정리**: Next.js 기본 스캐폴딩(page.tsx + SVG) 제거 또는 실제 랜딩 구현 (Phase 2 전후 어느 쪽이든)
+3. **Phase 2: AI 구조화 파이프라인** — PRD 재검토 후 Task 분해
    - n8n webhook → Claude API → JSON-LD + 네이버EP 생성
    - `extraction_jobs` 테이블 + 상태 전이 (queued/processing/completed/failed)
    - Cafe24 API 우선 vs OCR fallback 분기
-3. Google Cloud Console에서 OAuth 클라이언트 ID 생성 → Supabase에 등록 (Phase 1 외부 의존)
-4. M3 (inline style → Tailwind 클래스) 미수정 — 온보딩 steps 파일들 (Phase 2 중 편의에 따라)
+4. Google Cloud Console에서 OAuth 클라이언트 ID 생성 → Supabase에 등록 (Phase 1 외부 의존)
+5. M3 (inline style → Tailwind 클래스) 미수정 — 온보딩 steps 파일들 (Phase 2 중 편의에 따라)
 
 ## 수동 QA 미검증 (Jayden 확인 필요)
 ### Task 1-7 (이전 세션)
@@ -161,7 +179,7 @@
 - 디자인 에셋: /Volumes/jayden-ssd/chatsio/docs/design-references/stitch-code/
 
 ## 마지막 업데이트
-- 날짜: 2026-04-06 (세션 9 — Task 1-10 다크모드 토글 + 리뷰 4건 수정 → **Phase 1 완료**)
+- 날짜: 2026-04-06 (세션 9 — Task 1-10 + Playwright QA + globals.css hotfix → **Phase 1 완료**)
 
 ---
 
