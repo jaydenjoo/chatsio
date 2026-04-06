@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createProduct } from "@/features/products";
 import type { CreateProductInput } from "@/features/products";
+import { CsvUploadForm } from "./csv-upload-form";
 
 type TabKey = "url" | "image" | "csv";
 
@@ -21,7 +22,7 @@ interface TabDef {
 const TABS: TabDef[] = [
   { key: "url", label: "URL 입력", icon: <LinkIcon className="size-4" />, disabled: false },
   { key: "image", label: "이미지 업로드", icon: <ImageIcon className="size-4" />, disabled: true },
-  { key: "csv", label: "CSV 일괄 등록", icon: <FileText className="size-4" />, disabled: true },
+  { key: "csv", label: "CSV 일괄 등록", icon: <FileText className="size-4" />, disabled: false },
 ];
 
 export function ProductCreateForm(): React.ReactElement {
@@ -59,14 +60,8 @@ export function ProductCreateForm(): React.ReactElement {
 
   return (
     <div className="space-y-8">
-      {/* 메인 등록 카드 — Shadow Level 3 */}
-      <div
-        className="rounded-[20px] bg-[var(--surface-container-lowest)] p-6 sm:p-8"
-        style={{
-          boxShadow:
-            "0 10px 30px -5px rgba(0, 97, 149, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03)",
-        }}
-      >
+      {/* 메인 등록 카드 — Shadow Level 3 (Azure 2레이어 그림자) */}
+      <div className="rounded-[20px] bg-[var(--surface-container-lowest)] p-6 shadow-[0_10px_30px_-5px_rgba(0,97,149,0.08),0_4px_12px_-2px_rgba(0,0,0,0.03)] sm:p-8">
         {/* Segmented Control */}
         <div
           role="tablist"
@@ -187,17 +182,18 @@ export function ProductCreateForm(): React.ReactElement {
           </form>
         )}
 
-        {/* 비활성 탭 안내 */}
-        {activeTab !== "url" && (
+        {/* CSV 벌크 업로드 탭 */}
+        {activeTab === "csv" && <CsvUploadForm />}
+
+        {/* 이미지 탭 — 준비 중 */}
+        {activeTab === "image" && (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <div className="flex size-14 items-center justify-center rounded-full bg-[var(--surface-container)]">
-              {TABS.find((t) => t.key === activeTab)?.icon}
+              <ImageIcon className="size-6 text-[var(--on-surface-variant)]" />
             </div>
             <h3 className="text-lg font-bold text-[var(--on-surface)]">준비 중입니다</h3>
             <p className="max-w-sm text-sm text-[var(--on-surface-variant)]">
-              {activeTab === "image"
-                ? "이미지 업로드 기능은 곧 제공됩니다. 지금은 URL 입력으로 등록해주세요."
-                : "CSV 일괄 등록 기능은 곧 제공됩니다. 지금은 URL 입력으로 등록해주세요."}
+              이미지 업로드 기능은 곧 제공됩니다. 지금은 URL 입력 또는 CSV로 등록해주세요.
             </p>
           </div>
         )}
