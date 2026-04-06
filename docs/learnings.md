@@ -321,3 +321,23 @@
 - **원인**: shadcn이 globals.css의 `:root`와 `.dark` 블록에 자체 변수를 주입
 - **해결**: shadcn 변수를 Chatsio 디자인 토큰으로 재매핑 (`--background: var(--surface)` 등)
 - **규칙**: shadcn init 후 반드시 globals.css 검증. `oklch` 검색 → 디자인 토큰으로 교체. shadcn 호환 변수는 `var(--our-token)` 형태로 매핑.
+
+### 2026-04-06 — [Architecture] PRD 부록 ≠ 진실 — 새 Phase 진입 전 list_tables 우선 검증
+- **증상**: Session #12에서 Phase 2 진입 전 PRD 부록 C(DB 스키마 활용 계획)를 보고 4개 신규 테이블 추가가 필요해 보였음 (`optimization_history`, `llms_txt_versions`, `extraction_logs`, `cost_tracking`). 그런데 `list_tables`로 V2 현재 상태를 확인하니 `optimizations` 테이블이 이미 `idempotency_key`/`result_json`/`jsonld`/`score`/`error_message`/`duration_ms`/`retry_count`/`plan`/`status`를 모두 갖고 있어 사실상 `optimization_history`를 흡수한 상태였음. 결과적으로 신규 테이블은 1개(`llms_txt_versions`)만 필요했고, 나머지 3개는 흡수/JSONB내장/이연으로 정리.
+- **원인**: PRD 부록 C는 V1 시절 작성되었고, 그 사이 V2 스키마 리노베이션(Session #4)이 일부 요구사항을 미리 흡수했지만 PRD가 그에 맞춰 갱신되지 않았음. PRD 부록을 그대로 작업 명세로 받아들이면 **이미 해결된 문제를 또 푸는 헛수고**가 발생.
+- **해결**: 새 Phase 진입 전 강제 절차 도입 — (1) PRD 부록 = 청사진(요구사항), (2) `list_tables` 결과 = 진실(현재 상태). 두 가지를 표로 매핑한 후 갭을 **흡수됨 / 신규 / JSONB 흡수 / 이연** 4분류로 정리. 마이그레이션은 4분류 결정 후에만 작성.
+- **규칙**:
+  1. **새 Phase 진입 전 첫 작업은 항상 `list_tables(verbose=true)`**. PRD를 신뢰하기 전에 현재 DB 상태를 사실로 받아들인다.
+  2. **PRD-스키마 갭은 4분류**: ① 흡수됨 (작업 불필요) / ② 신규 (마이그레이션 필요) / ③ JSONB 내장 (기존 jsonb 컬럼에 키로 저장) / ④ 이연 (다음 Phase로). 4분류로 정리하면 "정말 필요한 마이그레이션"만 남음.
+  3. **PRD 부록은 명세가 아닌 청사진으로 다룬다**. 갱신 빈도가 코드/DB보다 낮아서 자연스럽게 stale해짐. PRD가 "X 테이블 추가"라고 해도 X가 이미 다른 형태로 존재할 가능성을 항상 의심.
+  4. **OST 원칙의 DB 버전**: 진실은 한 곳(라이브 DB) → PRD/Drizzle 스키마/마이그레이션 파일은 동기화되지 않을 수 있음. 작업 시작 전 라이브 DB 우선.
+
+### 2026-04-06 — [Security/Workflow] `.env*` 파일 LLM 권한 차단은 버그가 아니라 보안 기능
+- **증상**: Session #12에서 Phase 2 환경변수(`N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET`, `ANTHROPIC_API_KEY`)를 `.env.example`에 추가하려 했더니 Read/Edit/Bash로 모두 접근 차단됨 ("Permission denied"). 첫 반응은 "권한 정책이 너무 빡빡하다"였음.
+- **원인**: Claude Code 권한 정책이 `.env*` 패턴 전체를 LLM 직접 접근에서 차단. 처음엔 불편으로 느꼈지만, 사실 이 차단이 **시크릿 보호의 마지막 방어선**임. LLM이 실수로 `.env.local`을 덮어쓰면 운영 시크릿이 사라지고, `.env.example`에 잘못된 값(예: 실제 API 키 일부)을 쓰면 git 커밋을 통해 외부 노출될 수 있음. 권한 차단은 이 두 가지 사고를 시스템 레벨에서 차단함.
+- **해결**: 직접 수정 시도 포기 → **Jayden 직접 입력 + 우리는 명세만 작성** 흐름으로 방향 전환. `docs/phase2-prerequisites.md` 같은 통합 prerequisites 문서를 만들고, 그 안에 (1) `.env.example` 추가 블록 그대로(복붙 가능), (2) `.env.local` 값 출처 표, (3) grep 검증 명령을 모두 담음. Jayden은 한 문서만 보고 직접 입력 + 검증.
+- **규칙**:
+  1. **`.env*` 파일은 LLM이 직접 만지지 않는다**. 우리는 항상 "추가할 블록"을 별도 문서에 코드 펜스로 명세 → Jayden이 복붙. 권한 정책이 차단을 풀어줘도 같은 원칙 유지.
+  2. **prerequisites 통합 문서 패턴**: 환경변수 + 외부 서비스 체크리스트 + 검증 명령을 한 파일에 모은다. Jayden이 다음 세션 전에 한 곳만 보고 모든 외부 의존을 처리할 수 있도록.
+  3. **권한 차단을 "불편"으로 받아들이지 말고 "보호 레이어"로 해석**. 처음 에러 메시지를 만나면 "이건 왜 막혔지?"가 아니라 "이걸 막는 게 합리적인가?"를 먼저 묻는다. 합리적이면 우회가 아니라 워크플로우를 차단에 맞춰 재설계.
+  4. **이 원칙은 다른 시크릿 파일에도 일반화**: `secrets.json`, `*.pem`, `credentials/*`, `.aws/credentials` 등. 차단되어 있다면 그것은 보호. 명세 + Jayden 입력 흐름으로 우회.
