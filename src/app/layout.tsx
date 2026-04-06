@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -31,9 +32,10 @@ export default function RootLayout({
     <html
       lang="ko"
       className={cn("h-full antialiased", dmSans.variable, jetbrainsMono.variable, "font-sans")}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-surface text-on-surface">
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

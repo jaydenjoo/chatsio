@@ -2,8 +2,9 @@
 
 import type { ReactElement } from "react";
 import { usePathname } from "next/navigation";
-import { Moon, Bell, Menu } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 import { SERVICE_NAV, SETTINGS_NAV } from "@/constants/nav";
+import { ThemeToggle } from "@/components/layouts/theme-toggle";
 
 /** NAV 상수에서 PAGE_META 자동 파생 */
 const PAGE_META: Record<string, { group: string; title: string }> =
@@ -61,13 +62,7 @@ export function Header({ onMobileMenuOpen }: HeaderProps): ReactElement {
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 bg-[var(--surface-container-low)] p-1 rounded-full">
-            <button
-              type="button"
-              className="p-2 rounded-full text-[var(--outline)] hover:text-[var(--primary)] transition-colors"
-              aria-label="다크모드 전환"
-            >
-              <Moon className="size-4" />
-            </button>
+            <ThemeToggle />
             <button
               type="button"
               className="p-2 rounded-full text-[var(--outline)] hover:text-[var(--primary)] relative transition-colors"
