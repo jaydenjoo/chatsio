@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { z } from "zod/v4";
 import { createClient } from "@/lib/supabase/server";
 import { shopPlatformEnum, industryEnum } from "@/lib/db/schema/enums";
@@ -141,6 +142,18 @@ export async function completeOnboarding(): Promise<ActionResult> {
   if (error) {
     return { success: false, error: "온보딩 완료 처리에 실패했습니다" };
   }
+
+  // 미들웨어가 다음 요청에서 DB 재조회하지 않도록 캐싱 쿠키 set.
+  // ⚠️ 옵션은 src/lib/supabase/middleware.ts > updateSession() 내 onboarding_done 쿠키 설정과
+  //    동일하게 유지. 두 곳이 달라지면 캐싱이 깨지므로 반드시 함께 변경할 것.
+  // 보안 경계가 아니라 UX 캐싱용 — 실제 접근 제어는 (dashboard)/layout.tsx에서 매 요청 DB 검증.
+  const cookieStore = await cookies();
+  cookieStore.set("onboarding_done", "1", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 3600,
+  });
 
   return { success: true, error: null };
 }
