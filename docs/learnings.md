@@ -352,3 +352,22 @@
   3. **Task Plan의 "안 건드리는 것" 섹션은 실측 후 선언**. "Supabase 노드이니 DB 스키마 동일 가정"은 근거 없는 낙관. 안 건드릴 노드여도 그 노드가 참조하는 외부 리소스(DB 컬럼, API 응답 필드)가 현재 상태와 일치하는지 확인한 뒤 "안 건드림"을 선언해야 함.
   4. **V1 → V2 마이그레이션 후에는 "V1 기반 외부 자산 목록"을 작성**. V1 스키마를 전제로 만든 n8n 워크플로우/스크립트/SQL 뷰 등이 V2에 맞지 않을 수 있으므로, DB 리노베이션 후 "재검증 대상 외부 자산" 리스트를 만들어 체계적으로 점검한다.
   5. **긍정 신호도 교훈이다**: 이번 실패에서 Claude 전환 자체는 12/12 검증 통과했고 실제 API 호출까지 성공했다. 즉 Plan의 "변환 로직"은 정확했고 실패 지점은 "범위 외" 부분이었다. Plan 수립 시 범위 경계를 정확히 치는 것이 크리티컬 — 범위 내부가 견고하면 실패해도 "범위 밖"으로 분리해 Task를 쪼갤 수 있음.
+
+### 2026-04-07 — [Architecture] n8n Supabase 노드 `autoMapInputData` + jsonb 자동 직렬화 — 중첩 객체를 그대로 전달
+- **증상**: Task 2-1b에서 B2/P7 최종 정리 노드의 return에 `result_json` (중첩 객체 18개 필드) + `jsonld` (객체) 를 그대로 포함. n8n Supabase `create` 오퍼레이션이 이를 `optimizations` 테이블의 jsonb 컬럼에 올바르게 저장할지 불확실했음. `JSON.stringify`를 수동으로 해야 할지 고민.
+- **원인**: n8n 공식 문서가 Supabase 노드의 jsonb 컬럼 자동 매핑 동작을 명시적으로 설명하지 않음. OpenAPI 스키마 기반이지만 사용자 관점에서는 "객체가 string으로 직렬화되어 저장될지" vs "jsonb로 native 저장될지" 예측 어려움.
+- **해결**: `dataToSend: "autoMapInputData"` + return json에 **객체를 있는 그대로** (stringify 없이) 포함. 실측 결과 Supabase 노드가 컬럼 타입(jsonb)을 자동 감지해서 직렬화 → `result_json` 9,617 bytes 정상 저장, `jsonb_array_length` / `jsonb_object_keys` 쿼리 정상 작동.
+- **규칙**:
+  1. **n8n Supabase 노드 + jsonb 컬럼에는 객체를 그대로 전달**. 수동 `JSON.stringify` 하면 오히려 "jsonb에 string이 한 번 더 감싸져 저장"되는 버그 발생 (double-encoding).
+  2. **`dataToSend: "autoMapInputData"` 는 n8n의 Supabase OpenAPI 스키마 기반 자동 타입 매칭 기능**. 입력 키 이름과 테이블 컬럼 이름이 일치하면 자동 매칭, 타입도 컬럼 정의에서 추론. 수동으로 매핑할 필요 없음.
+  3. **검증 방법**: 저장 후 `SELECT jsonb_array_length(result_json->'faqs')`, `SELECT jsonb_object_keys(result_json)` 로 jsonb 쿼리가 정상 작동하면 string이 아니라 진짜 jsonb로 저장된 것. string으로 저장됐다면 이런 jsonb 연산자가 에러를 뱉음.
+  4. **V1→V2 마이그레이션 시 "jsonb 통합 저장" 패턴의 장점**: 기존 V1은 AI 결과 필드(18개)를 모두 테이블 컬럼으로 flatten했지만, V2는 `result_json` jsonb 하나로 통합. 스키마 진화가 자유로움 (새 AI 필드가 추가돼도 마이그레이션 불필요), 쿼리는 `result_json->>'optimized_title'` 식으로 접근.
+
+### 2026-04-07 — [Architecture] Chatsio 사용자 FK는 `user_profiles` (auth.users 아님) + Findably는 `profiles` — 2 프로젝트 분리 주의
+- **증상**: Task 2-1b DB 시드 생성 시 `INSERT INTO shops(user_id, ...) VALUES ((SELECT id FROM auth.users LIMIT 1), ...)` 실행 → `ERROR: insert or update on table "shops" violates foreign key constraint "shops_user_id_fkey". Key (user_id)=... is not present in table "user_profiles"`. 첫 시도부터 FK 위반.
+- **원인**: Chatsio는 `auth.users`를 직접 참조하지 않고 **중간 테이블 `user_profiles`**를 둠 (RLS 정책 + 역할 관리 + onboarding 상태 등을 확장). `shops.user_id → user_profiles.id → auth.users.id` 3단계 체인. 한편 Findably는 동일 공유 DB에서 **`profiles`** 테이블을 사용 (`user_profiles`와 이름 다름). 두 프로젝트가 같은 `auth.users`를 공유하지만 각자의 middle 테이블 이름이 다름 → 헷갈리기 쉬움.
+- **해결**: Chatsio 테스트 시드 체인을 `auth.users → user_profiles → shops → products` 순서로 3단계 INSERT. user_profiles의 NOT NULL 컬럼은 `id` (기본값 없음, 명시 필요) + `role`(default member) + `onboarding_completed`(default false). `INSERT INTO user_profiles (id, role, onboarding_completed) VALUES ('<auth.users uuid>', 'member', true) ON CONFLICT (id) DO NOTHING`.
+- **규칙**:
+  1. **Chatsio FK 체인 암기**: `auth.users → user_profiles.id → shops.user_id → products.shop_id → optimizations.{product_id, shop_id}`. 새 테스트 데이터는 이 순서로 생성.
+  2. **Findably와 테이블 이름 혼동 금지**: Chatsio = `user_profiles`, Findably = `profiles`. 공유 DB이므로 둘 다 존재. Chatsio 작업 중 Findably 테이블 건드리지 말 것 (learnings.md 2026-04-06 "공유 DB 경계" 규칙 참조).
+  3. **시드 데이터 영구 vs 일회성**: Task 2-1b에서는 영구 선택 (실제 OAuth 세팅 후 자연 대체). 다음 시드가 필요할 때 `ON CONFLICT DO NOTHING`로 멱등성 유지.

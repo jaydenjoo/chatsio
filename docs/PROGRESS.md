@@ -4,9 +4,9 @@
 > **프로젝트 경로**: `/Users/jayden/projects/chatsio/` (Session #10에서 `/Volumes/jayden-ssd/chatsio`에서 이동 — 아래 "프로젝트 이동" 섹션 참조)
 
 ## 현재 위치
-- Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Task 2-1 완료** (V7 → V8 Claude 전환 검증) → 다음 **Task 2-1b (DB 저장 재설계)** 대기
-- 상태: Session #13에서 Claude API 호출/응답 파싱 100% 성공 확인, DB 저장 단계에서 V7(V1 스키마 기반) ↔ V2 `optimizations` 테이블 불일치 발견 → 별도 Task로 분리
+- Epic: **Phase 2 진행 중** (AI 구조화 파이프라인) — **백엔드 파이프라인 엔드-투-엔드 완성**
+- Task: **Task 2-1 + 2-1b 완료** (V7 → V8 Claude 전환 + DB 저장 재설계). 다음 **Task 2-3 (최적화 실행 UI)** 또는 **Task 2-5 (비동기 패턴)** 선택 대기
+- 상태: Session #13에서 Claude API → 응답 파싱 → `optimizations` 테이블 저장까지 완전 검증. Basic 32초 / Premium 2분35초 실측 성공
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -70,19 +70,66 @@ Claude 호출/응답 파싱은 완벽 작동, DB 저장 단계에서 V1 스키�
 - DB 저장 재설계는 Plan "안 건드리는 것" 영역이었으므로 **Task 2-1b로 분리**
 - 비유: 새 냉장고(Claude) 설치까지 완벽, 냉장고 바닥 배수 라인(DB 저장)이 옛날 싱크대 규격이라 연결이 안 되는 상황
 
-### 다음 세션 첫 작업 — Task 2-1b Plan
-1. Supabase `optimizations` 테이블 스키마 재확인 (Session #12에서 확인: idempotency_key/result_json/jsonld/score/status/...)
-2. B2/P7 JS 재작성: 반환 구조를 `optimizations` 컬럼에 맞춤 (`result_json` jsonb 활용)
-3. B3/P8 노드: `products` UPDATE → `optimizations` INSERT
-4. `idempotency_key` 매핑 (order_id 또는 product_id + timestamp)
-5. V8 재생성 → 재 Import → 엔드-투-엔드 테스트
+### 7. Task 2-1b — DB 저장 재설계 (같은 세션에서 연속 진행)
+Jayden이 Task 2-1a 종료 직후 "계속 진행" 지시 → Plan 작성 → 승인 → 구현 → 검증.
+
+#### 7-1. DB 스키마 재확인 (Supabase MCP)
+- `optimizations` 14개 컬럼 전부 파악
+- FK: `optimizations.product_id → products.id`, `optimizations.shop_id → shops.id`
+- enum: `optimization_plan(basic/premium)`, `optimization_status(queued/processing/completed/failed)`
+- 발견: `shops.user_id` → **`auth.users`가 아닌 `user_profiles`** FK
+
+#### 7-2. DB 시드 (FK 만족용 테스트 데이터)
+- shops/products 모두 rows=0 상태 → FK 위반으로 INSERT 불가
+- 3단계 시드:
+  1. `user_profiles` INSERT (`1b092172-...` — auth.users의 hidream72 uuid)
+  2. `shops` INSERT → `shop_id: 3ecb8815-e390-4950-8f16-2c76e82dc6c5`
+  3. `products` INSERT → `product_id: fadd2a91-9de2-4f55-8efa-d33d9ea0c60a`
+- 영구 시드로 유지 (실제 OAuth 세팅 후 자연 대체)
+
+#### 7-3. 변환 스크립트 확장 (convert-v7-to-v8.js)
+Task 2-1 로직 보존 + 3가지 변환 함수 추가:
+- **`convertNormalizationNode`**: `1. 데이터 정규화` jsCode에 shop_id / idempotency_key(order_id 우선) / start_at 필드 추가
+- **`convertFinalNode(source)`**: B2/P7의 `var now = ...` 이후를 새 블록으로 교체. `result_json` (jsonb) 에 18개 AI 결과 필드 + eeat_score + optimization_score 통째로. `$('1. 데이터 정규화').item.json` 참조로 normalized 필드 접근
+- **`convertDbSaveNode`**: B3/P8 파라미터를 `{operation:"create", tableId:"optimizations", dataToSend:"autoMapInputData"}` 로 통째로 교체 (filters/inputsToIgnore 제거)
+
+#### 7-4. 테스트 페이로드 업데이트
+- `test-basic.json` + `test-premium.json`에 실제 `product_id` / `shop_id` (uuid) 반영
+- `order_id` 필드 추가 (`test-basic-order-001`, `test-premium-order-001`) → idempotency_key 생성 소스
+
+#### 7-5. V8 재생성 + 검증
+- 6가지 검증 전부 통과: HTTP 변환 보존 / 정규화 신규 필드 / B2/P7 return 객체 / B3/P8 파라미터 / JSON 파싱 / connections 미변경
+
+#### 7-6. 엔드-투-엔드 실측 (Basic + Premium 모두 HTTP 200)
+| 플랜 | duration_ms | score | result_json 크기 | 저장 확인 |
+|---|---|---|---|---|
+| **Basic** | 32,584 (≈ 32초) | 81 | (jsonb) | ✅ 9개 컬럼 전부 |
+| **Premium** | 154,993 (≈ 2분 35초) | 74 | **9,617 bytes** | ✅ use_cases 5 / faqs 10 / pros_cons + comparison_data + buying_guide 전부 포함 |
+
+#### 7-7. 아키텍처 논의 — "100개 상품 처리" 질문
+Jayden 질문: "1개에 2분 37초면 100개는 서비스 문제?"
+- 핵심: **2분 37초는 동기 curl 대기 시간, 실제 UX 아님** (비유: 주문 후 자리에 앉아 기다림 vs 주문대에서 서 있음)
+- 실제 서비스: 비동기 백그라운드 처리 + 폴링/Realtime 구독 (Task 2-5에서 구현 예정)
+- 병렬 옵션: n8n 워커 10개 → 100개 약 26분 / Anthropic Tier 2+ → 초당 16 요청 / Batch API → 50% 할인 대량 처리
+- Phase 2 설계에 이미 반영되어 있으므로 **문제 없음**. 걱정은 해소됨
+
+### Task 2-1 + 2-1b 판정
+- ✅ V7 → V8 Claude 전환 완료
+- ✅ V2 `optimizations` 스키마 정합성 완료
+- ✅ 엔드-투-엔드 Basic + Premium 실측 통과
+- ✅ 백엔드 AI 파이프라인 **프로덕션 레디**
+
+### 다음 세션 첫 작업 (선택지)
+1. **Task 2-3** — 최적화 실행 페이지 (`/optimizations/new`) UI 구현
+2. **Task 2-5** — 로딩 UI + 비동기 패턴 (폴링/Realtime 구독)
+3. **Task 2-9** — llms.txt 자동 생성 (n8n 의존 없음, 독립 가능)
 
 ### Status
-- **Status**: Task 2-1 (Claude 전환) 완료, Task 2-1b (DB 재설계) 대기
+- **Status**: Task 2-1 + 2-1b 완료, Phase 2 백엔드 파이프라인 엔드-투-엔드 작동
 - **Blockers**:
-  - Task 2-1b 진행 (B2/P7/B3/P8 수정 필요)
   - (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
-- **Next**: Task 2-1b Plan 작성 → 승인 → 구현
+- **Next**: 다음 세션에서 Task 2-3 / 2-5 / 2-9 중 선택 → Plan → 구현
+- **DB 시드 상태**: user_profiles 1 row / shops 1 row / products 1 row / optimizations 2 rows (Basic + Premium 테스트 결과)
 
 ---
 
