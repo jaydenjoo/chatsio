@@ -28,6 +28,11 @@ export const optimizations = pgTable(
     jsonld: jsonb("jsonld"),
     score: integer("score"),
     errorMessage: text("error_message"),
+    // 진행 단계 (1~4). null = 시작 전 or 종료. 마이그레이션 004.
+    processingStep: integer("processing_step"),
+    // 실패 단계명 (text). 'normalize' | 'claude_call' | 'json_parse' | ...
+    errorStep: text("error_step"),
+    failedAt: timestamp("failed_at", { withTimezone: true }),
     durationMs: integer("duration_ms"),
     retryCount: integer("retry_count").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })

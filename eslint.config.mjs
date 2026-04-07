@@ -14,6 +14,10 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // macOS AppleDouble 메타데이터 (외장 SSD/exFAT에서 자동 생성) — 파싱 불가
     "**/._*",
+    // Node 유틸 스크립트 — CommonJS require 사용, 브라우저 코드 아님
+    "docs/n8n-workflows/*.js",
+    // Supabase SQL/config 폴더
+    "supabase/**",
   ]),
 ]);
 

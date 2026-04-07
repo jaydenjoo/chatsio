@@ -2,6 +2,7 @@
 
 import type { ReactElement } from "react";
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Package, MoreHorizontal, Zap, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/shared";
@@ -143,15 +144,16 @@ export function ProductTable({
                 {/* 액션 */}
                 <td className="py-4 px-4 text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 px-3 text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary-fixed)]/30"
-                      disabled
-                    >
-                      <Zap className="size-3.5 mr-1" />
-                      최적화
-                    </Button>
+                    <Link href={`/optimize?productId=${product.id}`}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 px-3 text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary-fixed)]/30"
+                      >
+                        <Zap className="size-3.5 mr-1" />
+                        최적화
+                      </Button>
+                    </Link>
                     <Button
                       size="sm"
                       variant="ghost"
