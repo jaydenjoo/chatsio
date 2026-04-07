@@ -5,9 +5,12 @@
 
 ## 현재 위치
 - Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Task 2-3 + 2-4 + 2-5 엔드-투-엔드 검증 완료** (curl + DB 확인) — 전체 파이프라인 작동 확인
-- 상태: Session #14.5에서 n8n V8 webhook 실제 호출 → HTTP 200 → 25초 후 DB status=completed, processing_step=4, score=78 확인. 브라우저 E2E는 onboarding 무한 루프 버그로 스킵 (Task 2-3 범위 밖 별도 버그)
-- 다음: **Task 2-M** (통합 모니터링 인프라 — pipeline_events 테이블 + logEvent + 미니 admin 페이지) 또는 **Bugfix: onboarding layout 무한 루프**(우선순위 높음, 10분)
+- Task: **Bugfix 완료** — onboarding 무한 리다이렉트 (Session #15)
+- 상태: `(onboarding)` 라우트 그룹 분리 + 신규 layout. Playwright 4 시나리오 + code-reviewer APPROVE 통과. Phase 2 백엔드 파이프라인은 Session #14.5에서 엔드-투-엔드 검증 완료
+- 다음:
+  1. **Task 2-M** (통합 모니터링 인프라 — pipeline_events 테이블 + logEvent + 미니 admin 페이지, 약 2~2.5h)
+  2. **Bugfix: `onboarding_done` 쿠키 미설정** (`completeOnboarding()` Server Action에서 쿠키 set 누락 → 매 요청 DB 재조회 성능 이슈, 약 15분)
+  3. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -25,7 +28,81 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 완료 내역 (Session #14.5) — 엔드-투-엔드 검증 + onboarding 버그 발견
+## 이번 세션 완료 내역 (Session #15) — Bugfix: onboarding 무한 리다이렉트
+
+Session #14.5에서 발견·기록한 onboarding 무한 리다이렉트 버그를 수정. 코드 변경 범위 작고(파일 이동 3 + 신규 1 + 기존 0줄 수정) 검증 게이트 + 자동 E2E + 독립 코드 리뷰까지 거쳤다. 약 30분 작업.
+
+### 1. 문제 정확한 위치
+- `src/middleware.ts` (L64): `/onboarding`을 이미 제외 → middleware는 OK
+- `src/app/(dashboard)/layout.tsx` (L57-58, L75-76): `!profile.onboarding_completed`/`!shop` → `redirect('/onboarding')` (보안 경계 — 그대로 유지)
+- 문제: `(dashboard)/onboarding/page.tsx`가 같은 라우트 그룹 안에 있어서 layout이 자기 redirect 목적지를 다시 감쌈 → 무한 루프
+
+### 2. 해결책 — 라우트 그룹 분리 (옵션 A)
+learnings.md에 적힌 규칙 그대로: "리다이렉트 목적지 페이지는 리다이렉트를 발생시키는 레이아웃 하위에 두지 않는다."
+
+**파일 이동 3개**:
+- `src/app/(dashboard)/onboarding/page.tsx` → `src/app/(onboarding)/onboarding/page.tsx`
+- `src/app/(dashboard)/onboarding/loading.tsx` → `src/app/(onboarding)/onboarding/loading.tsx`
+- `src/app/(dashboard)/onboarding/error.tsx` → `src/app/(onboarding)/onboarding/error.tsx`
+
+**신규 파일 1개**: `src/app/(onboarding)/layout.tsx`
+- 인증 검증 (fail-safe — middleware가 1차로 처리하지만 한 번 더)
+- 이미 완전히 온보딩한 유저(`onboarding_completed && shop`) → `/products` 재진입 차단
+- DashboardShell 안 입힘 → 사이드바 없는 풀화면 온보딩 UX
+- `console.error` + fail-secure 패턴은 `(dashboard)/layout.tsx`와 동일
+
+**기존 파일 0줄 수정**: `(dashboard)/layout.tsx`, `middleware.ts`, `lib/supabase/middleware.ts` 모두 그대로. middleware의 `!pathname.startsWith("/onboarding")`은 URL 경로 기준이라 파일 위치 이동과 무관하게 정상 작동.
+
+### 3. 검증 게이트
+- `pnpm build` ✅ — `/onboarding` 라우트 정상 등록(`ƒ /onboarding`), `(onboarding)` 그룹과 `(dashboard)` 그룹 충돌 없음
+- `pnpm typecheck` ✅ — 에러 0건 (단, dev 캐시 `.next/dev/types/validator.ts` stale 참조는 단일 파일 삭제 + build 재생성으로 해결)
+- `pnpm lint` ✅ — pre-existing warning 1건만 (Session #12 잔재, 이번 변경 무관)
+
+### 4. Playwright 자동 E2E — 4/4 통과
+
+| 시나리오 | URL 흐름 | 결과 |
+|---|---|---|
+| 직접 `/onboarding` 접근 | `/onboarding` 200 | ✅ |
+| 보호 라우트 `/products` | `/products` 307 → `/onboarding` 200 | ✅ |
+| 보호 라우트 `/optimize` | `/optimize` 307 → `/onboarding` 200 | ✅ |
+| 보호 라우트 `/settings` | `/settings` 307 → `/onboarding` 200 | ✅ |
+
+- dev 서버 로그: 모든 `/onboarding` 요청이 단발성 200으로 종료. 무한 루프 흔적 0건
+- 환영 화면 + 4단계 프로그레스 바 + "시작하기 →" 버튼 정상 노출
+- 콘솔 에러/워닝 0건
+
+### 5. code-reviewer 결과 — APPROVE WITH COMMENTS
+
+| 등급 | 건수 | 처리 |
+|---|---|---|
+| 🔴 Must Fix | 0건 | — |
+| 🟡 Should Fix | 1건 | ✅ 반영 (의도 fallthrough 주석 3줄 추가) |
+| 💡 Consider | 2건 | 보류 (routes.ts 상수화는 우선순위 낮음, 두 layout 비대칭은 의도적) |
+| 추가 발견 | 1건 | "다음 할 일"로 분리 (아래 6번) |
+
+**Should Fix 반영**: `(onboarding)/layout.tsx`에 `onboarding_completed=true && shop 없음` 데이터 불일치 케이스가 fallthrough되는 의도임을 주석으로 명시.
+
+### 6. 추가 발견 — 다음 Task로 분리
+**`src/features/onboarding/steps/complete-step.tsx:25` (이번 범위 밖, 기존 버그)**
+- `completeOnboarding()` Server Action이 DB만 업데이트하고 `onboarding_done` 쿠키를 설정 안 함
+- 결과: 온보딩 완료 직후부터 매 요청마다 미들웨어가 DB 재조회 (캐싱이 작동 안 함)
+- 다음 Task로 PROGRESS.md "다음 할 일"에 추가 (약 15분)
+- 이번 세션 범위에 포함하지 않은 이유: 무한 루프 버그 수정과 별개의 성능 최적화. 스코프 크리프 방지
+
+### 7. 좋은 패턴 (code-reviewer 언급)
+- `(onboarding)/layout.tsx`의 주석이 구체적 — 왜 라우트 그룹을 분리했는지, 각 검증이 왜 필요한지를 코드 옆에 직접 설명
+- `(dashboard)/layout.tsx`의 `onboarding_done` 쿠키 경고 주석(L8-10)이 그대로 유지 → 미들웨어와 layout의 역할 분리가 명확하게 문서화됨
+- 인증 검증 레이어가 미들웨어(1차) → layout 서버 컴포넌트(2차)로 이중화되어 방어 심도(defense in depth) 구현
+
+### Status
+- **Status**: Bugfix 완료. Phase 2 백엔드 파이프라인은 Session #14.5에서 검증 완료된 상태 그대로
+- **Blockers**:
+  - (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+- **Next**: Session #16 — Task 2-M (통합 모니터링 인프라) 또는 onboarding_done 쿠키 캐싱 누락 수정 중 우선 선택
+
+---
+
+## 이전 세션 — Session #14.5 — 엔드-투-엔드 검증 + onboarding 버그 발견
 
 Session #14에서 구현·리뷰·빌드 완료한 Task 2-3을 실제로 가동해서
 검증하는 짧은 세션. 코드는 건드리지 않고 운영 검증만 수행.

@@ -20,10 +20,11 @@
 
 ---
 
-### 2026-04-07 — [Bug] `(dashboard)` 레이아웃 무한 리다이렉트 루프
+### 2026-04-07 — [Bug] `(dashboard)` 레이아웃 무한 리다이렉트 루프 ✅ 해결됨 (Session #15)
 - **증상**: 로그인한 유저(onboarding 미완료)가 `/signup` 또는 `/products` 접근 시 `/onboarding`으로 리다이렉트 → `/onboarding` 페이지가 또 자기 자신으로 리다이렉트 → `ERR_TOO_MANY_REDIRECTS`
 - **원인**: `src/app/(dashboard)/layout.tsx` L57-58, L75-76에서 `!profile.onboarding_completed` 또는 `!shop` 시 `redirect('/onboarding')`. 그런데 `/onboarding` 페이지 자체가 `(dashboard)` 라우트 그룹 안에 있어서 같은 레이아웃이 또 실행됨 → 또 같은 조건에 걸려서 또 redirect
-- **해결**: 레이아웃 상단에서 `pathname === '/onboarding'` 또는 `pathname.startsWith('/onboarding')` 시 onboarding 체크를 **스킵**하도록 early return. 또는 `/onboarding`을 `(auth)` 또는 별도 최상위 라우트 그룹으로 이동
+- **해결 (실제 적용)**: `/onboarding` 페이지를 `(dashboard)` → `(onboarding)` 별도 라우트 그룹으로 이동. `(onboarding)/layout.tsx`를 신규 작성(인증 검증 + 완료 유저 재진입 차단). `(dashboard)/layout.tsx`는 0줄 수정. URL은 `/onboarding` 그대로 (Next.js 라우트 그룹은 URL에 영향 없음)
+- **검증**: Playwright 4 시나리오 (`/onboarding`, `/products`, `/optimize`, `/settings`) 전부 단발성 200 종료, 무한 루프 흔적 0건. code-reviewer APPROVE WITH COMMENTS
 - **규칙**: **리다이렉트 목적지 페이지는 리다이렉트를 발생시키는 레이아웃 하위에 두지 않는다.** Next.js 라우트 그룹 설계 시, "보호된 대시보드" vs "온보딩 플로우" vs "공개 페이지"는 **서로 다른 라우트 그룹**으로 분리. 예: `(dashboard)`, `(onboarding)`, `(public)` 세 그룹. 같은 `layout.tsx`가 재실행될 때 무한 루프가 생기는지 항상 체크.
 - **컨텍스트**: Task 2-3 엔드-투-엔드 검증 중 브라우저 E2E에서 발견. curl 테스트는 미들웨어를 안 타서 이 버그가 안 보임. Playwright로 실제 로그인·페이지 이동을 해야 드러남. → **운영 검증은 실제 UI 경로까지 꼭 밟아야 한다**.
 
