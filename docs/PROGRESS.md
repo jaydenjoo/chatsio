@@ -4,9 +4,10 @@
 > **프로젝트 경로**: `/Users/jayden/projects/chatsio/` (Session #10에서 `/Volumes/jayden-ssd/chatsio`에서 이동 — 아래 "프로젝트 이동" 섹션 참조)
 
 ## 현재 위치
-- Epic: **Phase 2 진행 중** (AI 구조화 파이프라인) — **백엔드 파이프라인 엔드-투-엔드 완성**
-- Task: **Task 2-1 + 2-1b 완료** (V7 → V8 Claude 전환 + DB 저장 재설계). 다음 **Task 2-3 (최적화 실행 UI)** 또는 **Task 2-5 (비동기 패턴)** 선택 대기
-- 상태: Session #13에서 Claude API → 응답 파싱 → `optimizations` 테이블 저장까지 완전 검증. Basic 32초 / Premium 2분35초 실측 성공
+- Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
+- Task: **Task 2-3 + 2-4 + 2-5 완료** (최적화 실행 UI + n8n webhook 호출 + 상태 페이지 비동기 패턴) — 코드 영역 전체 완료. n8n UI 수동 단계 + CRITICAL credential 확인 대기
+- 상태: Session #14에서 리서치 기반 Plan v3 전체 구현 + code-reviewer/security-reviewer 리뷰 반영(HIGH 3 + MEDIUM 4 수정). 검증 게이트 typecheck/lint/build 통과
+- 다음: **Task 2-M** (통합 모니터링 인프라 — pipeline_events 테이블 + logEvent + 미니 admin 페이지)
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -24,7 +25,170 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 완료 내역 (Session #13) — Task 2-1: V7 GPT-4o → V8 Claude 전환
+## 이번 세션 완료 내역 (Session #14) — Task 2-3 + 2-4 + 2-5 흡수 묶음
+
+Phase 2 백엔드 파이프라인(Session #13)을 사용자 UI로 연결. 리서치
+기반으로 "동기 await → 처음부터 비동기" 패턴을 채택해 Task 2-5(비동기
+패턴)를 Task 2-3에 흡수했다. Jayden 추가 요청으로 "에러 위치 즉시
+확인"을 위해 사용자층 에러 표시도 이 세션에 포함.
+
+### 0. 리서치 기반 Plan v3 확정
+- general-purpose 서브에이전트로 12+ 소스 딥리서치 (Stripe / Replicate /
+  fal.ai / OpenAI Background / Vercel Fluid Compute / Shopify Polaris /
+  Salt Design System / Supabase Realtime 등)
+- 핵심 결론 3가지:
+  1. 상품 선택 UI는 **하이브리드**: URL preselect → 잠금 카드 / N≤6 카드 /
+     N>6 검색 콤보. 실제 구현은 검색 가능한 단일 카드 리스트로 통일
+     (Korean 상품명이 길어서 임계값 분기가 큰 가치 없음)
+  2. Idempotency는 **서버 생성 UUID + 5분 중복 체크 다이얼로그** (Stripe 패턴)
+     — 결정론적 hash 금지 (재실행 차단 부작용)
+  3. 30초~3분 작업은 **동기 금지** — fire-and-forget + redirect + Realtime/폴링
+     이 산업 표준. Vercel Fluid Compute가 2025년 Hobby 300s로 확장됨
+- 그 결과 Task 2-5(비동기)를 Task 2-3에 흡수하는 결정, Task 2-M(모니터링)을
+  세션 #15로 분리
+
+### 1. DB 변경 — 마이그레이션 2건
+- **004_optimizations_progress_and_error_tracking**
+  - `processing_step int` (1~4, CHECK 제약) — n8n 단계별 진행 표시
+  - `error_step text` (1~64자) — 실패 단계 텍스트
+  - `failed_at timestamptz` — 실패 시각
+  - Drizzle 스키마 (`src/lib/db/schema/optimizations.ts`)에도 반영
+- **005_optimizations_active_unique_partial_index** (리뷰 반영)
+  - `CREATE UNIQUE INDEX ... ON optimizations (product_id, plan)
+     WHERE status IN ('queued', 'processing')`
+  - H2 race condition의 DB 레벨 원자 차단 (SELECT→INSERT 사이 race를
+    partial unique index로 해결)
+
+### 2. n8n V8 워크플로우 확장
+- `convert-v7-to-v8.js` 확장: B3/P8 노드를 `operation: "create"` →
+  `operation: "update"` + `filters.conditions=[{keyName: idempotency_key,
+   condition: eq, keyValue: ={{ $json.idempotency_key }}}]`
+- 이유: Server Action이 optimizations row를 `status='queued'`로 먼저
+  INSERT → n8n은 같은 idempotency_key로 UPDATE만. race는 UNIQUE 제약이
+  차단
+- **n8n 노드 추가 / ErrorTrigger는 스크립트 자동화 대신 UI 수동 가이드로 전환**
+  (ROI — UI 편집 5~10분 vs 스크립트 구현 1h+ 리스크)
+- 신규 가이드: `docs/n8n-workflows/manual-steps-task-2-3.md`
+  - 0단계: Webhook Respond=Immediately + Header Auth
+  - 1단계: Basic/Premium 경로에 processing_step UPDATE 노드 3+3개 삽입
+  - 2단계: B2/P7 최종 정리 jsCode에 processing_step=4 + error/failed 리셋
+  - 3단계: Chatsio Error Handler 별도 워크플로우 + 메인의 Error Workflow 연결
+
+### 3. Next.js 코드 — lib/n8n 3파일 + features/optimize 풀 스택
+
+**`src/lib/n8n/errors.ts`** — `N8nInvocationError` (step/statusCode/userMessage),
+`N8nConfigError`. ES2022 native `super(msg, { cause })` 사용 (M4)
+
+**`src/lib/n8n/payload.ts`** — `buildN8nPayload({productId, plan, product,
+shop, idempotencyKey})` → n8n 정규화 노드의 입력 구조로 변환. 현재
+products 테이블에 없는 필드(brand/category/price)는 null 또는 빈 문자열
+
+**`src/lib/n8n/client.ts`** — `invokeN8nWebhook()` + AbortController 10초
+timeout + Bearer auth + 4xx/5xx 구분 → N8nInvocationError step 매핑.
+fire-and-forget이 아닌 **동기 await** (n8n Webhook Respond=Immediately
+모드 가정 시 1~3초 내 반환)
+
+**`src/features/optimize/validation.ts`** — Zod runOptimizationSchema,
+OPTIMIZATION_PLANS, PLAN_ESTIMATED_SECONDS (basic 35 / premium 155),
+PROCESSING_STEP_LABELS (4단계 한국어), DUPLICATE_CHECK_WINDOW_MS 5분
+
+**`src/features/optimize/actions.ts`** ("use server") — 3개 Server Action:
+1. `runOptimization({productId, plan})`: Zod + 인증 + 소유권 2중
+   (products.shop_id === shop.id + RLS) + 5분 중복 체크 + UUID 생성 +
+   optimizations INSERT(queued) + invokeN8nWebhook + 실패 시
+   markOptimizationFailed helper. Postgres 23505(DB partial unique index
+   위반) 감지 시 DUPLICATE_IN_FLIGHT 반환 (race 방어 최종 수단)
+2. `getOptimizationProducts(preselectedProductId?)`: Optimize 페이지용
+   전체 상품 리스트 (최대 500)
+3. `getOptimization(id)`: 상태 페이지용 단일 row + products join 조회
+
+**`src/features/optimize/components/*`** — 7개 컴포넌트
+- `product-picker.tsx`: 검색 input + 2-column 카드 라디오 (썸네일 + 이름 +
+  URL, 디자인 시스템 v2 토큰, 선택 시 --primary 테두리 + 2레이어 그림자)
+- `plan-picker.tsx`: Basic/Premium 2카드, Premium에 "추천" 뱃지, 예상
+  시간(약 35초/약 3분) + 3개 기능 체크리스트
+- `locked-product-card.tsx`: preselect 시 잠금 카드 + "변경" 링크
+- `duplicate-dialog.tsx`: DUPLICATE_IN_FLIGHT 시 다이얼로그 + "진행 상황 보기"
+- `optimize-form.tsx`: 메인 폼 조합, useTransition + runOptimization 호출,
+  결과 분기 (success → router.push, DUPLICATE → dialog, 기타 → 에러 배너)
+- `optimization-progress.tsx`: 4단계 진행 표시, n8n processing_step 우선
+  + 시간 기반 추정 fallback, 경과/남은 시간 라이브 업데이트, 애니메이션
+  그라디언트 프로그레스바
+- `optimization-status.tsx`: Realtime postgres_changes 구독 + 5초 폴링
+  fallback + status 분기(queued/processing → Progress, completed →
+  JSON 미리보기, failed → 에러 단계/메시지 + 재시도 버튼)
+
+**`src/app/(dashboard)/optimize/page.tsx`** — 기존 placeholder 완전 교체.
+Empty state + ErrorState + OptimizeForm. URL `?productId=` 파싱
+
+**`src/app/(dashboard)/optimize/[id]/page.tsx`** — 신규. uuid 정규식 사전
+검증 + getOptimization + NotFoundState + OptimizationStatus
+
+**`src/lib/env.ts`** — `getN8nEnv()` 추가 (N8N_WEBHOOK_URL, N8N_WEBHOOK_SECRET).
+기존 getPublicEnv/getServerEnv와 분리 → 다른 페이지 로드 시 n8n 미설정으로
+실패하지 않음
+
+**`src/features/products/components/product-table.tsx`** — 기존 disabled
+"최적화" 버튼 활성화 + `<Link href="/optimize?productId={id}">` 래핑
+
+### 4. 코드 리뷰 — code-reviewer + security-reviewer 병렬 실행
+
+**code-reviewer**: APPROVE WITH COMMENTS (HIGH 1 + MEDIUM 6 + LOW 5)
+**security-reviewer**: CRITICAL 1(수동) + HIGH 2 + MEDIUM 3 + 검증 완료 9건
+
+**수정 완료 항목 (HIGH 3 + MEDIUM 4)**:
+- H1: `applyRowUpdate`의 `??` → `pickNullable()` helper로 `!== undefined`
+  패턴 전환 + status whitelist (`VALID_STATUSES: ReadonlySet`)로 검증
+  → n8n이 명시적 null로 error_step 리셋하는 시그널이 정상 반영됨
+- H2: 마이그레이션 005 partial unique index + Server Action에서 Postgres
+  23505 코드 catch → DUPLICATE_IN_FLIGHT 반환
+- H3: applyRowUpdate의 status를 whitelist 통과한 값만 반영
+- M1: markOptimizationFailed에서 DB `error_message`에 userMessage만 저장,
+  원본 rawMessage는 console.error로 서버 로그에만 → FailedView가 DB 값을
+  그대로 노출해도 스키마 누설 없음
+- M2: shops/products/duplicate 쿼리 3곳에 `error` 체크 분기 추가 →
+  트랜지언트 DB 에러가 "쇼핑몰 없음" 메시지로 오인되지 않음
+- M3: OptimizationStatus에서 `useMemo(() => createClient(), [])` +
+  `statusRef` 패턴으로 Realtime/폴링 재구독 제거, effect dependency를
+  `[optimization.id, supabase]`로 단순화
+- M4: N8nInvocationError가 `super(message, { cause })` native 패턴 사용
+
+**과거 learnings.md 교훈 반복 없음 확인**: 쿠키 ≠ 보안 경계, NFKC 정규화,
+magic bytes, 과잉 이스케이프, 3-레이어 방어 — 모두 준수.
+
+### 5. 검증 게이트
+- `pnpm typecheck` ✅
+- `pnpm lint` ✅ (warning 1 — pre-existing `product-search-bar.tsx` dead code, Session #12 잔재)
+- `pnpm build` ✅ (`/optimize` + `/optimize/[id]` 라우트 정상 생성)
+- `pnpm test` ⚠️ (프로젝트 전체에 테스트 파일 없음 — pre-existing)
+- 수동 E2E: Jayden n8n UI 수동 단계 완료 후 진행 예정
+
+### 다음 세션 (#15) 첫 작업 — Task 2-M 모니터링 인프라
+
+**전제 조건**: 이번 세션의 n8n UI 수동 단계 + CRITICAL credential 확인 완료.
+
+1. `/start` → Session #15 시작
+2. 이번 Task 2-3 수동 E2E 검증 (Jayden 브라우저 + 실제 n8n)
+3. 검증 통과 후 Task 2-M Plan 작성:
+   - 마이그레이션 006: `pipeline_events` 테이블 (service / level / context_type /
+     context_id / step / message / error_stack / user_id / shop_id) + RLS
+   - `lib/monitoring/log-event.ts` 헬퍼
+   - Phase 2 기존 Server Action들에 logEvent 통합
+   - `POST /api/v1/internal/log-event` + n8n Error Handler에서 호출
+   - `/admin/events` 미니 모니터링 페이지 (RBAC: user_profiles.role='admin')
+   - 예상 시간: 2~2.5h
+
+### Status
+- **Status**: Task 2-3 + 2-4 + 2-5 코드 영역 완료, n8n UI 수동 작업 대기
+- **Blockers**:
+  - 🔴 CRITICAL — n8n Supabase credential이 service_role 키인지 Jayden 수동 확인 필요
+  - n8n UI 수동 단계 (`docs/n8n-workflows/manual-steps-task-2-3.md`) — webhook Immediately + Header Auth + processing_step 노드 6개 + Error Workflow
+  - (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+- **Next**: Session #15 — n8n 수동 단계 검증 후 Task 2-M (모니터링 인프라)
+
+---
+
+## 이전 세션 — Session #13 — Task 2-1: V7 GPT-4o → V8 Claude 전환
 
 Phase 2 본 작업 착수. V7 n8n 워크플로우(OpenAI GPT-4o)를 V8(Claude Sonnet 4.6 + Opus 4.6)로 전환.
 Claude 호출/응답 파싱은 완벽 작동, DB 저장 단계에서 V1 스키마 잔재 발견.

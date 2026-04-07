@@ -363,6 +363,53 @@
   3. **검증 방법**: 저장 후 `SELECT jsonb_array_length(result_json->'faqs')`, `SELECT jsonb_object_keys(result_json)` 로 jsonb 쿼리가 정상 작동하면 string이 아니라 진짜 jsonb로 저장된 것. string으로 저장됐다면 이런 jsonb 연산자가 에러를 뱉음.
   4. **V1→V2 마이그레이션 시 "jsonb 통합 저장" 패턴의 장점**: 기존 V1은 AI 결과 필드(18개)를 모두 테이블 컬럼으로 flatten했지만, V2는 `result_json` jsonb 하나로 통합. 스키마 진화가 자유로움 (새 AI 필드가 추가돼도 마이그레이션 불필요), 쿼리는 `result_json->>'optimized_title'` 식으로 접근.
 
+### 2026-04-07 — [AI-Pitfall] `"use server"` 파일은 type re-export도 런타임에 RPC로 오인함
+- **증상**: Session #14 Task 2-3에서 `features/optimize/actions.ts` ("use server") 마지막에 `export type { OptimizationPlan };`을 두었는데 `pnpm build`가 실패. 에러: `Export OptimizationPlan doesn't exist in target module ... Did you mean to import runOptimization?`. 타입만 re-export했을 뿐인데 Next.js가 런타임 action 심볼을 찾으려 시도.
+- **원인**: Next.js Server Actions는 `"use server"` 파일의 모든 export를 RPC 엔드포인트로 변환한다. TypeScript의 `export type` 문은 컴파일 시 소거되지만 Next.js의 Turbopack 번들러는 파일을 스캔할 때 **런타임 심볼 테이블**을 기준으로 action 레퍼런스를 생성해 actions.js 프록시 파일을 만드는데, 여기서 type export를 "없는 심볼"로 간주하면서도 프록시에는 그 이름을 포함시킴 → 런타임 import 실패. 요약: `"use server"` 파일은 **type export도 금지**. Session #11의 "use server 동기 함수/상수 금지" 교훈의 확장.
+- **해결**: `actions.ts` 내부에서는 `import type { OptimizationPlan as OptimizationPlanType }` + `type OptimizationPlan = OptimizationPlanType;`로 로컬 alias만 두고 **외부 re-export는 제거**. 외부 소비자는 `validation.ts`에서 직접 import. `index.ts` barrel은 `./validation`과 `./actions`에서 각각 적절한 심볼을 가져와 합친다.
+- **규칙**:
+  1. **`"use server"` 파일에서 export 금지 대상 (확장판)**: ① 동기 함수 (Session #11 교훈) ② 상수 (Session #11 교훈) ③ **타입 (`export type`, `export interface`)** ④ `type` alias만 내부 사용은 OK.
+  2. **Server Action 파일의 export는 "런타임에 Promise를 반환하는 async function"만**. 그 외는 sibling `validation.ts` 또는 `types.ts`로 분리.
+  3. **빌드 실패 에러 메시지 해석**: `Export X doesn't exist in target module` + `Did you mean to import <actionName>`는 **`"use server"` 파일의 export 오염**을 의심하는 1순위 신호. typecheck는 통과하지만 build에서만 잡힘 → typecheck만으로는 부족, build까지 검증 게이트에 포함 필수.
+  4. **비유**: "use server" 파일은 카운터 창구와 같다. 창구에는 "주문을 받아 처리하는 직원(async 함수)"만 둘 수 있고, 메뉴판(type)이나 계산기(상수)는 창구 뒤 주방(validation.ts)에 둬야 한다.
+
+### 2026-04-07 — [Security/Architecture] SELECT-INSERT race는 partial unique index가 최종 답
+- **증상**: Session #14 Task 2-3 리뷰에서 code-reviewer + security-reviewer가 동시에 HIGH로 지적. `runOptimization` Server Action이 "5분 내 동일 (product_id, plan)에 진행 중인 row가 있는지 SELECT → 없으면 INSERT" 흐름을 쓰는데, 두 SELECT가 동시에 `duplicates=[]`를 받으면 둘 다 INSERT → n8n webhook 2번 호출 → Anthropic API 비용 2배. 매 요청 `crypto.randomUUID()`로 다른 키를 쓰므로 기존 `UNIQUE(idempotency_key)` 제약은 무용.
+- **원인**: 애플리케이션 레벨의 "SELECT 후 INSERT" 패턴에 race window가 있는 것은 모든 동시성 시스템의 기초 문제. Postgres SERIALIZABLE isolation을 쓰지 않는 한 두 트랜잭션이 같은 SELECT 결과를 보고 둘 다 INSERT 진행할 수 있음. 보안 리뷰어의 지적 — "빠른 더블 클릭 + `Promise.all` 공격"이 구체적 attack surface.
+- **해결**: 마이그레이션 005에서 **partial unique index** 생성:
+  ```sql
+  CREATE UNIQUE INDEX optimizations_active_unique
+    ON public.optimizations (product_id, plan)
+    WHERE status IN ('queued', 'processing');
+  ```
+  두 번째 INSERT가 `Postgres 23505 (unique_violation)`으로 실패. Server Action이 `insertError?.code === "23505"`를 잡아 `DUPLICATE_IN_FLIGHT`로 매핑 + 기존 진행 중 row id 조회해서 반환. 완료된 (completed/failed) row는 인덱스에 포함 안 되므로 재실행/재시도 자유.
+- **규칙**:
+  1. **애플리케이션 레벨 중복 체크는 UX용, 실제 차단은 DB constraint로**. "SELECT → INSERT" 코드에는 무조건 race window가 있고, 이를 없애려 application lock/mutex를 쓰는 것은 과잉. DB의 partial unique index가 가장 단순하고 원자적.
+  2. **"활성 row만 unique" 제약은 partial index 사용**. 전체 unique는 재실행 case를 막아서 부작용 큼. `WHERE status IN ('queued','processing')` 같은 WHERE 절로 "진행 중"만 제약 → 완료 후 재실행/재시도는 자유.
+  3. **Postgres error code를 Server Action에서 분기**: `23505`(unique_violation), `23503`(foreign_key_violation), `23514`(check_violation) 등은 공식 에러 코드. `insertError?.code === "23505"` 같은 분기로 "race가 일어났구나"를 감지하고 UX 메시지로 전환.
+  4. **비유**: "줄 서기"는 두 종류. 하나는 "줄 앞에 사람이 있는지 보고 없으면 입장(앱 체크)" — 빠르지만 두 사람이 동시에 보면 둘 다 입장. 다른 하나는 "입구에 turnstile 하나만 있어서 물리적으로 한 명만 통과 가능(DB 제약)" — 느리지만 완벽. 실전에서는 둘 다 쓴다: UX는 앱 체크로 부드럽게 안내하고, 실제 차단은 turnstile(DB)이.
+
+### 2026-04-07 — [Bug] Realtime/폴링 setState에서 `??`가 `null` 값을 stale로 취급
+- **증상**: Session #14 Task 2-3 리뷰에서 code-reviewer HIGH로 지적. `optimization-status.tsx`의 `applyRowUpdate`가 Realtime postgres_changes payload와 폴링 결과를 병합할 때 `row.error_step ?? prev.errorStep` 패턴 사용. n8n 워크플로우가 "실패 상태에서 recovery" 시그널로 `error_step = null`을 UPDATE해도 UI는 옛날 error_step을 계속 표시. status와 error_step이 어긋난 상태로 렌더링됨.
+- **원인**: JavaScript `??` (nullish coalescing)는 `null`과 `undefined` 둘 다 fallback 트리거. 즉 "DB가 의도적으로 null로 리셋한 값"과 "DB가 해당 컬럼을 건드리지 않음(undefined)"을 구분하지 못함. Supabase Realtime postgres_changes 페이로드의 `payload.new`는 **UPDATE된 컬럼만** 포함하는 게 아니라 **전체 row를 새 값으로** 보냄 → null이 의도적 리셋을 의미함에도 `??`는 이전 값으로 되돌림.
+- **해결**: `pickNullable<T>(raw: unknown, prev: T): T` 헬퍼 추가 — `raw !== undefined ? (raw as T) : prev`. 각 필드에 `pickNullable(row.error_step, prev.errorStep)` 형태로 사용. 이 함수는 **undefined**(컬럼 누락)만 prev로 fallback하고 **null**은 명시적 업데이트로 간주. Realtime payload.new는 row 전체를 보내므로 사실상 모든 필드가 항상 present → `undefined` 케이스는 거의 없고 대부분 값 그대로 반영됨.
+- **규칙**:
+  1. **"diff merge" 시 `??` 금지**. "컬럼이 이 페이로드에 존재하지 않음(undefined)"과 "컬럼이 의도적으로 null로 업데이트됨(null)"을 구분해야 하는 상황에서는 `!== undefined` 패턴 사용. `??`는 기본값 설정용으로만.
+  2. **Supabase Realtime postgres_changes 페이로드는 "new row 전체"**. 따라서 모든 컬럼이 항상 present (`undefined`가 되는 경우는 스키마 변경 중일 때뿐). 이 전제 하에서는 null은 항상 "진짜 null"로 해석해야 함.
+  3. **함께 해결해야 할 안전장치**: 외부 시스템(Realtime 구독 / 폴링)에서 오는 status 값은 **whitelist 검증** 후에만 state에 반영 (`VALID_STATUSES: ReadonlySet`). 예상 밖 status가 들어와도 이전 상태 유지.
+  4. **비유**: 택배 기사가 "이 상자 안 내용물 없음"(null)이라고 말할 때 vs "이 상자는 안 가져왔음"(undefined)이라고 말할 때 — 둘은 완전히 다른 의미. `??`는 이 둘을 같은 말로 취급.
+
+### 2026-04-07 — [Architecture] 30초~3분 AI 작업은 동기 금지 — 비동기가 산업 표준
+- **증상**: Session #14 Task 2-3 Plan 초안에서 "MVP는 동기 await + spinner, 추후 Task 2-5에서 비동기로 리팩토링" 계획이었다. Jayden의 "유사 서비스 딥리서치" 요청으로 12+ 출처(fal.ai, Replicate, OpenAI Background, Vercel deploys, Loom, Midjourney, Runway, Frase 등)를 조사한 결과, **30초 이상 걸리는 작업에 동기 spinner를 쓰는 프로덕션 SaaS는 한 곳도 없음**을 확인. 즉 Task 2-5를 Task 2-3에 처음부터 흡수해야 재작업이 없음.
+- **원인**: 동기 await + spinner는 여러 문제를 동시에 야기: (1) 사용자가 2분 35초 빈 화면을 봐야 함 (Premium 실측), (2) Vercel serverless 함수 duration 한계 (Hobby 300s / Pro 800s — 2025 Fluid Compute 기준), (3) 브라우저 탭 전환/네트워크 변경 시 요청이 끊기면 사용자가 결과를 못 찾음, (4) 진행 상황 없음. 비동기 패턴(queued INSERT → fire + redirect → Realtime/폴링)은 이 4가지를 모두 해결.
+- **해결**: Plan v3에서 Task 2-3 + 2-4 + 2-5를 한 묶음으로 흡수. Server Action이 optimizations row를 `status='queued'`로 먼저 INSERT → n8n webhook "Respond: Immediately" 모드로 호출(1~3초 반환) → row id 반환 → 클라이언트가 `/optimize/[id]`로 redirect → 상태 페이지에서 Supabase Realtime + 5초 폴링으로 status 추적 → n8n이 완료 시 row UPDATE → UI 자동 갱신. 30초+ 작업은 동기 패턴보다 "비동기 골격을 처음부터" 만드는 게 **재작업 0** + UX도 더 좋음.
+- **규칙**:
+  1. **30초+ 외부 API 호출은 처음부터 비동기**. 동기 MVP → 비동기 리팩토링 경로는 "같은 코드 두 번 작성". 차라리 처음부터 비동기 골격만 얇게 만들고 UI 디테일은 점진 개선.
+  2. **비동기 패턴의 4 요소**: ① DB row를 queued 상태로 먼저 INSERT → ② 외부 API는 "Respond: Immediately" 모드 또는 fire-and-forget → ③ 클라이언트 즉시 redirect → ④ Realtime/폴링/SSE로 결과 추적. 이 4개가 하나라도 빠지면 완전한 비동기가 아님.
+  3. **n8n webhook은 "Respond: Immediately" 모드를 활용**. 기본 "When Last Node Finishes"는 워크플로우 완료까지 대기 — 이건 "동기 모드". UI에서 한 번 클릭으로 전환 가능.
+  4. **Vercel serverless 가정 재검증**: 2025년 Fluid Compute default 활성화로 Hobby 300s / Pro 800s로 확장됨. 이전의 "Hobby 10s / 60s" 가정은 이제 무효. 하지만 **timeout이 UX 이유의 전부가 아님** — 2분 이상 사용자가 빈 화면 보는 건 timeout과 무관하게 UX 실패.
+  5. **딥리서치 ROI**: 단 하나의 리서치(12 출처)가 Plan의 근본 방향을 바꿨다. 비유 — "같은 건물을 두 번 짓지 않는 최선의 방법은 짓기 전에 레퍼런스 건물들을 돌아보는 것". "리서치 후 Plan 변경 비용 < 잘못된 Plan으로 구현 후 리팩토링 비용"이 거의 항상 성립.
+
 ### 2026-04-07 — [Architecture] Chatsio 사용자 FK는 `user_profiles` (auth.users 아님) + Findably는 `profiles` — 2 프로젝트 분리 주의
 - **증상**: Task 2-1b DB 시드 생성 시 `INSERT INTO shops(user_id, ...) VALUES ((SELECT id FROM auth.users LIMIT 1), ...)` 실행 → `ERROR: insert or update on table "shops" violates foreign key constraint "shops_user_id_fkey". Key (user_id)=... is not present in table "user_profiles"`. 첫 시도부터 FK 위반.
 - **원인**: Chatsio는 `auth.users`를 직접 참조하지 않고 **중간 테이블 `user_profiles`**를 둠 (RLS 정책 + 역할 관리 + onboarding 상태 등을 확장). `shops.user_id → user_profiles.id → auth.users.id` 3단계 체인. 한편 Findably는 동일 공유 DB에서 **`profiles`** 테이블을 사용 (`user_profiles`와 이름 다름). 두 프로젝트가 같은 `auth.users`를 공유하지만 각자의 middle 테이블 이름이 다름 → 헷갈리기 쉬움.
