@@ -20,6 +20,20 @@
 
 ---
 
+### 2026-04-07 — [Bug] `(dashboard)` 레이아웃 무한 리다이렉트 루프
+- **증상**: 로그인한 유저(onboarding 미완료)가 `/signup` 또는 `/products` 접근 시 `/onboarding`으로 리다이렉트 → `/onboarding` 페이지가 또 자기 자신으로 리다이렉트 → `ERR_TOO_MANY_REDIRECTS`
+- **원인**: `src/app/(dashboard)/layout.tsx` L57-58, L75-76에서 `!profile.onboarding_completed` 또는 `!shop` 시 `redirect('/onboarding')`. 그런데 `/onboarding` 페이지 자체가 `(dashboard)` 라우트 그룹 안에 있어서 같은 레이아웃이 또 실행됨 → 또 같은 조건에 걸려서 또 redirect
+- **해결**: 레이아웃 상단에서 `pathname === '/onboarding'` 또는 `pathname.startsWith('/onboarding')` 시 onboarding 체크를 **스킵**하도록 early return. 또는 `/onboarding`을 `(auth)` 또는 별도 최상위 라우트 그룹으로 이동
+- **규칙**: **리다이렉트 목적지 페이지는 리다이렉트를 발생시키는 레이아웃 하위에 두지 않는다.** Next.js 라우트 그룹 설계 시, "보호된 대시보드" vs "온보딩 플로우" vs "공개 페이지"는 **서로 다른 라우트 그룹**으로 분리. 예: `(dashboard)`, `(onboarding)`, `(public)` 세 그룹. 같은 `layout.tsx`가 재실행될 때 무한 루프가 생기는지 항상 체크.
+- **컨텍스트**: Task 2-3 엔드-투-엔드 검증 중 브라우저 E2E에서 발견. curl 테스트는 미들웨어를 안 타서 이 버그가 안 보임. Playwright로 실제 로그인·페이지 이동을 해야 드러남. → **운영 검증은 실제 UI 경로까지 꼭 밟아야 한다**.
+
+### 2026-04-07 — [Tooling] zsh에서 긴 curl 명령 복사 시 줄바꿈 파싱 오류
+- **증상**: `curl -i -X POST "URL" -H "Header1" -H "Header2" -d @filepath` 같은 긴 한 줄 명령을 터미널에 붙여넣으면 `-d`와 `@filepath` 사이에서 분리되어 `curl: option -d: requires parameter` + `zsh: no such file or directory: @/...` 에러. `-H`와 다음 인자 사이에서도 같은 현상 발생
+- **원인**: 터미널(iTerm/Terminal.app)이 긴 문자열을 수신할 때 내부 버퍼링/엔터 캐릭터 삽입으로 줄을 쪼갬. 또는 소스(클라이언트/문서)에서 자동 개행이 섞여 들어옴. 백슬래시 line continuation도 개행 위치가 정확해야 안전
+- **해결**: **스크립트 파일로 저장 → bash 실행** 패턴이 가장 안전. `docs/n8n-workflows/test-curl.sh`처럼 변수 선언 + curl 블록을 파일에 저장하고 `bash <경로>` 한 줄만 복사. 또는 `cd <dir>` 먼저 + 상대 경로 사용으로 명령 길이 단축
+- **규칙**: n8n/외부 webhook 디버깅용 curl 명령은 처음부터 `.sh` 스크립트로 만들어 `docs/n8n-workflows/` 밑에 보관. Jayden이 터미널에 직접 붙여넣지 않아도 되게. 재현성도 확보.
+- **컨텍스트**: Task 2-3 엔드-투-엔드 검증에서 2~3회 복사 실패 후 스크립트화로 해결
+
 ### 2026-04-05 — [Architecture] Supabase 무료 플랜 DB 직접 연결 불가
 - **증상**: `drizzle-kit push` 시 `db.xxx.supabase.co` 호스트 DNS 해석 실패. Pooler도 "Tenant not found"
 - **원인**: Supabase 무료 플랜에서 direct DB 연결 호스트가 DNS에 등록되지 않음 (2026년 기준)
