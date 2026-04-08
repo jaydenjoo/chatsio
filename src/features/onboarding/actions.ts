@@ -3,6 +3,12 @@
 import { cookies } from "next/headers";
 import { z } from "zod/v4";
 import { createClient } from "@/lib/supabase/server";
+import {
+  ONBOARDING_COOKIE_NAME,
+  ONBOARDING_COOKIE_OPTIONS,
+  ONBOARDING_COOKIE_VALUE,
+} from "@/lib/supabase/cookie-options";
+import { logEvent } from "@/lib/monitoring/log-event";
 import { shopPlatformEnum, industryEnum } from "@/lib/db/schema/enums";
 
 // ============================================================
@@ -71,8 +77,24 @@ export async function createShop(input: ShopInfoInput): Promise<ActionResult> {
 
   if (error) {
     if (error.code === "23505") {
+      void logEvent({
+        service: "next-app",
+        level: "warn",
+        step: "shop_create_duplicate_url",
+        contextType: "onboarding",
+        message: "createShop 실패 — 중복 쇼핑몰 URL (unique violation 23505)",
+        userId: user.id,
+      });
       return { success: false, error: "이미 등록된 쇼핑몰 URL입니다" };
     }
+    void logEvent({
+      service: "next-app",
+      level: "error",
+      step: "shop_create_insert",
+      contextType: "onboarding",
+      message: `createShop INSERT 실패: ${error.message}`,
+      userId: user.id,
+    });
     return { success: false, error: "쇼핑몰 등록에 실패했습니다" };
   }
 
@@ -106,6 +128,20 @@ export async function addFirstProduct(
     .maybeSingle();
 
   if (shopError || !shop) {
+    // 🔴 IDOR 시도 감지 — 다른 유저의 shopId로 addFirstProduct 호출.
+    // shopError(쿼리 에러)와 !shop(존재하지 않음/소유권 없음)을 구분 불가능한
+    // 기존 구조 그대로. 둘 다 warn으로 기록 — 실제 보안 공격은 !shop 경로.
+    void logEvent({
+      service: "next-app",
+      level: "warn",
+      step: "first_product_shop_not_found",
+      contextType: "onboarding",
+      contextId: shopId,
+      message: shopError
+        ? `addFirstProduct shop 조회 에러: ${shopError.message}`
+        : "addFirstProduct 소유권 거부 — 다른 유저의 shopId로 호출",
+      userId: user.id,
+    });
     return { success: false, error: "쇼핑몰을 찾을 수 없습니다" };
   }
 
@@ -118,6 +154,15 @@ export async function addFirstProduct(
   });
 
   if (error) {
+    void logEvent({
+      service: "next-app",
+      level: "error",
+      step: "first_product_insert",
+      contextType: "onboarding",
+      message: `addFirstProduct INSERT 실패: ${error.message}`,
+      userId: user.id,
+      shopId,
+    });
     return { success: false, error: "상품 등록에 실패했습니다" };
   }
 
@@ -140,20 +185,28 @@ export async function completeOnboarding(): Promise<ActionResult> {
     .eq("id", user.id);
 
   if (error) {
+    void logEvent({
+      service: "next-app",
+      level: "error",
+      step: "onboarding_complete_update",
+      contextType: "onboarding",
+      message: `completeOnboarding UPDATE 실패: ${error.message}`,
+      userId: user.id,
+    });
     return { success: false, error: "온보딩 완료 처리에 실패했습니다" };
   }
 
   // 미들웨어가 다음 요청에서 DB 재조회하지 않도록 캐싱 쿠키 set.
-  // ⚠️ 옵션은 src/lib/supabase/middleware.ts > updateSession() 내 onboarding_done 쿠키 설정과
-  //    동일하게 유지. 두 곳이 달라지면 캐싱이 깨지므로 반드시 함께 변경할 것.
-  // 보안 경계가 아니라 UX 캐싱용 — 실제 접근 제어는 (dashboard)/layout.tsx에서 매 요청 DB 검증.
+  // 쿠키 이름/값/옵션은 `@/lib/supabase/cookie-options`에 단일 출처로 정의 —
+  // middleware > updateSession()과 여기서 동일 구조를 사용해야 캐싱이 유지된다.
+  // 보안 경계가 아닌 UX 캐싱용 — 실제 접근 제어는 (dashboard)/layout.tsx에서
+  // 매 요청 DB 검증.
   const cookieStore = await cookies();
-  cookieStore.set("onboarding_done", "1", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 3600,
-  });
+  cookieStore.set(
+    ONBOARDING_COOKIE_NAME,
+    ONBOARDING_COOKIE_VALUE,
+    ONBOARDING_COOKIE_OPTIONS,
+  );
 
   return { success: true, error: null };
 }

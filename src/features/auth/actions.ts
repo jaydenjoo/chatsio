@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { logEvent } from "@/lib/monitoring/log-event";
 import type { AuthError } from "@supabase/supabase-js";
 
 // ============================================================
@@ -72,6 +73,15 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
   });
 
   if (error) {
+    // ⚠️ PII 금지: email/이름/비밀번호는 로그에 찍지 않는다. Supabase AuthError
+    // message는 "User already registered" 같은 일반 문구라 PII 아님.
+    void logEvent({
+      service: "next-app",
+      level: "warn",
+      step: "signup_auth_error",
+      contextType: "auth",
+      message: `signUp AuthError: ${error.message}`,
+    });
     return { error: toSafeAuthError(error) };
   }
 
@@ -90,13 +100,37 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data: signInData, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
   });
 
   if (error) {
+    // 브루트포스/credential stuffing 관측용. email은 기록 안 함 — 공격자가
+    // 여러 email을 시도할 때 개별 attempt를 추적하고 싶다면 별도 보안 인프라
+    // (예: Supabase Auth 자체 rate limit)가 담당. 여기서는 총 실패량만 집계.
+    void logEvent({
+      service: "next-app",
+      level: "warn",
+      step: "signin_auth_error",
+      contextType: "auth",
+      message: `signIn AuthError: ${error.message}`,
+    });
     return { error: toSafeAuthError(error) };
+  }
+
+  // 감사 로그 (audit trail) — 성공한 로그인만 기록. 누가 언제 로그인했는지
+  // 🔴 프로젝트 감사 요구사항. userId(uuid)만 기록, PII 아님.
+  // signInWithPassword 반환값에서 user를 직접 사용 — 불필요한 getUser() 호출 방지.
+  if (signInData.user) {
+    void logEvent({
+      service: "next-app",
+      level: "info",
+      step: "signin_success",
+      contextType: "auth",
+      message: "signIn 성공",
+      userId: signInData.user.id,
+    });
   }
 
   redirect("/products");
@@ -124,6 +158,13 @@ export async function signInWithGoogle(): Promise<void> {
   });
 
   if (error) {
+    void logEvent({
+      service: "next-app",
+      level: "warn",
+      step: "google_auth_error",
+      contextType: "auth",
+      message: `signInWithOAuth(google) 실패: ${error.message}`,
+    });
     redirect("/login?error=google_auth_failed");
   }
 

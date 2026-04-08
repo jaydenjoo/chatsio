@@ -3,6 +3,7 @@
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { logEvent } from "@/lib/monitoring/log-event";
 import {
   BULK_MAX_ROWS,
   BULK_MAX_NAME,
@@ -318,6 +319,15 @@ export async function createProduct(
     .single();
 
   if (error) {
+    void logEvent({
+      service: "next-app",
+      level: "error",
+      step: "product_create_insert",
+      contextType: "product",
+      message: `createProduct INSERT 실패: ${error.message}`,
+      userId: user.id,
+      shopId: shop.id,
+    });
     return { success: false, error: "상품 등록에 실패했습니다." };
   }
 
@@ -411,6 +421,15 @@ export async function createProductsBulk(
       .insert(rowsToInsert);
 
     if (bulkInsertError) {
+      void logEvent({
+        service: "next-app",
+        level: "error",
+        step: "products_bulk_insert",
+        contextType: "product",
+        message: `createProductsBulk INSERT 실패 (${rowsToInsert.length}행): ${bulkInsertError.message}`,
+        userId: user.id,
+        shopId: shop.id,
+      });
       // 전체 실패 — 모든 validRows를 failedRows로 이동
       for (const { row, data } of validRows) {
         failedRows.push({
@@ -568,6 +587,15 @@ export async function createProductWithImages(
     .single();
 
   if (insertError || !inserted) {
+    void logEvent({
+      service: "next-app",
+      level: "error",
+      step: "product_image_insert",
+      contextType: "product",
+      message: `createProductWithImages INSERT 실패: ${insertError?.message ?? "unknown"}`,
+      userId: user.id,
+      shopId: shop.id,
+    });
     return { success: false, error: "상품 등록에 실패했습니다." };
   }
 
@@ -592,6 +620,16 @@ export async function createProductWithImages(
       });
 
     if (uploadError) {
+      void logEvent({
+        service: "next-app",
+        level: "error",
+        step: "product_image_upload",
+        contextType: "product",
+        contextId: productId,
+        message: `Storage upload 실패 (file ${i + 1}/${files.length}): ${uploadError.message}`,
+        userId: user.id,
+        shopId: shop.id,
+      });
       await rollbackUploads(supabase, uploadedPaths, productId, "upload_failed");
       return {
         success: false,
@@ -613,6 +651,16 @@ export async function createProductWithImages(
     .eq("id", productId);
 
   if (updateError) {
+    void logEvent({
+      service: "next-app",
+      level: "error",
+      step: "product_image_update",
+      contextType: "product",
+      contextId: productId,
+      message: `products.image_urls UPDATE 실패: ${updateError.message}`,
+      userId: user.id,
+      shopId: shop.id,
+    });
     await rollbackUploads(supabase, uploadedPaths, productId, "update_failed");
     return { success: false, error: "상품 등록에 실패했습니다." };
   }
@@ -691,6 +739,18 @@ export async function deleteProduct(productId: string): Promise<{ success: boole
     .maybeSingle();
 
   if (!shop) {
+    // 🔴 IDOR 시도 감지 — 다른 유저의 product를 삭제하려 함.
+    // 로그는 warn 레벨 + 대상 productId + 시도한 user.id. shopId는 알 수 있으나
+    // 공격자 것이 아니라 대상 shop_id라 혼동 방지 위해 넣지 않음.
+    void logEvent({
+      service: "next-app",
+      level: "warn",
+      step: "product_delete_ownership_denied",
+      contextType: "product",
+      contextId: productId,
+      message: "deleteProduct 소유권 거부 — 다른 유저의 product 삭제 시도",
+      userId: user.id,
+    });
     return { success: false, error: "상품을 삭제할 권한이 없습니다." };
   }
 
@@ -700,6 +760,16 @@ export async function deleteProduct(productId: string): Promise<{ success: boole
     .eq("id", productId);
 
   if (error) {
+    void logEvent({
+      service: "next-app",
+      level: "error",
+      step: "product_delete_query",
+      contextType: "product",
+      contextId: productId,
+      message: `deleteProduct DELETE 실패: ${error.message}`,
+      userId: user.id,
+      shopId: shop.id,
+    });
     return { success: false, error: "상품 삭제에 실패했습니다." };
   }
 
