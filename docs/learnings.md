@@ -20,6 +20,23 @@
 
 ---
 
+### 2026-04-08 — [Security] JavaScript `||` short-circuit이 다중 토큰 비교의 타이밍 일관성을 깨뜨림
+- **증상**: Task 4 zero-downtime rotation 설계 중 발견. PRIMARY와 SECONDARY 두 토큰을 비교할 때 자연스러운 패턴은 `constantTimeEquals(t, primary) || constantTimeEquals(t, secondary)`이지만, 이 패턴은 PRIMARY가 일치하면 SECONDARY 비교를 **실행하지 않는다** (short-circuit evaluation). 결과: "PRIMARY 매칭" vs "SECONDARY 매칭" 응답 시간이 SHA-256 두 번 + timingSafeEqual 한 번 차이만큼 달라짐 → 공격자가 "어느 쪽 토큰으로 통과했는지" 구분 가능 → rotation 상태 leak
+- **원인**: JavaScript `||` 연산자는 lazy evaluation. 첫 피연산자가 truthy면 두 번째 피연산자는 평가하지 않는다. 이는 대부분의 상황에서 성능 최적화이지만, 상수 시간 보안 비교에서는 타이밍 오라클의 원인. 추가 위험: `env.SECONDARY ?? undefined`처럼 SECONDARY 부재를 optional chaining/nullish coalescing으로 처리하면 "부재 시 한 번만 비교" vs "존재 시 두 번 비교" 타이밍 차이도 발생 → "이 시스템이 rotation 중인가"조차 leak
+- **해결**: 두 비교를 **별도 const에 먼저 할당**한 뒤 마지막에 `||` 결합. 부재 값은 dummy target(PRIMARY 재사용)으로 대체하여 항상 두 번 비교 실행.
+  ```ts
+  const secondaryTarget = secondary ?? primary;  // dummy fallback
+  const primaryMatch = constantTimeEquals(providedToken, primary);
+  const secondaryMatch = constantTimeEquals(providedToken, secondaryTarget);
+  return primaryMatch || secondaryMatch;  // const 계산 후에만 `||` 평가
+  ```
+- **규칙**:
+  1. **상수 시간 비교 다중 호출 시 `||`/`&&` short-circuit 피하기** — 모든 비교를 `const`에 할당 후 마지막에 결합. linter가 잡지 못하는 성능 "최적화"가 보안 경계를 깨뜨린다
+  2. **옵션 값 부재 시 dummy로 대체** — "옵션이 설정되어 있는가" 자체가 leak될 수 있는 메타 정보. rotation 상태, feature flag, 디버그 모드 등이 해당. dummy 연산으로 타이밍 평탄화
+  3. **JavaScript 평가 순서 보장 테크닉** — 명시적 const 할당은 ECMAScript 스펙상 선언 순서대로 평가됨. 이 특성을 이용해 "모든 식을 먼저 평가 → 결과만 결합" 패턴 구현
+  4. **`timingSafeEqual` 단독 사용으로 충분하다는 착각 경계** — 함수 자체는 상수 시간이지만, **호출되느냐 마느냐** 분기가 그 상수 시간을 외부로 leak시킨다. 함수 호출 경로 자체의 대칭성이 중요
+- **컨텍스트**: Session #19 Task 4 (zero-downtime rotation) 설계. Task 2-M-B-2 초기 구현에서 security-reviewer가 "빈 토큰 early return은 타이밍 오라클" 지적했던 것의 **변형 케이스** — 이번에는 Writer가 그 교훈을 기억해서 early return은 피했지만, `||` short-circuit이라는 더 미묘한 함정을 발견. 한 번 배운 교훈을 **다른 형태로** 만나는 경험은 learnings.md 가치의 증거
+
 ### 2026-04-08 — [Bug] Middleware matcher에 새 API prefix 제외 누락 → 내부 API가 307 `/login`으로 튕김
 - **증상**: Task 2-M-B-2 구현 직후 E2E 검증(Playwright + curl)에서 발견. `POST /api/v1/internal/log-event`가 Bearer 토큰 검증 로직에 도달하지 못하고 `HTTP 307 → /login?next=/api/v1/internal/log-event`로 리다이렉트. n8n이 세션 쿠키 없이 호출하면 **엔드포인트가 runtime에 완전 무력화**
 - **원인**: `src/middleware.ts`의 `config.matcher` negative lookahead에 `api/health`만 제외되어 있었고 `api/v1/internal` 제외가 없었음. middleware(`updateSession`)가 세션 쿠키 없는 요청을 `/login`으로 리다이렉트 → API 엔드포인트 자체는 실행조차 안 됨. 엔드포인트 내부의 Bearer 토큰 검증 + timing-safe 비교 + Zod 스키마가 전부 **도달 불가능한 코드**였음

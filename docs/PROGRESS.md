@@ -5,16 +5,16 @@
 
 ## 현재 위치
 - Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Task 2-M-B-2 완료** — 통합 모니터링 인프라 2단계 (Session #18)
-- 상태: `POST /api/v1/internal/log-event` 엔드포인트 + `/admin/events` 페이지 + `createAdminClient` 싱글톤 + `logEvent` truncation 라벨 + `validateBody` 확장 + `runbooks/log-event-api.md`. typecheck/lint/build + code-reviewer APPROVE WITH COMMENTS + security-reviewer APPROVE WITH COMMENTS(Must Fix 0, Should Fix 6건 전부 반영, Consider 5건 중 3건 반영) 통과
+- Task: **Task 2-M-B-2 + 확장 완료** — Session #19에서 E2E 검증 + logEvent 확산 + 쿠키 상수 + zero-downtime rotation까지 일괄 완료
+- 커밋: `cb03155` (B-2 초안) → `a8ac5a8` (middleware fix) → `7a74d12` (logEvent 확산 + 쿠키 상수) → `23eeeee` (zero-downtime rotation)
+- 상태: Task 2-M 코드 레벨 완료. Jayden secret 설정만 하면 엔드-투-엔드 활성화
 - 다음:
-  1. ⚠️ **Jayden 수동 작업**: `INTERNAL_LOG_EVENT_SECRET` 생성(`openssl rand -hex 32`) → `.env.local` + Vercel env + n8n Error Handler credential 등록 (🔴 원칙상 Claude가 생성/저장하지 않음)
-  2. ⚠️ **Jayden 수동 작업**: `.env.example`에 `INTERNAL_LOG_EVENT_SECRET=your-64-char-hex-secret` placeholder 추가 (권한 제약으로 Claude가 직접 수정 불가)
-  3. **Task 2-M-B-2 end-to-end 검증** (Jayden 환경변수 설정 후): `bash docs/n8n-workflows/test-log-event.sh` 실행 + Supabase MCP로 `pipeline_events` 행 추가 확인 + 브라우저로 `/admin/events` 접근 검증
-  4. **Follow-up B-1 #2**: `optimize/actions.ts` 외 다른 Server Action(products/onboarding/auth)에도 logEvent 통합 — 별도 Task
-  5. **Follow-up Session #16 #3 (~15분)**: 쿠키 옵션 상수 추출 리팩터 — `src/lib/supabase/cookie-options.ts`에 `ONBOARDING_COOKIE_OPTIONS` 상수 정의 → 미들웨어 + Server Action 양쪽 import
-  6. **Follow-up Task 2-M-B-3 (V2)**: rate limiting(Upstash Redis) + zero-downtime token rotation(PRIMARY/SECONDARY) + Supabase alert 설정 — `docs/runbooks/log-event-api.md` 참조
-  7. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+  1. ⚠️ **Jayden 수동 작업**: `INTERNAL_LOG_EVENT_SECRET_PRIMARY` 생성(`openssl rand -hex 32`) → `.env.local` + Vercel env + n8n Error Handler credential 등록 (🔴 원칙상 Claude가 생성/저장하지 않음). **SECONDARY는 rotation 중에만 설정**
+  2. ⚠️ **Jayden 수동 작업**: `.env.example`에 `INTERNAL_LOG_EVENT_SECRET_PRIMARY=your-64-char-hex-secret` placeholder 추가 (권한 제약으로 Claude가 직접 수정 불가)
+  3. **엔드-투-엔드 검증** (Jayden 환경변수 설정 후): `docs/runbooks/log-event-api.md` 부록의 test 스크립트 템플릿을 `docs/n8n-workflows/test-log-event.sh`로 저장 후 실행 + Supabase MCP로 `pipeline_events` 행 추가 확인
+  4. **Task 2-M-B-3-A (V2)**: Upstash Redis 기반 rate limiting (Upstash 가입 후 진행) — `docs/runbooks/log-event-api.md` V2 계획 참조
+  5. **Task 2-M-B-3-B (Jayden 수동)**: Supabase Dashboard에서 custom alert 실제 등록 (SQL은 runbook에 있음)
+  6. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -32,7 +32,104 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 완료 내역 (Session #18) — Task 2-M-B-2: 통합 모니터링 인프라 2단계
+## 이번 세션 완료 내역 (Session #19) — E2E 검증 + Task 11/12/13 일괄 처리
+
+Session #18에서 커밋한 Task 2-M-B-2를 실제로 검증하고, Jayden이 선택한 Task 2 → 3 → 4를 순차 완료. **총 4개 커밋**.
+
+### 1. Task 10 (E2E 검증) — 커밋 `a8ac5a8`
+
+**발견**: `POST /api/v1/internal/log-event`가 middleware에 의해 `/login`으로 307 리다이렉트. n8n이 호출해도 **API 엔드포인트 실행조차 안 됨** — Task 2-M-B-2 핵심이 runtime에 완전 무력화된 상태였음.
+
+**원인**: `middleware.ts` `config.matcher` negative lookahead에 `api/health`만 제외되고 `api/v1/internal` 제외가 없었음. `updateSession()`이 세션 쿠키 없는 요청을 가로챔. Bearer 토큰 timing-safe + Zod 검증 전부 **도달 불가능한 코드**.
+
+**수정**: matcher에 `api/v1/internal` 추가 → middleware 실행 자체를 건너뛰어 엔드포인트가 Bearer 자체 인증 수행. 주석으로 "새 내부 API도 이 prefix 아래에 둘 것" 컨벤션 명시.
+
+**Playwright E2E 시나리오 (12개)**:
+| 카테고리 | 시나리오 | 결과 |
+|---|---|---|
+| RBAC | 비로그인 `/admin/events` | ✅ 307 → `/login?next=/admin/events` |
+| RBAC | 비로그인 `/admin` | ✅ 307 → `/login?next=/admin` |
+| 페이지 | admin 세션 초기 접근 (빈 상태) | ✅ "조건에 맞는 이벤트가 없습니다" |
+| 필터 | `?level=error` (1건) | ✅ "1건 중 1–1건 표시" + option selected |
+| 필터 | `?service=n8n` (2건) | ✅ error+warn, info 제외 |
+| 필터 | 전체 (3건) | ✅ "3건 중 1–3건 표시" |
+| 포맷 | KST 시간 | ✅ `2026. 04. 08. 13:25:07` |
+| API | no-auth POST (수정 전) | ❌ 307 리다이렉트 (**버그 발견**) |
+| API | no-auth POST (수정 후) | ✅ 500 fail-loud |
+| API | invalid JSON | ✅ 500 (env 체크가 먼저) |
+| API | GET method | ✅ 405 |
+| API | server log | ✅ `[log-event API] ... 환경변수 누락` console.error 발동 |
+
+**부수**: june7203 유저를 임시 admin 승격 → 테스트 → 원상복구 (member + onboarding_completed=false). pipeline_events 테스트 row 3건 DELETE.
+
+### 2. Task 11 (logEvent 확산 15개) + Task 12 (쿠키 상수 추출) — 커밋 `7a74d12`
+
+**Task 11 — logEvent 확산**:
+- `products/actions.ts` 6개: createProduct insert error / bulk insert error / images INSERT/upload/UPDATE error (rollback 동반) / deleteProduct IDOR warn + delete error
+- `onboarding/actions.ts` 5개: createShop 23505 warn + insert error / addFirstProduct IDOR warn + insert error / completeOnboarding update error
+- `auth/actions.ts` 4개: signUp error / signIn error (브루트포스 관측) + signIn success (감사 로그, `signInData.user` 재사용으로 `getUser` 호출 절약) / googleAuth error
+
+**PII 원칙**: email/fullName/password/url은 로그 금지. `error.message`(DB/Auth 엔진 제공, PII 아님) + `userId`/`shopId`(uuid 해시)만 기록. `contextType`: `product` / `onboarding` / `auth`.
+
+**Task 12 — 쿠키 상수 추출**:
+- 신규 `src/lib/supabase/cookie-options.ts`: `ONBOARDING_COOKIE_NAME` / `VALUE` / `OPTIONS` 단일 출처
+- `middleware.ts` + `completeOnboarding` 양쪽에서 import → 기존 "동기화 주의" 경고 주석 제거 (구조적으로 동기화 보장)
+
+### 3. Task 13 (Zero-downtime rotation) — 커밋 `23eeeee`
+
+**범위 축소 결정**: Task 4 원래 범위(rate limit + rotation + alert) 중 **rotation만** 이번 세션 진행. Upstash는 외부 서비스 신규 가입 필요 + Supabase Dashboard 설정은 Jayden 수동 → Task 2-M-B-3-A/B로 이연.
+
+**env 스키마 변경 (하위호환 없음)**:
+- 제거: `INTERNAL_LOG_EVENT_SECRET` (Task 2-M-B-2 도입)
+- 신규: `INTERNAL_LOG_EVENT_SECRET_PRIMARY` (필수, min 32) + `_SECONDARY` (옵션, min 32)
+- 마이그레이션 부담 0 — Jayden이 아직 secret 설정 전이라 .env.local에서 이름만 바꾸면 됨
+
+**`checkToken` 함수 (route.ts)**:
+```ts
+const secondaryTarget = secondary ?? primary;  // 부재 시 dummy
+const primaryMatch = constantTimeEquals(providedToken, primary);
+const secondaryMatch = constantTimeEquals(providedToken, secondaryTarget);
+return primaryMatch || secondaryMatch;
+```
+
+두 const를 먼저 할당 → JavaScript 평가 순서 보장 → 두 비교 모두 항상 실행. `||` short-circuit은 const 계산 후에만 일어남 → SECONDARY 활성 여부가 응답 시간으로 leak되지 않음.
+
+**타이밍 일관성 보장**:
+- PRIMARY 일치 vs SECONDARY 일치: 둘 다 SHA-256 두 번 + timingSafeEqual 한 번 → 구분 불가
+- SECONDARY 부재 vs 존재: 둘 다 두 번 비교 실행 → "rotation 중" 여부 leak 없음
+
+**runbook 대폭 수정**: `docs/runbooks/log-event-api.md`
+- 환경변수 표: PRIMARY(필수) + SECONDARY(옵션) 역할 명시
+- "시크릿 Rotation 절차" 전면 rewrite → 4 Phase 표준 무중단 절차 (새 토큰 생성 → 이중 허용 배포 → n8n 전환 → 구 토큰 회수 → 검증)
+- 긴급 rotation (compromised) 별도 섹션
+- V2 목록에서 rotation 제거, "완료된 V1 항목" 섹션 추가
+- 장애 대응: 401 원인에 "rotation 중 SECONDARY 확인" 추가
+- 테스트 스크립트 template TOKEN 변수명 업데이트
+
+**runtime smoke test**: dev 서버 재기동 + curl no-auth → 500 + server log `"INTERNAL_LOG_EVENT_SECRET_PRIMARY 환경변수 누락 또는 32자 미만 (SECONDARY는 옵션)"` 정확 출력 확인.
+
+### 4. 검증
+
+모든 Task 직후 + Task 13 완료 시:
+- `pnpm typecheck` ✅ 0 errors
+- `pnpm lint` ✅ 0 errors (pre-existing warning 1건 무관)
+- `pnpm build` ✅ 25 라우트 등록
+
+### 5. learnings.md 신규 교훈 2건
+
+1. **[Bug] Middleware matcher에 새 API prefix 제외 누락** — 새 API 라우트 생성 시 matcher 확인 필수. tsc/lint/build + 리뷰 둘 다 static 분석이라 경계 버그 못 잡음. E2E 검증은 Task 완료 선언 전 필수. 보안 리뷰 요청 시 middleware 파일 명시 포함. `/api/v1/internal/` prefix 컨벤션 확립.
+2. **[Security] JavaScript `||` short-circuit이 타이밍 일관성을 깨뜨림** — 다중 토큰 비교 시 `a || b` 패턴으로 작성하면 a가 true일 때 b를 평가하지 않아 타이밍 차이 발생. 해결: 두 비교를 별도 const에 할당한 뒤 `||` 결합. 부재 값은 dummy target으로 대체하여 "옵션 활성 여부"도 leak 안 되게.
+
+### Status
+- **Status**: Task 2-M 전체 코드 레벨 완료. Jayden PRIMARY secret 설정 + .env.example 업데이트만 하면 end-to-end 활성화
+- **Blockers**:
+  - (기존) Jayden 수동: `INTERNAL_LOG_EVENT_SECRET_PRIMARY` 설정
+  - (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+- **Next**: Session #20 — (a) Jayden secret 설정 후 실전 검증 / (b) Task 2-M-B-3-A Upstash rate limit (Upstash 가입 전제) / (c) 나머지 Phase 2 파이프라인 개선
+
+---
+
+## 이전 세션 (Session #18) — Task 2-M-B-2: 통합 모니터링 인프라 2단계
 
 Task 2-M-B-2 — log-event API + `/admin/events` 페이지 + B-1 이연분 흡수. 계획 → 구현 → 자동 검증 → 2개 독립 리뷰(code + security) → 리뷰 반영 → 재검증 → 커밋 전체 사이클 완주.
 
