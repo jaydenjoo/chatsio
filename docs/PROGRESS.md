@@ -5,13 +5,14 @@
 
 ## 현재 위치
 - Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Task 2-M-B-3-A 완료** — Session #23에서 Upstash Redis 기반 rate limiting 구현 + 독립 security 리뷰 APPROVE + 리뷰 수정 2건 반영
-- 커밋: `399494c` (Session #22) → **Session #23 커밋 2개 예정** (feat + docs)
-- 상태: ✅ 로컬 검증 전부 통과 (401/401/200/429 + Retry-After + Supabase row 집계 정확). security-reviewer CRITICAL/HIGH 0건.
+- Task: **Session #24 — `.env.local` 잔재 키 정리 완료** ✅. 이전 누적 상태(Task 2-M-B-3-A)는 Session #23 그대로 유지.
+- 커밋: `aa92fcb` (Session #23) → **Session #24 커밋 1개 예정** (docs only — `.env.local`은 gitignore)
+- 상태: ✅ `.env.local` clean state — 잔재 키 0 / 중복 키 0 / 빈 값 0 / `pnpm dev` 부팅 OK (`Ready in 284ms`).
 - 다음:
-  1. ⚠️ **Jayden 수동 (배포 전)**: Vercel Env에 3개 변수 등록 — `INTERNAL_LOG_EVENT_SECRET_PRIMARY` + `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`. 상세 절차: `docs/runbooks/log-event-api.md` "🚀 배포 전 등록 체크리스트"
+  1. ⚠️ **Jayden 수동 (배포 전)**: Vercel Env에 3개 변수 등록 — `INTERNAL_LOG_EVENT_SECRET_PRIMARY` + `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`. 상세 절차: `docs/runbooks/log-event-api.md` "🚀 배포 전 등록 체크리스트". ⚠️ Session #24에서 드러남: **Vercel에 chatsio 프로젝트 자체가 미등록 상태** — `vercel link`부터 시작해야 함 (별도 Task로 분리 권장)
   2. **Task 2-M-B-3-B (Jayden 수동)**: Supabase Dashboard에서 custom alert 실제 등록 (runbook SQL 복사)
   3. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+  4. ⚠️ **신규 (Session #24 부수 발견)**: Next.js 16.2 deprecation — `middleware` 파일 컨벤션이 `proxy`로 변경됨. `src/middleware.ts` → `src/proxy.ts` 마이그레이션 필요. 별개 Task로 분리. 참조: https://nextjs.org/docs/messages/middleware-to-proxy
 
 > **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소**. 이유: 환경변수 목록이 이미 `src/lib/env.ts`(Zod 스키마, 런타임 검증)와 `docs/runbooks/log-event-api.md`(환경변수 표 + 배포 체크리스트) 두 곳에 단일 출처로 존재. `.env.example`에 추가하면 3번째 동기화 대상이 되어 드리프트 위험만 증가. Jayden은 솔로 프로젝트라 새 팀원 온보딩 수요가 없고, `.env.example`의 permission 차단으로 Session #22/23에서 이미 우회 비용이 누적됨.
 
@@ -31,7 +32,62 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 상태 (Session #23, 2026-04-08) — Task 2-M-B-3-A Upstash Redis rate limiting ✅
+## 이번 세션 상태 (Session #24, 2026-04-09) — `.env.local` 잔재 키 정리 ✅
+
+**목표**: `.env.local`에 남아있던 사용처 0건 환경변수 잔재를 안전하게 정리. 코드 변경 0건. 🔴 보안 파일이라 모든 작업을 "값 노출 0 패턴"으로 진행.
+
+### 1. 발견 흐름
+1. `/start` → Session #23 직후 상태 (배포 전 Jayden 수동 작업 3건 대기 중)
+2. Jayden이 `DATABASE_URL` 필요 여부 질문 → 코드 grep으로 `src/lib/db/index.ts:5`(Drizzle 클라이언트 throw) + `drizzle.config.ts:11`(CLI) 사용처 확인 → **필수, 삭제 금지** 답변
+3. 이어서 `.env.local` 전체 키 목록 보여주며 일괄 Vercel 등록 가능성 질문
+4. 키별 사용처 grep — 12개 키 중 `N8N_PREMIUM_WEBHOOK_URL`(코드 0건) + `VERCEL_OIDC_TOKEN`(코드 0건, Vercel CLI 자동 관리) **2개가 잔재**임을 식별
+5. 일괄 등록 위험 5가지 답변 → 그 중 한 항목에서 "이미 등록되어 있을 것"이라고 추측 → Jayden이 즉시 정정: **"Vercel에 프로젝트 자체가 미등록"**. 추측 오류 인정 + 사과 + 정정
+6. 작업 범위 결정: 옵션 3 (잔재 키 삭제 + 검증만, Vercel 등록은 별도 세션)
+
+### 2. Plan (4단계 + Phase 0 사후 보완)
+- **Phase 0** (사후): PRD/docs/runbook 전체 grep으로 `N8N_PREMIUM_WEBHOOK_URL` + `VERCEL_OIDC_TOKEN` 참조 0건 더블체크 → **0건 확인**, 안전 삭제 가능
+- **Phase 1**: `cp .env.local /tmp/env.local.bak.$(date +%s)` 백업
+- **Phase 2**: Jayden 에디터로 두 라인 수동 삭제 + 저장
+- **Phase 3**: 검증 4단계 (잔재 키 0 / 중복 0 / EMPTY 0 / 런타임 부팅)
+
+### 3. 검증 결과
+| 검사 | 명령 | 결과 |
+|---|---|---|
+| 잔재 키 1 | `grep -c "^N8N_PREMIUM_WEBHOOK_URL=" .env.local` | `0` ✅ |
+| 잔재 키 2 | `grep -c "^VERCEL_OIDC_TOKEN=" .env.local` | `0` ✅ |
+| 중복 키 | `grep -oE "^[A-Z_][A-Z0-9_]*=" .env.local \| sort \| uniq -c \| awk '$1!=1 {print "❌ "$0}'` | (출력 없음) ✅ |
+| 빈 값 키 | `awk -F= '/^[A-Z_][A-Z0-9_]*=/ {if(length($2)==0) print "❌ EMPTY: "$1}' .env.local` | (출력 없음) ✅ |
+| 런타임 부팅 | `pnpm dev` | `▲ Next.js 16.2.2 (Turbopack) ✓ Ready in 284ms` ✅ |
+
+Session #21/22 교훈 반영: **파일 구조 검증과 런타임 검증을 분리** ("동작한다 ≠ 깨끗하다"). 둘 다 통과해야 완료.
+
+### 4. 부수 발견 — Next.js 16.2 `middleware → proxy` deprecation ⚠️
+`pnpm dev` 부팅 중 경고:
+```
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+```
+- 영향: 현재는 작동, 향후 Next.js 메이저 버전에서 제거 예정
+- 액션: 별개 Task로 분리. `src/middleware.ts`(Supabase 세션 갱신) → `src/proxy.ts` 마이그레이션. **이번 세션 범위 외**.
+- 우선순위: LOW (작동 중, 시간 여유 있음)
+
+### 5. AI 오류 1건 (정정 완료) — learnings 정식 기록
+"이미 등록되어 있을 것" 단정형 추측. Jayden이 즉시 "Vercel 미등록 상태"라고 정정. 다행히 코드 실수로 이어지지 않고 대화 단계에서 정정됨. learnings.md `[AI-Pitfall]` 카테고리로 기록 — "로컬 환경 파일의 흔적과 외부 시스템 등록 상태는 별개".
+
+### 6. 파일 변경
+- `.env.local` (gitignore): 잔재 키 2개 삭제, 나머지 모두 그대로 보존
+- `docs/PROGRESS.md`: Session #24 기록 + 현재 위치 갱신 + 다음 할 일에 Vercel 미등록 사실 + middleware/proxy 마이그레이션 추가
+- `docs/learnings.md`: AI-Pitfall 1건 추가
+- **코드 변경 0건**
+
+### 7. Status
+- ✅ `.env.local` clean state
+- ✅ 로컬 dev 정상 동작
+- 🔄 다음 세션 우선순위: Vercel 신규 등록 + 첫 배포(별도 Task) **또는** Task 2-M-B-3-B(Supabase alert 등록)
+- 차단 요소: 없음 (Vercel 등록은 차단이 아니라 Jayden 결정 대기)
+
+---
+
+## 이전 세션 상태 (Session #23, 2026-04-08) — Task 2-M-B-3-A Upstash Redis rate limiting ✅
 
 **목표**: `/api/v1/internal/log-event` 엔드포인트에 Bearer 토큰 단위 분당 100건 rate limiting을 추가하여 🔴 프로젝트의 감사 로그 flooding 공격 방어. Session #22 계획의 "V2 4번(Upstash rate limit)" 항목을 완료.
 
