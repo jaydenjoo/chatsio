@@ -5,13 +5,14 @@
 
 ## 현재 위치
 - Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Bugfix 완료** — `onboarding_done` 쿠키 set 누락 (Session #16)
-- 상태: `completeOnboarding()` Server Action이 DB update 직후 미들웨어와 동일 옵션으로 `onboarding_done=1` 쿠키 set. typecheck/lint/build + code-reviewer APPROVE 통과. Phase 2 백엔드 파이프라인은 Session #14.5에서 엔드-투-엔드 검증 완료
+- Task: **Task 2-M-B-1 완료** — 통합 모니터링 인프라 1단계 (Session #17, 커밋 `aa74dde`)
+- 상태: `pipeline_events` 테이블 + `logEvent` 헬퍼 + `(admin) layout` RBAC + `optimize/actions.ts` 8곳 통합. typecheck/lint/build + code-reviewer APPROVE WITH COMMENTS(Must Fix 1건 + Should Fix 3건 즉시 반영) 통과. Supabase MCP로 마이그레이션 006 적용 + service_role smoke 검증 완료
 - 다음:
-  1. **Task 2-M-B-1** (모니터링 인프라 1단계 ~1.5h) — 마이그레이션 006 `pipeline_events` + `lib/monitoring/log-event.ts` 헬퍼 + `(admin)/layout.tsx` RBAC 추가 + `optimize/actions.ts` logEvent 통합 + 검증
-  2. **Task 2-M-B-2** (모니터링 인프라 2단계 ~1.5h) — `POST /api/v1/internal/log-event` API + `/admin/events` 미니 페이지 + code-reviewer + security-reviewer
-  3. **Follow-up: 쿠키 옵션 상수 추출 리팩터** (~15분, code-reviewer Should Fix #2) — `src/lib/supabase/cookie-options.ts`에 `ONBOARDING_COOKIE_OPTIONS` 상수 정의 → 미들웨어 + Server Action 양쪽 import. "두 곳 동기화 깨짐" 구조적 차단
-  4. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+  1. **Task 2-M-B-2** (모니터링 인프라 2단계 ~1.5h) — `POST /api/v1/internal/log-event` API(Bearer 토큰 timing-safe + Zod) + `/admin/events` 미니 페이지(Server Component + 필터 + 페이지네이션) + `code-reviewer` + **`security-reviewer`** 필수
+  2. **Follow-up B-1 #1 (~20분)**: `createAdminClient` 싱글톤 패턴 (code-reviewer Should Fix #1). 현재는 logEvent 호출마다 새 client 생성 → B-2 중 정리
+  3. **Follow-up B-1 #2**: `optimize/actions.ts`가 아닌 다른 Server Action(products/onboarding/auth)에도 logEvent 통합 — 별도 Task
+  4. **Follow-up Session #16 #3 (~15분)**: 쿠키 옵션 상수 추출 리팩터 — `src/lib/supabase/cookie-options.ts`에 `ONBOARDING_COOKIE_OPTIONS` 상수 정의 → 미들웨어 + Server Action 양쪽 import
+  5. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -29,7 +30,108 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 완료 내역 (Session #16) — Bugfix: `onboarding_done` 쿠키 set + Task 2-M 분할 결정
+## 이번 세션 완료 내역 (Session #17) — Task 2-M-B-1: 통합 모니터링 인프라 1단계
+
+커밋 `aa74dde` `feat(monitoring): Task 2-M-B-1 — pipeline_events + logEvent + (admin) RBAC` (6 files / +350 -7)
+
+### 1. 신규 3파일
+
+**`supabase/migrations/006_pipeline_events.sql`**
+- 테이블: id / created_at / service / level CHECK(debug|info|warn|error) / context_type / context_id / step / message / error_stack / user_id(FK auth.users ON DELETE SET NULL) / shop_id(FK shops ON DELETE SET NULL)
+- 인덱스 4개: `(created_at DESC)`, `(level, created_at DESC)`, `(context_type, context_id)`, `(user_id, created_at DESC)`
+- RLS: SELECT는 `public.is_admin()` 헬퍼 재사용 (code-reviewer Must Fix 반영 — 아래 4번 참조). INSERT/UPDATE/DELETE 정책 없음 → service_role(RLS 우회)만 INSERT 가능, 감사 로그 무결성 보장
+- Supabase MCP `apply_migration`으로 DB 적용 완료. `list_tables` + service_role smoke INSERT+DELETE 검증 통과. Findably 13개 테이블 무변화
+
+**`src/lib/monitoring/types.ts`** — `LogLevel`, `LogService`, `LogEventInput` readonly 타입
+
+**`src/lib/monitoring/log-event.ts`** — fail-safe `logEvent()` 헬퍼
+- `createAdminClient()` service_role 경유 insert
+- **throw 절대 금지**: try-catch 전체, env 누락·DB 장애도 console.error로만 폴백
+- `message.slice(0, 2000)`, `errorStack.slice(0, 5000)` 폭증 방지
+- 호출 패턴: `void logEvent({...})` fire-and-forget
+
+### 2. 수정 3파일
+
+**`src/app/(admin)/layout.tsx`** (17줄 → 75줄)
+- **기존 취약점 선제 수정**: 로그인만 하면 admin 6개 페이지 접근 가능했던 상태를 차단 (Session #16 Stop-and-Think에서 발견, Session #17에서 실행)
+- async Server Component 전환, auth + `user_profiles.role = 'admin'` 매 요청 DB 검증
+- `(dashboard)/layout.tsx` 패턴 그대로 재사용. 기존 UI(사이드바 + main) 0줄 변경
+- fail-secure: auth/DB 에러 시 console.error + profile null → `/` redirect
+- code-reviewer Should Fix #3 반영: `!profile || profile.role !== "admin"` 명시적 null-check (가독성 + 의도 자명화)
+
+**`src/features/optimize/actions.ts`** (runOptimization Server Action)
+- 8곳에 `void logEvent(...)` 추가 (기존 `console.error`는 모두 유지 — dev fast feedback):
+
+| # | 위치 | level | step |
+|---|---|---|---|
+| 1 | 파이프라인 진입 (auth/소유권 통과) | info | `run_start` |
+| 2 | shops query 에러 | error | `shops_query` |
+| 3 | products query 에러 | error | `products_query` |
+| 4 | duplicate query 에러 (fallthrough) | warn | `duplicate_query` |
+| 5 | optimization insert 에러 (일반) | error | `optimization_insert` |
+| 6 | optimization insert 에러 (23505 race) | warn | `optimization_insert_race` (Should Fix #2 반영) |
+| 7 | n8n invocation catch 블록 | error + stack | `invoke_n8n` |
+| 8 | 성공 (revalidate 직전) | info | `run_success` |
+
+- `markOptimizationFailed`는 `userId/shopId`를 받지 않으므로 pipeline_events 기록은 **호출측 catch 블록**이 담당. 주석으로 명시적 경계 표기
+
+**`src/lib/supabase/admin.ts`**
+- 반환 타입 `ReturnType<typeof createSupabaseClient>` → `SupabaseClient`
+- **이유**: `createSupabaseClient`를 generic 없이 호출할 경우 `.from(...).insert(...)`가 `never`로 추론되어 TS2769 에러 (logEvent 구현 중 발견). Drizzle을 primary schema 소스로 쓰고 Supabase Database 타입 생성을 하지 않는 이 프로젝트 정책 하에서 가장 깔끔한 해법
+- Should Fix #4 반영: TODO 주석 추가 — `supabase gen types` 도입 시 `SupabaseClient<Database>`로 강타입화
+- `createAdminClient`는 이번 작업이 최초 사용자
+
+### 3. 검증 게이트
+
+| 단계 | 결과 |
+|---|---|
+| `pnpm typecheck` | ✅ 0 errors |
+| `pnpm lint` | ✅ 0 errors (pre-existing warning 1건 무관) |
+| `pnpm build` | ✅ `/admin` 6개 라우트 정상 컴파일 |
+| Supabase MCP 검증 | ✅ 테이블 / 5 인덱스(PK 포함) / 1 정책 / service_role smoke INSERT+SELECT+DELETE |
+| Findably 무변화 | ✅ 13개 테이블 그대로 (DB 경계 규칙 준수) |
+
+### 4. code-reviewer APPROVE WITH COMMENTS
+
+| 등급 | 건수 | 처리 |
+|---|---|---|
+| 🔴 Must Fix | 1 | ✅ 즉시 반영 |
+| 🟡 Should Fix | 4 | ✅ 3건 즉시 반영 + 1건 B-2로 이연 |
+| 💡 Consider | 4 | 전부 defer (B-2 중 흡수 또는 V2) |
+
+**Must Fix**: RLS 정책이 기존 `public.is_admin()` SECURITY DEFINER 헬퍼를 쓰지 않고 inline EXISTS를 썼음. 프로젝트 전체 admin 정책 10곳+은 `is_admin()` 사용. inline EXISTS는 authenticated 권한으로 실행되어 `user_profiles` RLS에 종속 — 향후 RLS 강화 시 silent break 리스크 → `is_admin()`으로 교체 + DB `DROP POLICY` + `CREATE POLICY` 재적용
+
+**Should Fix 반영**:
+- #2: 23505 race condition 경로에 `optimization_insert_race` warn 이벤트 추가 (운영 중 race 빈도 추적 필수)
+- #3: `(admin)/layout.tsx`의 `profile?.role !== "admin"` 암묵적 null fail-secure → `!profile || profile.role !== "admin"` 명시적 표현
+- #4: `admin.ts`에 TODO 주석 — `supabase gen types` 도입 시점
+
+**Should Fix 이연 (→ Task 2-M-B-2)**:
+- #1: `createAdminClient` 싱글톤 패턴 — 지금은 logEvent 호출마다 새 client 생성. B-2 내 정리
+
+**Consider 전부 defer**:
+- log-event.ts: message truncation 시 `...[truncated]` 라벨
+- actions.ts: `run_start` contextId(productId) vs `run_success` contextId(optimizationId) 불일치 → B-2 events 페이지 디자인 시 문서화
+- types.ts: `LogService` union 2개 vs DB `text` 컬럼 CHECK 없음 → service 확정 시 CHECK 추가
+- migration 006: rollback FK 관련 runbook 노트
+
+### 5. 안 건드린 것 (스코프 보호)
+
+- ❌ Task 2-M-B-2 (API endpoint + `/admin/events` 페이지)
+- ❌ products/onboarding/auth actions logEvent 통합 → follow-up
+- ❌ pipeline_events retention/cleanup cron → V2
+- ❌ 쿠키 옵션 상수 추출 (Session #16 follow-up #3)
+- ❌ Playwright RBAC E2E 검증 (다음 통합 사이클로 이연)
+
+### Status
+- **Status**: Task 2-M-B-1 코드 커밋 + DB 반영 + 리뷰 반영 완료. `/admin/*` RBAC 선제 수정으로 🔴 취약점 동시 해소
+- **Blockers**:
+  - (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+- **Next**: Session #18 — Task 2-M-B-2 (log-event API + `/admin/events` 페이지 + `code-reviewer` + `security-reviewer`)
+
+---
+
+## 이전 세션 — Session #16 — Bugfix: `onboarding_done` 쿠키 set + Task 2-M 분할 결정
 
 옵션 A → 옵션 B 흐름으로 시작. 옵션 A(쿠키 fix)는 완료하여 커밋. 옵션 B(Task 2-M 모니터링 인프라)는 계획만 확정하고 다음 세션으로 이연.
 

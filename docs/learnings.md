@@ -20,6 +20,30 @@
 
 ---
 
+### 2026-04-08 — [Architecture] RLS 정책은 기존 SECURITY DEFINER 헬퍼를 재사용해야 — inline EXISTS 금지
+- **증상**: Task 2-M-B-1에서 `pipeline_events` 테이블 RLS를 작성할 때 `user_profiles.role = 'admin'` 체크를 inline `EXISTS (SELECT 1 FROM public.user_profiles ...)`로 구현. code-reviewer Must Fix로 지적됨
+- **원인**: 프로젝트 전체 admin 정책 10곳+ (migration 001의 `prompts`, `prompt_versions`, `shops` 등)은 모두 `public.is_admin()` SECURITY DEFINER 헬퍼를 사용. 내 inline EXISTS는:
+  1. **종속성 문제**: inline subquery는 `authenticated` 권한으로 실행되어 `user_profiles` 자체 RLS에 종속된다. 현재는 `user_profiles` SELECT 정책이 `is_admin()`도 허용하여 작동하지만, 향후 `user_profiles` RLS 강화 시 **silent break** (policy evaluation이 false로 떨어져 어떤 admin도 pipeline_events를 볼 수 없게 됨)
+  2. **일관성 깨짐**: 같은 "admin인가?" 체크가 두 가지 다른 SQL 패턴으로 공존 → 읽는 사람 혼동 + 나중에 한 곳만 수정하는 버그
+  3. `is_admin()`의 `SECURITY DEFINER`는 함수 소유자 권한으로 실행되어 `user_profiles` RLS를 우회 → 안전한 캡슐화. 나는 이 기능을 놓치고 raw SQL을 썼음
+- **해결**: inline EXISTS → `USING (public.is_admin())` 1줄로 교체. 파일 수정 + `DROP POLICY` + `CREATE POLICY`로 DB 재적용
+- **규칙**:
+  1. **새 RLS 정책 작성 전 반드시 `grep -n "CREATE POLICY\|public\." migrations/*.sql`로 기존 헬퍼 확인**. `is_admin()`, `get_user_role()`, `is_owner()` 같은 헬퍼가 이미 있으면 재사용
+  2. **RLS 정책에서 다른 테이블 조회 금지** — SECURITY DEFINER 함수로 감싸서 호출. RLS는 "이 테이블에 대한 접근 제어"고, "다른 테이블의 상태를 기반으로 한 접근 제어"는 함수로 추상화
+  3. **일관성이 보안이다** — 같은 체크가 두 패턴으로 공존하면 하나만 수정되는 시점이 오고, 그때 보안 구멍이 생긴다
+- **컨텍스트**: Session #17 Task 2-M-B-1. code-reviewer(독립 리뷰)가 Must Fix로 잡아냈음 → Writer/Reviewer 분리 가치 재확인
+
+### 2026-04-08 — [AI-Pitfall] `ReturnType<typeof createSupabaseClient>` generic 누락 → `.from().insert()` never 추론
+- **증상**: `src/lib/supabase/admin.ts`에서 `export function createAdminClient(): ReturnType<typeof createSupabaseClient>`로 작성. `createAdminClient().from("pipeline_events").insert({...})` 호출 시 TS2769: "Argument of type '{...}' is not assignable to parameter of type 'never'". 디버깅에 ~20분 소요
+- **원인**: `@supabase/supabase-js`의 `createClient<Database, ...>` 제네릭 기본값이 generic 추론 체인에서 해석될 때 `Database`가 `{ PostgrestVersion: string }`으로 떨어지고, `.from("테이블명")`의 결과 타입이 `never`가 된다. `ReturnType<typeof ...>`로 감쌌을 때 이 현상이 발생. 반면 `@supabase/ssr`의 `createServerClient`는 다른 기본 동작을 가져서 `src/lib/supabase/server.ts`에서는 같은 문제 안 발생
+- **해결**: `SupabaseClient` 클래스 타입을 직접 import해서 return type으로 명시 (`export function createAdminClient(): SupabaseClient`). `SupabaseClient`의 기본 generic은 `any`이지만 이는 SDK 내부 default이며 우리 코드에 명시적 `any` 키워드는 없음 (lint 규칙 우회 아님)
+- **규칙**:
+  1. **Supabase client return type을 `ReturnType<typeof createClient>`로 감싸지 말 것** — generic 없이 호출된 함수의 return은 `never` 추론 지옥. 차라리 `SupabaseClient` 클래스 타입을 직접 명시
+  2. **이상적으로는 `supabase gen types typescript`로 `types/database.ts` 생성 → `SupabaseClient<Database>`로 강타입화**. 이 프로젝트는 Drizzle primary라 아직 안 했지만, 기술 부채로 기록
+  3. **`createAdminClient` 같은 service_role client는 최초 사용 시점에 이 문제가 드러난다** — 만들 때 바로 호출 사이트 하나 써보고 타입 체크 통과 확인
+  4. **일반적 원칙**: `ReturnType<typeof fn>`은 `fn`이 제네릭일 때 제네릭 기본값만 적용된다. 제네릭 함수의 return type이 필요하면 명시적 class/interface를 import해서 쓰자
+- **컨텍스트**: Session #17 Task 2-M-B-1. logEvent 헬퍼가 `createAdminClient`의 최초 사용자라 구현 단계에서 드러남. 기존에는 server.ts `createClient`(ssr)를 썼기 때문에 문제 안 됐음
+
 ### 2026-04-07 — [Bug] `(dashboard)` 레이아웃 무한 리다이렉트 루프 ✅ 해결됨 (Session #15)
 - **증상**: 로그인한 유저(onboarding 미완료)가 `/signup` 또는 `/products` 접근 시 `/onboarding`으로 리다이렉트 → `/onboarding` 페이지가 또 자기 자신으로 리다이렉트 → `ERR_TOO_MANY_REDIRECTS`
 - **원인**: `src/app/(dashboard)/layout.tsx` L57-58, L75-76에서 `!profile.onboarding_completed` 또는 `!shop` 시 `redirect('/onboarding')`. 그런데 `/onboarding` 페이지 자체가 `(dashboard)` 라우트 그룹 안에 있어서 같은 레이아웃이 또 실행됨 → 또 같은 조건에 걸려서 또 redirect
