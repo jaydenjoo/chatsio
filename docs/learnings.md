@@ -20,6 +20,28 @@
 
 ---
 
+### 2026-04-08 — [Security] Bearer 토큰 상수 시간 비교 앞에 early return 분기 금지 — 타이밍 오라클
+- **증상**: Task 2-M-B-2 `log-event API` 1차 구현에서 `if (providedToken.length === 0) return 401;` → `if (!constantTimeEquals(...)) return 401;` 두 분기를 두었음. security-reviewer가 HIGH로 지적
+- **원인**: 빈 토큰 요청은 SHA-256 두 번 비용(수 μs)을 건너뛰고 즉시 401을 반환한다. 공격자가 빈 토큰 vs 1자 이상 토큰의 응답 시간을 대량 측정하면 이론적으로 분기를 판별 가능 → 상수 시간 비교를 도입한 *의도*와 불일치. 실전 exploit 난이도는 높지만 방어 일관성 파손
+- **해결**: 빈 토큰 early return을 제거하고 `constantTimeEquals`가 항상 실행되도록 변경. SHA-256은 빈 문자열 입력도 32바이트 해시로 정규화하므로 분기별 타이밍 차이가 사라진다
+- **규칙**:
+  1. **상수 시간 비교 함수 진입 전 early return 금지** — 길이 체크, null 체크, format 체크 등 비교 자체를 건너뛰는 경로는 타이밍 오라클이 된다. "빈 값은 당연히 실패니까 바로 리턴하자"는 직관이 이 실수의 주된 원인
+  2. 진입 전 검증이 꼭 필요하면 **dummy 비교로 타이밍 맞춤** (예: `timingSafeEqual(zero, zero)` 호출 후 false 리턴)
+  3. **SHA-256 pre-hash 패턴**(`createHash("sha256").update(x).digest()` → `timingSafeEqual`)이 표준 관용구. 입력 길이를 32바이트로 정규화하여 길이 기반 타이밍 누출 + `timingSafeEqual`의 동일 길이 요구를 동시에 해결
+  4. **Writer 단독 구현 금지** — 이 종류의 실수는 writer가 "더 안전하다"고 믿는 방향에서 발생. **security-reviewer 독립 리뷰가 잡아냄** → 🔴 프로젝트 인증/토큰 코드는 항상 `security-reviewer` 필수
+- **컨텍스트**: Session #18 Task 2-M-B-2. code-reviewer는 지적 못 했고 security-reviewer만 잡음 → 두 리뷰어 병렬 실행의 가치. 만약 security-reviewer를 생략했다면 이 타이밍 오라클이 🔴 프로젝트에 남았을 것
+
+### 2026-04-08 — [Architecture] 공용 validateBody 헬퍼를 보안 민감 엔드포인트에서 쓰려면 `ValidationResult` 확장으로 details leak 차단
+- **증상**: Task 2-M-B-2 route.ts 초안에서 공용 `validateBody` 헬퍼 대신 `request.json()` + `safeParse`를 직접 구현. code-reviewer가 "기존 헬퍼 재사용" Should Fix
+- **원인**: 공용 `validateBody`는 검증 실패 시 `ApiErrors.validationFailed(result.error.issues)`를 리턴하는데, 이 응답은 Zod issues를 `details` 필드로 포함하여 정보 누출. 🔴 보안 엔드포인트는 generic 400만 리턴해야 하므로 기본 응답을 그대로 쓸 수 없음. "헬퍼가 내 요구에 안 맞으니 직접 구현"이 자연스러운 선택처럼 보였지만 일관성을 깨뜨림
+- **해결**: `ValidationResult` 타입을 확장 — `kind: "json_parse" | "schema"` + `issues?: readonly ZodIssue[]` 필드 추가. 보안 민감 호출자는 `validated.response`를 무시하고 자체 generic 400 응답을 리턴, `validated.issues`는 `console.error`에만 기록. 기존 호출자는 `{success: true, data}` 분기만 쓰므로 하위호환 완벽 유지
+- **규칙**:
+  1. **공용 헬퍼가 민감 컨텍스트에 맞지 않으면 포기 말고 확장**. 기존 시그니처에 새 필드만 추가하면 다른 호출자는 영향 없음
+  2. **응답 생성과 에러 원인 식별을 분리** — 헬퍼가 "어떤 응답을 리턴할지"와 "어떤 실패 종류인지"를 동시에 제공하면 호출자가 응답만 덮어쓰고 원인은 로깅할 수 있다
+  3. 헬퍼 확장 시 **기존 호출자도 함께 새 필드 채워야 함** — `validateQuery`에 kind 추가를 빼먹었다가 typecheck가 잡아냄 (다행). TypeScript strict가 이런 누락을 잡는 안전망
+  4. **코드 중복 제거 vs 보안 요구** 트레이드오프에서 "중복을 감수한다"는 단기 해결은 일관성 부채가 됨. 헬퍼 확장이 정답
+- **컨텍스트**: Session #18 Task 2-M-B-2. code-reviewer 지적 → ValidationResult 확장 → 일관성 + 보안 모두 확보. `validateQuery`의 kind 누락을 typecheck가 잡으면서 "기존 호출자 영향 자동 검출" 사례 재확인
+
 ### 2026-04-08 — [Architecture] RLS 정책은 기존 SECURITY DEFINER 헬퍼를 재사용해야 — inline EXISTS 금지
 - **증상**: Task 2-M-B-1에서 `pipeline_events` 테이블 RLS를 작성할 때 `user_profiles.role = 'admin'` 체크를 inline `EXISTS (SELECT 1 FROM public.user_profiles ...)`로 구현. code-reviewer Must Fix로 지적됨
 - **원인**: 프로젝트 전체 admin 정책 10곳+ (migration 001의 `prompts`, `prompt_versions`, `shops` 등)은 모두 `public.is_admin()` SECURITY DEFINER 헬퍼를 사용. 내 inline EXISTS는:

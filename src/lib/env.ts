@@ -17,6 +17,13 @@ const n8nEnvSchema = z.object({
   N8N_WEBHOOK_SECRET: z.string().min(8),
 });
 
+// Internal log-event API 전용 — `POST /api/v1/internal/log-event` 엔드포인트에서만
+// 필요. 다른 런타임 경로는 이 값을 호출하지 않으므로 분리된 스키마를 사용.
+// 최소 32자 제약: 브루트포스 방어를 위해 충분한 엔트로피 요구.
+const internalLogEventEnvSchema = z.object({
+  INTERNAL_LOG_EVENT_SECRET: z.string().min(32),
+});
+
 /** 클라이언트 + 서버 공용 환경변수 */
 export function getPublicEnv(): z.infer<typeof envSchema> {
   const parsed = envSchema.safeParse({
@@ -63,6 +70,26 @@ export function getN8nEnv(): z.infer<typeof n8nEnvSchema> {
   if (!parsed.success) {
     throw new Error(
       `n8n 환경변수 누락: ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}. .env.local 파일을 확인하세요.`
+    );
+  }
+
+  return parsed.data;
+}
+
+/**
+ * Internal log-event API 환경변수 — `POST /api/v1/internal/log-event`에서만 호출.
+ * 다른 경로(페이지 렌더, Server Action)가 이 값 부재로 영향받지 않도록 분리.
+ *
+ * 생성 방법: `openssl rand -hex 32` (64자 hex)
+ */
+export function getInternalLogEventEnv(): z.infer<typeof internalLogEventEnvSchema> {
+  const parsed = internalLogEventEnvSchema.safeParse({
+    INTERNAL_LOG_EVENT_SECRET: process.env.INTERNAL_LOG_EVENT_SECRET,
+  });
+
+  if (!parsed.success) {
+    throw new Error(
+      `INTERNAL_LOG_EVENT_SECRET 환경변수 누락 또는 32자 미만: ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}. .env.local 파일을 확인하세요.`
     );
   }
 

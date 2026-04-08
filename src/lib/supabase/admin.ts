@@ -15,11 +15,26 @@ import { getServerEnv } from "@/lib/env";
  *
  * TODO: types/database.ts를 `supabase gen types`로 생성하게 되면
  *       `SupabaseClient<Database>`로 강타입화 — 그 시점까지는 SDK 기본값.
+ *
+ * 싱글톤 패턴 (Task 2-M-B-2, B-1 Should Fix #1 이연분 해소):
+ *   - 모듈 레벨 변수에 첫 인스턴스를 캐싱하여 재사용.
+ *   - `logEvent`가 runOptimization 한 번에 8회 호출되는 등의 패턴에서
+ *     매번 새 `SupabaseClient` 생성 오버헤드를 제거.
+ *   - Node.js 서버 프로세스 내 공유. 서버리스 함수의 각 인스턴스는
+ *     자체 프로세스 → 인스턴스 간 공유 없음 → 메모리 누수 위험 없음.
+ *   - env 누락 시 `getServerEnv()`가 첫 호출 시점에 throw → 이후 호출은
+ *     이미 캐싱된 클라이언트를 반환하므로 env 재검증 없이 빠르다.
  */
+let cachedAdminClient: SupabaseClient | null = null;
+
 export function createAdminClient(): SupabaseClient {
+  if (cachedAdminClient !== null) {
+    return cachedAdminClient;
+  }
+
   const env = getServerEnv();
 
-  return createSupabaseClient(
+  cachedAdminClient = createSupabaseClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.SUPABASE_SERVICE_ROLE_KEY,
     {
@@ -29,4 +44,6 @@ export function createAdminClient(): SupabaseClient {
       },
     },
   );
+
+  return cachedAdminClient;
 }

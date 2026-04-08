@@ -5,14 +5,16 @@
 
 ## 현재 위치
 - Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Task 2-M-B-1 완료** — 통합 모니터링 인프라 1단계 (Session #17, 커밋 `aa74dde`)
-- 상태: `pipeline_events` 테이블 + `logEvent` 헬퍼 + `(admin) layout` RBAC + `optimize/actions.ts` 8곳 통합. typecheck/lint/build + code-reviewer APPROVE WITH COMMENTS(Must Fix 1건 + Should Fix 3건 즉시 반영) 통과. Supabase MCP로 마이그레이션 006 적용 + service_role smoke 검증 완료
+- Task: **Task 2-M-B-2 완료** — 통합 모니터링 인프라 2단계 (Session #18)
+- 상태: `POST /api/v1/internal/log-event` 엔드포인트 + `/admin/events` 페이지 + `createAdminClient` 싱글톤 + `logEvent` truncation 라벨 + `validateBody` 확장 + `runbooks/log-event-api.md`. typecheck/lint/build + code-reviewer APPROVE WITH COMMENTS + security-reviewer APPROVE WITH COMMENTS(Must Fix 0, Should Fix 6건 전부 반영, Consider 5건 중 3건 반영) 통과
 - 다음:
-  1. **Task 2-M-B-2** (모니터링 인프라 2단계 ~1.5h) — `POST /api/v1/internal/log-event` API(Bearer 토큰 timing-safe + Zod) + `/admin/events` 미니 페이지(Server Component + 필터 + 페이지네이션) + `code-reviewer` + **`security-reviewer`** 필수
-  2. **Follow-up B-1 #1 (~20분)**: `createAdminClient` 싱글톤 패턴 (code-reviewer Should Fix #1). 현재는 logEvent 호출마다 새 client 생성 → B-2 중 정리
-  3. **Follow-up B-1 #2**: `optimize/actions.ts`가 아닌 다른 Server Action(products/onboarding/auth)에도 logEvent 통합 — 별도 Task
-  4. **Follow-up Session #16 #3 (~15분)**: 쿠키 옵션 상수 추출 리팩터 — `src/lib/supabase/cookie-options.ts`에 `ONBOARDING_COOKIE_OPTIONS` 상수 정의 → 미들웨어 + Server Action 양쪽 import
-  5. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+  1. ⚠️ **Jayden 수동 작업**: `INTERNAL_LOG_EVENT_SECRET` 생성(`openssl rand -hex 32`) → `.env.local` + Vercel env + n8n Error Handler credential 등록 (🔴 원칙상 Claude가 생성/저장하지 않음)
+  2. ⚠️ **Jayden 수동 작업**: `.env.example`에 `INTERNAL_LOG_EVENT_SECRET=your-64-char-hex-secret` placeholder 추가 (권한 제약으로 Claude가 직접 수정 불가)
+  3. **Task 2-M-B-2 end-to-end 검증** (Jayden 환경변수 설정 후): `bash docs/n8n-workflows/test-log-event.sh` 실행 + Supabase MCP로 `pipeline_events` 행 추가 확인 + 브라우저로 `/admin/events` 접근 검증
+  4. **Follow-up B-1 #2**: `optimize/actions.ts` 외 다른 Server Action(products/onboarding/auth)에도 logEvent 통합 — 별도 Task
+  5. **Follow-up Session #16 #3 (~15분)**: 쿠키 옵션 상수 추출 리팩터 — `src/lib/supabase/cookie-options.ts`에 `ONBOARDING_COOKIE_OPTIONS` 상수 정의 → 미들웨어 + Server Action 양쪽 import
+  6. **Follow-up Task 2-M-B-3 (V2)**: rate limiting(Upstash Redis) + zero-downtime token rotation(PRIMARY/SECONDARY) + Supabase alert 설정 — `docs/runbooks/log-event-api.md` 참조
+  7. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -30,7 +32,136 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 완료 내역 (Session #17) — Task 2-M-B-1: 통합 모니터링 인프라 1단계
+## 이번 세션 완료 내역 (Session #18) — Task 2-M-B-2: 통합 모니터링 인프라 2단계
+
+Task 2-M-B-2 — log-event API + `/admin/events` 페이지 + B-1 이연분 흡수. 계획 → 구현 → 자동 검증 → 2개 독립 리뷰(code + security) → 리뷰 반영 → 재검증 → 커밋 전체 사이클 완주.
+
+### 1. 신규 파일 (6개)
+
+**`src/app/api/v1/internal/log-event/route.ts`** (~175줄)
+- `POST` 전용 내부 API. `runtime = "nodejs"` + `dynamic = "force-dynamic"`
+- **보안 체인 4단계**:
+  1. env 검증: `getInternalLogEventEnv()` try-catch → 실패 시 `ApiErrors.internal()` (fail-loud 500, 응답에 사유 leak 없음)
+  2. Bearer 토큰 상수 시간 비교: `createHash("sha256").update(a).digest()` → `timingSafeEqual`. SHA-256 pre-hash 패턴으로 입력 길이 32바이트 정규화 → 길이 기반 타이밍 누출 + `timingSafeEqual` 길이 동일 요구 동시 해결
+  3. Body 파싱 + Zod 검증: 공용 `validateBody` 헬퍼 재사용. 실패 시 generic `apiError("INVALID_PAYLOAD", "invalid payload", 400)` 리턴, `validated.issues`는 `console.error`에만
+  4. `void logEvent(validated.data)` fire-and-forget. insert 실패도 200 응답(n8n retry storm 방지)
+- **Zod 스키마**: `service` enum ∈ `{next-app, n8n}`, `level` enum ∈ `{debug, info, warn, error}`, `message` 1~2000자, `errorStack` ≤ 5000자, `userId/shopId` UUID. 모든 필드 길이 제약 → 토큰 탈취 공격자의 DB row 부풀리기 차단
+- **CSRF 무관**: Bearer 토큰은 브라우저가 cross-origin 자동 첨부 안 함
+
+**`src/app/(admin)/admin/events/page.tsx`** (~280줄)
+- Server Component. `(admin)/layout.tsx`가 이미 매 요청 admin 검증 → 본체는 데이터 조회만
+- **RLS 경로** (`createClient()` 쿠키 기반) 사용 — `pipeline_events` RLS `is_admin()` 정책과 이중 보호 계층. service_role 우회 대신 RLS 신뢰
+- searchParams: `level` (all/debug/info/warn/error), `service` (all/next-app/n8n), `offset` (0부터). Zod 검증 + 잘못된 값 조용히 기본값 fallback
+- 쿼리: `select("id, created_at, service, level, context_type, context_id, step, message", { count: "exact" })` + `order("created_at", desc)` + `range(offset, offset+99)`
+- UI: `PageHeader` + native `<form method="get">` 필터 + 테이블 (시간 KST / level 배지 / service / context / step / message 120자 truncate) + prev/next 페이지네이션
+- `LEVEL_BADGE_CLASSES: Record<LogLevel, string>` + `getBadgeClass()` runtime narrow 함수 (Consider (d) 반영)
+- error boundary로 throw → `error.tsx`로 전파. generic 메시지만 사용자 노출
+
+**`src/app/(admin)/admin/events/loading.tsx`** — 간단 skeleton 3블록
+
+**`src/app/(admin)/admin/events/error.tsx`** — `"use client"` error boundary, `useEffect(console.error)` + reset 버튼
+
+**`docs/n8n-workflows/test-log-event.sh`** — curl 5 케이스 수동 테스트 스크립트. `set -euo pipefail`, `$INTERNAL_LOG_EVENT_SECRET` 환경변수 참조 (하드코딩 금지).
+⚠️ **로컬 전용 — gitignore 대상**: `docs/n8n-workflows/` 폴더 전체가 "may contain secrets" 이유로 `.gitignore`에 등록되어 있어 이 파일은 git에 커밋되지 않는다. 새 환경에서는 `docs/runbooks/log-event-api.md`의 "부록: 테스트 스크립트 템플릿"에서 복사하여 로컬에 재생성.
+
+**`docs/runbooks/log-event-api.md`** — rotation 절차 + Supabase alert SQL + V2 계획 + 장애 대응 3 증상. 🔴 등급 프로젝트 운영 문서
+
+### 2. 수정 파일 (5개)
+
+**`src/lib/supabase/admin.ts`** — `createAdminClient` 싱글톤 패턴 (B-1 Should Fix #1 이연분 해소)
+- 모듈 레벨 `let cachedAdminClient: SupabaseClient | null = null`
+- 첫 호출 시 생성 + 캐싱, 이후 재사용. env 누락은 첫 호출에서만 throw
+- JSDoc에 "서버리스 per-process 격리로 메모리 누수 없음" 근거 명시
+
+**`src/lib/monitoring/log-event.ts`** — truncation 라벨 추가 (B-1 Consider (a))
+- `const TRUNCATE_SUFFIX = "…[truncated]"` + `function truncate(value, max)` 헬퍼
+- `MESSAGE_MAX = 2000`, `ERROR_STACK_MAX = 5000` 상수 추출
+- 잘린 값은 꼬리에 라벨 붙어 원본/절단본 구분 가능
+
+**`src/lib/monitoring/types.ts`** — `PipelineEventRow` 인터페이스 추가 (code-reviewer C4)
+- 기존 `LogEventInput`과 같은 파일에 co-locate → 스키마 단일 출처
+- page.tsx에서 로컬 정의를 제거하고 여기서 import
+
+**`src/lib/env.ts`** — `getInternalLogEventEnv()` 신규
+- `internalLogEventEnvSchema`: `INTERNAL_LOG_EVENT_SECRET` min 32자 제약
+- 기존 `getN8nEnv()`와 같은 분리 패턴 — 엔드포인트 밖의 다른 경로가 이 값 부재로 영향받지 않음
+- 생성 가이드 주석: `openssl rand -hex 32` (64자 hex)
+
+**`src/lib/api/validate.ts`** — `validateBody` 시그니처 확장 (code-reviewer C2)
+- `ValidationResult` 타입에 `kind: "json_parse" | "schema"` + `issues?: readonly ZodIssue[]` 추가
+- 보안 민감 엔드포인트가 `validated.response`(details 포함 422)를 무시하고 자체 generic 400 + `validated.issues`는 console only로 쓸 수 있도록 확장
+- 하위호환: 기존 호출자는 success 분기만 쓰므로 영향 없음. `validateQuery`도 kind/issues 채움 (typecheck가 잡아냄)
+
+### 3. 검증 게이트
+
+| 단계 | 결과 |
+|---|---|
+| `pnpm typecheck` | ✅ 0 errors (리뷰 반영 후 `validateQuery` kind 누락 1건 발견 → 즉시 수정) |
+| `pnpm lint` | ✅ 0 errors (pre-existing warning 1건 무관) |
+| `pnpm build` | ✅ `/admin/events` + `/api/v1/internal/log-event` 라우트 등록 확인 |
+
+### 4. 2개 독립 리뷰 — 양쪽 APPROVE WITH COMMENTS
+
+**code-reviewer** (품질/아키텍처/유지보수):
+- Must Fix: 0
+- Should Fix: 4 (C1 `parsed.data` 직접 전달 / C2 `validateBody` 재사용 / C3 `truncateMessage` 주석 / C4 `PipelineEventRow` 이동) — **전부 반영**
+- Consider: 5 — (b)(c)(d) 반영, (a) YAGNI로 defer, (e) False Positive 확인
+- "Good Patterns" 칭찬 5건 (admin.ts 싱글톤 JSDoc / constantTimeEquals 주석 / log-event.ts 상수 / buildPageHref URL hygiene / page.tsx MVP scope 주석)
+
+**security-reviewer** (🔴 필수):
+- Must Fix: 0
+- Should Fix: 2
+  - 🟡 **S1 HIGH** — `route.ts:109-115` 빈 토큰 early return이 타이밍 오라클. `if (providedToken.length === 0) return 401;` 분기가 `constantTimeEquals` 호출을 건너뛰면서 "빈 토큰 vs 1자 이상" 사이 SHA-256 두 번 비용(수 μs) 차이. **즉시 반영** — 빈 토큰 분기 제거, `constantTimeEquals` 항상 실행
+  - 🟡 **S2 MEDIUM** — rate limiting 부재 + 토큰 rotation 절차 미정의. n8n credential 탈취 시 audit log flooding 공격 가능. **문서로 흡수** — `docs/runbooks/log-event-api.md` 신규 작성 (rotation 순서, Supabase alert SQL, V2 Upstash Redis 계획)
+- 18 체크포인트 중 16 PASS: timing-safe 구현 ✓, fail-loud env ✓, Zod details 비공개 ✓, CSRF 무관 ✓, RBAC+RLS 이중 계층 ✓, XSS 자동 이스케이프 ✓, error.message leak 없음 ✓, secret console leak 없음 ✓, 싱글톤 서버리스 안전 ✓, 시크릿 관리 원칙 준수 ✓
+
+### 5. 반영 요약
+
+| 구분 | 건수 | 처리 |
+|---|---|---|
+| Must Fix | 0 | — |
+| Should Fix (code + security) | 6 | 전부 반영 (C1~4 + S1 + S2 문서) |
+| Consider | 5 | 3건 반영 (b/c/d), 1건 defer (a YAGNI), 1건 False Positive (e) |
+
+### 6. 안 건드린 것 (스코프 보호)
+
+- ❌ rate limiting (V2 — Task 2-M-B-3 후보)
+- ❌ zero-downtime token rotation (V2 — `runbooks/log-event-api.md`에 설계 기록)
+- ❌ Supabase alert 실제 설정 (Jayden 수동, runbook에 SQL 제공)
+- ❌ `/admin/events` 차트/Realtime/CSV/풀텍스트 검색 (V2)
+- ❌ `error_stack` 상세 페이지 (V2)
+- ❌ products/onboarding/auth actions logEvent 통합 (B-1 Follow-up #2)
+- ❌ n8n workflow 실제 credential 설정 (Jayden 수동)
+- ❌ `.env.example` 수정 (권한 제약 — Jayden 수동)
+- ❌ `LogService` union DB CHECK 제약 (V2)
+
+### 7. ⚠️ Jayden 수동 작업 (Task 2-M-B-2를 엔드-투-엔드로 활성화하려면)
+
+1. **시크릿 생성 + 설치**:
+   ```bash
+   openssl rand -hex 32
+   ```
+   - 결과를 `.env.local`에 `INTERNAL_LOG_EVENT_SECRET=<64자 hex>` 추가
+   - Vercel Production/Preview 환경변수 동일값 추가
+   - n8n Error Handler 워크플로우 HTTP Request 노드 Header에 `Authorization: Bearer <secret>` 등록
+2. **`.env.example` 업데이트** (Claude 권한 제약): `INTERNAL_LOG_EVENT_SECRET=your-64-char-hex-secret` placeholder 1줄 추가
+3. **엔드-투-엔드 검증**:
+   - 로컬: `pnpm dev` → `INTERNAL_LOG_EVENT_SECRET=<값> bash docs/n8n-workflows/test-log-event.sh` → 5 케이스 검증
+   - Supabase MCP `execute_sql`로 `pipeline_events`에 Test 3 row 추가 확인
+   - 브라우저 로그인(admin 계정) → `http://localhost:3800/admin/events` → 테이블 렌더 + 필터 동작 확인
+   - non-admin 계정 → `/admin/events` 접근 → `/` 리다이렉트 확인
+4. **Supabase Alert 설정** (권장): `docs/runbooks/log-event-api.md`의 SQL 기반 custom alert 적용
+
+### Status
+- **Status**: Task 2-M-B-2 코드 완료 + 2개 리뷰 Must 0 + Should 전부 반영 + 문서까지 포함. Jayden 환경변수 설정만 하면 엔드-투-엔드 활성
+- **Blockers**:
+  - (신규) Jayden 수동: `INTERNAL_LOG_EVENT_SECRET` 생성 + `.env.local`/Vercel/n8n 등록
+  - (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+- **Next**: Session #19 — (a) Jayden의 엔드-투-엔드 검증 후 결과 공유 → (b) 남은 follow-up 중 선택: B-1 Follow-up #2 (다른 Server Action logEvent 통합) / Session #16 Follow-up #3 (쿠키 상수) / Task 2-M-B-3 (rate limit V2)
+
+---
+
+## 이전 세션 (Session #17) — Task 2-M-B-1: 통합 모니터링 인프라 1단계
 
 커밋 `aa74dde` `feat(monitoring): Task 2-M-B-1 — pipeline_events + logEvent + (admin) RBAC` (6 files / +350 -7)
 

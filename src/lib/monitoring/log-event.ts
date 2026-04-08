@@ -2,6 +2,21 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { LogEventInput } from "./types";
 
 /**
+ * 길이 초과 시 꼬리에 붙는 라벨 — Task 2-M-B-2 (B-1 Consider (a) 흡수).
+ * 잘린 메시지인지 원본인지 관측 시 즉시 구분할 수 있게 한다.
+ */
+const TRUNCATE_SUFFIX = "…[truncated]";
+const MESSAGE_MAX = 2000;
+const ERROR_STACK_MAX = 5000;
+
+function truncate(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+  return value.slice(0, maxLength - TRUNCATE_SUFFIX.length) + TRUNCATE_SUFFIX;
+}
+
+/**
  * Fire-and-forget 모니터링 로깅 — Task 2-M-B-1
  *
  * 설계 원칙:
@@ -11,7 +26,8 @@ import type { LogEventInput } from "./types";
  *      허용. INSERT는 service_role만 가능. createAdminClient()가 service_role
  *      키를 사용한다.
  *   3. **필드 길이 절단** — message는 2000자, error_stack은 5000자로 slice.
- *      폭증한 에러 스택이 DB row를 부풀리지 않도록 한다.
+ *      폭증한 에러 스택이 DB row를 부풀리지 않도록 한다. 잘렸을 때는
+ *      꼬리에 `…[truncated]` 라벨이 붙어 원본/절단본을 구분할 수 있다.
  *
  * 호출 패턴:
  *   void logEvent({ service: "next-app", level: "info", message: "..." });
@@ -26,11 +42,13 @@ export async function logEvent(input: LogEventInput): Promise<void> {
     const { error } = await admin.from("pipeline_events").insert({
       service: input.service,
       level: input.level,
-      message: input.message.slice(0, 2000),
+      message: truncate(input.message, MESSAGE_MAX),
       context_type: input.contextType ?? null,
       context_id: input.contextId ?? null,
       step: input.step ?? null,
-      error_stack: input.errorStack ? input.errorStack.slice(0, 5000) : null,
+      error_stack: input.errorStack
+        ? truncate(input.errorStack, ERROR_STACK_MAX)
+        : null,
       user_id: input.userId ?? null,
       shop_id: input.shopId ?? null,
     });

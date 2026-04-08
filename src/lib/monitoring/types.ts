@@ -27,3 +27,25 @@ export interface LogEventInput {
   readonly userId?: string | null;
   readonly shopId?: string | null;
 }
+
+/**
+ * pipeline_events 테이블 row의 조회 전용 shape.
+ *
+ * 현재 Supabase Database 타입을 `supabase gen types`로 생성하지 않기 때문에
+ * SELECT 결과는 SDK가 `any[]`에 가까운 형태로 추론한다. 조회측(`/admin/events`
+ * 등)에서 일관된 row 모양을 쓰기 위해 여기에 한 번만 정의한다.
+ *
+ * 주의: `error_stack` 컬럼은 MVP 조회 UI에서 제외되어 있으며, 이 타입은
+ * 조회 UI에서 실제 select하는 컬럼들만 포함한다. 상세 페이지 등에서
+ * error_stack이 필요해지면 확장 shape를 별도로 정의하거나 이 타입에 추가.
+ */
+export interface PipelineEventRow {
+  readonly id: string;
+  readonly created_at: string;
+  readonly service: string;
+  readonly level: string;
+  readonly context_type: string | null;
+  readonly context_id: string | null;
+  readonly step: string | null;
+  readonly message: string;
+}
