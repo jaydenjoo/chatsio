@@ -20,6 +20,41 @@
 
 ---
 
+### 2026-04-08 — [Security] 🚨 secret 값을 채팅에 직접 붙여넣음 — Claude 컨텍스트 노출 사고
+- **증상**: Task A E2E 검증 1차 실패 후 진단 과정에서 Jayden이 `.env.local`의 잘못된 라인 전체(`EOFINTERNAL_LOG_EVENT_SECRET_PRIMARY=990e...2160`)를 채팅창에 그대로 붙여넣음. 64자 hex secret이 Claude API 요청에 포함되어 컨텍스트로 들어옴
+- **유출 경로**:
+  1. Anthropic API 요청/응답 로그 (운영 로그에 평문 저장)
+  2. 로컬 세션 기록 (`/Users/jayden/.claude/projects/-Users-jayden-projects-chatsio/...`)
+  3. 향후 PROGRESS.md/learnings.md 등 문서 작성 시 실수로 복사될 위험
+- **대응**: 즉시 폐기 결정 → 새 PRIMARY 생성 (`openssl rand -hex 32`로 매번 다른 값) → 유출된 값은 어떤 환경(.env.local / Vercel / n8n)에도 등록 안 했으므로 실제 피해 0
+- **근본 원인**:
+  1. Jayden은 비개발자라 "환경변수 값 = secret = 절대 노출 금지"라는 등식이 즉각 떠오르지 않음
+  2. Claude의 안내가 "값은 마스킹"을 단호히 강조 안 했음 — "마지막 줄 확인해 주세요" 정도로만 표현
+  3. 진단 자체가 secret을 직접 봐야 하는 상황을 만들었음 (잘못된 라인 식별 = 값 포함된 라인 식별)
+- **규칙**:
+  1. **🔴 프로젝트에서 secret 값을 채팅에 붙여넣으면 즉시 폐기 + 재생성** — "안 본 척" 금지. "괜찮을 것 같은데" 금지. 노출은 곧 유출로 간주
+  2. **secret 진단 시 값 대신 메타데이터만 요청** — "마지막 라인 길이가 몇?", "마지막 라인이 `=` 포함하는가?", "마지막 라인 첫 글자가 영문 대문자인가?" 등 구조만 파악. 값 자체는 절대 보지 않음
+  3. **secret 노출 방지 안내는 진단 단계마다 반복 명시** — "값은 절대 채팅에 붙여넣지 마세요. 'INTERNAL_LOG_EVENT_SECRET_PRIMARY=xxx...xxx'처럼 마스킹하거나, 길이만 알려주세요"를 매번 표시
+  4. **append 명령은 한 번에 성공하도록 사전 검증** — 두 번째 시도에서 같은 실수 반복 가능성. `printf '\n%s\n'` 패턴으로 newline-safe append 기본값 사용
+  5. **비개발자 사용자에게는 "왜 위험한가"까지 한 줄로** — "secret이 노출되면 그 토큰으로 누구나 API를 호출할 수 있게 됩니다"처럼 영향을 항상 첨부
+- **컨텍스트**: Session #21 Task A 실전 검증. `.env.local` newline 누락(사고 #1) 진단 과정에서 발생. 다행히 유출된 값이 어디에도 등록되지 않아 실제 피해 0이지만, 만약 Vercel/n8n에 동일 값을 등록한 후였다면 즉시 rotation 비상 절차 필요. 🔴 프로젝트에서 secret을 다루는 모든 단계에 이 교훈 적용
+
+### 2026-04-08 — [AI-Pitfall] `.env.local` append 시 newline 누락 → silent corruption
+- **증상**: `echo "INTERNAL_LOG_EVENT_SECRET_PRIMARY=$(openssl rand -hex 32)" >> .env.local` 실행 후 dev 서버 재기동했지만 PRIMARY가 인식 안 됨. 로그에 "환경변수 누락 또는 32자 미만". 에러 메시지는 "누락"이지만 실제로는 **이전 라인과 합쳐져서 변수명이 변형**된 상태
+- **원인**: 기존 `.env.local`이 `EOF`라는 잔재 문자열로 끝나면서 trailing newline이 없었음. `echo`는 끝에 newline을 붙이지만 **시작에는 안 붙임** → append 결과: `EOF` + `INTERNAL_LOG_EVENT_SECRET_PRIMARY=hex...` + `\n`이 한 라인으로 합쳐짐. dotenv 파서는 이 라인을 `EOFINTERNAL_LOG_EVENT_SECRET_PRIMARY`라는 valid identifier로 인식 → 정상 키 부재
+- **해결**: 에디터로 잘못된 라인 통째 삭제 → 빈 줄 추가 → 저장 → `echo >> .env.local` 재실행. 이번엔 파일이 newline으로 끝나있어 정상 라인으로 추가됨
+- **규칙**:
+  1. **`.env.local`/`.envrc`/`.bashrc` 등 환경 파일에 append 시 newline-safe 패턴 사용** — `printf '\n%s\n' "KEY=value" >> file` (앞에 newline 강제, 뒤에 newline 보장). `echo >> file`은 사람이 만든 파일에 위험
+  2. **POSIX 파일이 newline으로 끝난다는 가정 금지** — GUI 에디터(macOS TextEdit 등), 이전 heredoc 작업 실패 잔재, 사용자 손편집은 trailing newline 없는 경우 흔함
+  3. **dev 서버 재기동 후 runtime 검증 필수** — `tsc/lint/build`는 .env.local 파싱 오류를 못 잡음. 변경 후 즉시 curl 또는 health check로 "예상한 분기"가 작동하는지 확인. 이번 케이스: 무인증 curl이 401(정상)인지 500(env 누락)인지 1초 검증
+  4. **silent corruption 패턴 의식** — 에러 메시지가 "누락"이라고 해서 정말 누락인 게 아니라 "변수명 변형으로 인한 부재"일 수 있음. 1차 진단이 안 맞으면 **파일 끝부분의 raw bytes**를 확인 (단, 🔴 프로젝트에서는 값 자체 노출 금지 → 길이/구조만 메타로)
+  5. **append 한 번에 성공하도록 하는 표준 헬퍼** — 향후 유사 상황 대비 1줄 helper 검토:
+     ```bash
+     env_append() { printf '\n%s\n' "$1" >> "$2" && grep -q "^${1%%=*}=" "$2"; }
+     # 사용: env_append "KEY=$(openssl rand -hex 32)" .env.local
+     ```
+- **컨텍스트**: Session #21 Task A 실전 검증 1차 시도. dev 서버 로그가 "누락 또는 32자 미만"이라고만 알려줬는데 실제 원인은 변형. 진단에 ~10분 소요. 만약 이걸 못 잡았으면 "secret을 다시 만들어도 안 됨" 무한 루프 빠질 수 있었음. 이 교훈을 안다면 동일 증상 재발 시 **first check = `tail -1 .env.local`로 마지막 라인 raw 확인** (🔴 secret이 아닌 환경에서)
+
 ### 2026-04-08 — [Security] JavaScript `||` short-circuit이 다중 토큰 비교의 타이밍 일관성을 깨뜨림
 - **증상**: Task 4 zero-downtime rotation 설계 중 발견. PRIMARY와 SECONDARY 두 토큰을 비교할 때 자연스러운 패턴은 `constantTimeEquals(t, primary) || constantTimeEquals(t, secondary)`이지만, 이 패턴은 PRIMARY가 일치하면 SECONDARY 비교를 **실행하지 않는다** (short-circuit evaluation). 결과: "PRIMARY 매칭" vs "SECONDARY 매칭" 응답 시간이 SHA-256 두 번 + timingSafeEqual 한 번 차이만큼 달라짐 → 공격자가 "어느 쪽 토큰으로 통과했는지" 구분 가능 → rotation 상태 leak
 - **원인**: JavaScript `||` 연산자는 lazy evaluation. 첫 피연산자가 truthy면 두 번째 피연산자는 평가하지 않는다. 이는 대부분의 상황에서 성능 최적화이지만, 상수 시간 보안 비교에서는 타이밍 오라클의 원인. 추가 위험: `env.SECONDARY ?? undefined`처럼 SECONDARY 부재를 optional chaining/nullish coalescing으로 처리하면 "부재 시 한 번만 비교" vs "존재 시 두 번 비교" 타이밍 차이도 발생 → "이 시스템이 rotation 중인가"조차 leak

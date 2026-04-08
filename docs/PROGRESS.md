@@ -5,21 +5,15 @@
 
 ## 현재 위치
 - Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Task 2-M-B-2 + 확장 완료** → **Task A (E2E 실전 검증)** 블로커 대기 중
-- 커밋: `cb03155` (B-2 초안) → `a8ac5a8` (middleware fix) → `7a74d12` (logEvent 확산 + 쿠키 상수) → `23eeeee` (zero-downtime rotation) — Session #20은 코드 변경 0건
-- 상태: 🚦 **BLOCKED — Jayden PRIMARY secret 미설정**. Session #20에서 `.env.local` 재검사 시 `INTERNAL_LOG_EVENT_SECRET_PRIMARY` 정의 0개 확인됨. 코드 레벨은 완료, secret만 설정되면 즉시 E2E 검증 가능
+- Task: **Task 2-M-B-2 + 확장 + Task A (E2E 실전 검증) 완료** ✅
+- 커밋: `cb03155` → `a8ac5a8` → `7a74d12` → `23eeeee` → `e1f654a` (Session #20 메타) → **Session #21 메타 커밋 예정**
+- 상태: ✅ **Task 2-M 전체 완료 + 실전 동작 입증**. 5개 시나리오 PASS + Supabase row insert 확인 + 정리 완료
 - 다음:
-  1. 🚦 **[BLOCKER] Jayden 수동**: 터미널 또는 채팅창에 `!` 접두어로 아래 한 줄 실행 →
-     ```bash
-     !echo "INTERNAL_LOG_EVENT_SECRET_PRIMARY=$(openssl rand -hex 32)" >> .env.local
-     ```
-     `>>` append로 기존 변수 보존, `echo` 출력이 파일로 리다이렉트되어 Claude 컨텍스트에 값 미노출. 완료 후 **`pnpm dev` Ctrl+C → 재기동** (Next.js가 .env.local 재로드하려면 필수). **SECONDARY는 rotation 시점에만 설정**
-  2. ⚠️ **Jayden 수동**: Vercel Env (Preview + Production)에 동일 값 등록 + n8n Error Handler credential 등록
-  3. ⚠️ **Jayden 수동**: `.env.example`에 `INTERNAL_LOG_EVENT_SECRET_PRIMARY=your-64-char-hex-secret` placeholder 추가 (권한 제약으로 Claude가 직접 수정 불가)
-  4. **엔드-투-엔드 검증** (Jayden 1번 완료 후 즉시 Claude가 실행): `docs/runbooks/log-event-api.md` 부록(L164~243)의 test 스크립트 템플릿을 `docs/n8n-workflows/test-log-event.sh`로 저장(gitignore 대상) → 5개 시나리오(무인증 401 / 틀린 Bearer 401 / 정상 200 / level 누락 400 / 2001자 400) 실행 + Supabase MCP로 `pipeline_events` row 확인 + 테스트 row 정리
-  5. **Task 2-M-B-3-A (V2)**: Upstash Redis 기반 rate limiting (Upstash 가입 후 진행) — `docs/runbooks/log-event-api.md` V2 계획 참조
-  6. **Task 2-M-B-3-B (Jayden 수동)**: Supabase Dashboard에서 custom alert 실제 등록 (SQL은 runbook에 있음)
-  7. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+  1. ⚠️ **Jayden 수동 (배포 전)**: Vercel Env (Preview + Production)에 `INTERNAL_LOG_EVENT_SECRET_PRIMARY` 등록 + n8n Error Handler credential 등록
+  2. ⚠️ **Jayden 수동**: `.env.example`에 `INTERNAL_LOG_EVENT_SECRET_PRIMARY=your-64-char-hex-secret` placeholder 추가
+  3. **Task 2-M-B-3-A (V2)**: Upstash Redis 기반 rate limiting (Upstash 가입 후 진행) — `docs/runbooks/log-event-api.md` V2 계획 참조
+  4. **Task 2-M-B-3-B (Jayden 수동)**: Supabase Dashboard에서 custom alert 실제 등록 (SQL은 runbook에 있음)
+  5. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -37,7 +31,79 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 상태 (Session #20, 2026-04-08) — Task A 블로커 확인, 코드 변경 0건
+## 이번 세션 상태 (Session #21, 2026-04-08) — Task A E2E 실전 검증 완료 ✅
+
+Session #20에서 블로커였던 PRIMARY secret 설정을 해결하고 Task A 5개 시나리오 + Supabase 검증 + 정리까지 완수. **코드 변경 0건** (스크립트 파일 env var 이름만 fix, gitignore 대상).
+
+### 1. 진행 흐름
+1. `/start` → Session #20 BLOCKED 상태 확인
+2. Jayden이 `!echo "INTERNAL_LOG_EVENT_SECRET_PRIMARY=$(openssl rand -hex 32)" >> .env.local` 실행
+3. **🔴 1차 시도 실패**: dev 서버 재기동 후 무인증 curl이 여전히 500. 로그에 "PRIMARY 환경변수 누락 또는 32자 미만"
+4. 진단: `.env.local` 마지막 라인이 개행 없이 끝났고, append된 PRIMARY가 이전 `EOF`라는 잔재 문자열 뒤에 붙음 → 실제 변수명이 `EOFINTERNAL_LOG_EVENT_SECRET_PRIMARY`로 등록 → 정상 키 부재
+5. **🚨 2차 사고**: Jayden이 진단 과정에서 잘못된 라인 전체(secret 값 포함)를 채팅에 붙여넣음 → secret이 Claude 컨텍스트에 노출 → **즉시 폐기 + 재생성 결정**
+6. Jayden이 에디터에서 `EOFINTERNAL_...` 라인 삭제 + 빈 줄 추가 + 저장 → 명령어 재실행 → 새 PRIMARY 값 자동 생성
+7. dev 서버 재기동 → 무인증 curl HTTP 401 ✅
+8. `bash docs/n8n-workflows/test-log-event.sh` 5개 시나리오 실행 → **전부 PASS**
+9. Supabase MCP로 `pipeline_events` Test 3 row 확인 → DELETE → 잔여 0건
+
+### 2. 5개 시나리오 결과
+| Test | 기대 | 실제 | 상태 |
+|---|---|---|---|
+| 1. 무인증 | 401 UNAUTHORIZED | 401 UNAUTHORIZED | ✅ |
+| 2. 틀린 Bearer | 401 UNAUTHORIZED | 401 UNAUTHORIZED | ✅ |
+| 3. 정상 토큰 + valid body | 200 + `{logged:true}` | 200 + `{logged:true}` | ✅ |
+| 4. level 누락 | 400 INVALID_PAYLOAD | 400 INVALID_PAYLOAD | ✅ |
+| 5. message 2001자 | 400 INVALID_PAYLOAD | 400 INVALID_PAYLOAD | ✅ |
+
+추가 검증:
+- TOKEN length=64 (env source 후 echo로 길이만 출력, 값 미노출)
+- Test 4/5 generic 400 응답 — Zod issues 미노출 ✅ (Session #18 `ValidationResult` 확장 효과 입증)
+- Test 3 DB row: `service=n8n, level=info, context_type=test, context_id=manual-run-001, created_at=2026-04-08 07:35:57+00`
+
+### 3. Supabase 검증 + 정리
+- Test 3 row 1건 확인 → DELETE 1건 → 잔여 `context_type='test'` row **0건**
+- DB insert 경로 (Bearer 검증 → Zod → service_role insert → response) 전 과정 동작 입증
+
+### 4. 사고 #1: `.env.local` append 시 newline 누락 → silent corruption
+**증상**: `echo "X=val" >> .env.local`이 이전 라인과 같은 줄에 합쳐짐. 결과: 이전 변수명이 `<원래이름><새이름>`으로 변형되고 새 키는 등록 안 됨. 에러 메시지 없음 (silent).
+
+**원인**: 기존 파일이 newline으로 끝나지 않음. POSIX 표준은 텍스트 파일이 newline으로 끝나길 권장하지만 모든 도구가 보장하지 않음. 특히 사람이 손으로 만든 `.env.local`이나 GUI 에디터가 trailing newline을 빼먹은 경우 흔함.
+
+**해결**: 에디터로 잘못된 라인 삭제 → 빈 줄 추가 → 저장 → `echo >> .env.local` 재실행. 또는 처음부터 `printf '\n%s\n' "X=val" >> .env.local`로 앞뒤 newline 강제.
+
+**규칙 (learnings.md 정식 기록 대상)**: `.env.local` 등 환경 파일에 append 시 항상 사전에 newline 보장. 또는 안전한 패턴 (`printf '\n...'`) 사용. dev 서버 재기동 후 **runtime 검증 필수** (curl 401 vs 500)으로 silent corruption 즉시 감지.
+
+### 5. 사고 #2: 🚨 secret 값을 채팅에 붙여넣음 (CRITICAL)
+**증상**: Jayden이 `.env.local` 끝부분 진단을 위해 `EOFINTERNAL_LOG_EVENT_SECRET_PRIMARY=990e...2160` 라인을 그대로 채팅에 붙여넣음. 64자 hex secret이 Claude 컨텍스트로 들어옴.
+
+**유출 경로**:
+- Anthropic API 요청/응답 로그 (Claude 학습 데이터 X, 운영 로그 O)
+- 로컬 세션 기록 (`/Users/jayden/.claude/projects/-Users-jayden-projects-chatsio/...`)
+- PROGRESS.md 등 문서에 실수로 복사될 가능성
+
+**대응**: 즉시 폐기. 새 PRIMARY 값 생성 (`openssl rand -hex 32`로 매번 다른 값). 유출된 값은 어떤 환경(.env.local / Vercel / n8n)에도 등록 안 했으므로 실제 피해 없음.
+
+**근본 원인**: Jayden은 비개발자라 "환경변수 값 = secret"이라는 등식이 즉각 떠오르지 않음. Claude의 안내가 "값은 마스킹"을 단호히 강조 안 했음. 진단 과정 자체가 secret을 직접 봐야 하는 상황을 만들었음.
+
+**규칙 (learnings.md 정식 기록 대상)**:
+1. **secret 노출 방지 안내는 매번 명시적으로** — "절대 채팅에 붙여넣지 말 것"을 진단 단계마다 반복.
+2. **진단 시 값 대신 메타데이터 요청** — "마지막 라인 길이?", "마지막 라인이 `=` 포함하는가?", "마지막 라인이 영문 대문자로 시작하는가?" 등 값 자체를 보지 않고 구조만 파악.
+3. **🔴 프로젝트는 secret 값을 본 이상 즉시 폐기** — "괜찮을 거야"는 금지. 새 값으로 교체.
+4. **append 명령은 한 번에 성공하도록 사전 검증** — 두 번째 시도에서 같은 실수 반복 방지.
+
+### 6. 코드/파일 변경
+- `docs/n8n-workflows/test-log-event.sh`: env var 이름 `INTERNAL_LOG_EVENT_SECRET` → `_PRIMARY`로 update (Session #19 rotation 도입에 맞춤). gitignore 대상이라 git 추적 안 됨.
+- `docs/PROGRESS.md`: Session #21 기록 + 현재 위치/상태 갱신
+- `docs/learnings.md`: 사고 #1 + #2 정식 기록 (별도 entry 2개)
+
+### 7. Status
+- **Status**: ✅ Task 2-M (전체) 완료. 코드 + 검증 + 정리 모두 완수.
+- **Blockers**: (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+- **Next**: Vercel Env 등록 + .env.example placeholder 추가 (Jayden 수동) → Task 2-M-B-3-A/B 계획 또는 Phase 2 다음 단계
+
+---
+
+## 이전 세션 (Session #20, 2026-04-08) — Task A 블로커 확인, 코드 변경 0건
 
 Session #19에서 Task 2-M 코드 레벨 완료 직후, Session #20은 Task A (E2E 실전 검증)로 이어받을 예정이었다. 그러나 전제 확인 단계에서 Jayden PRIMARY secret이 실제로는 아직 설정되지 않은 상태임을 발견하고 **계획 단계에서 블로커 대기로 전환**.
 
