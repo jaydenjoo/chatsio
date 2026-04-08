@@ -5,16 +5,21 @@
 
 ## 현재 위치
 - Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Task 2-M-B-2 + 확장 완료** — Session #19에서 E2E 검증 + logEvent 확산 + 쿠키 상수 + zero-downtime rotation까지 일괄 완료
-- 커밋: `cb03155` (B-2 초안) → `a8ac5a8` (middleware fix) → `7a74d12` (logEvent 확산 + 쿠키 상수) → `23eeeee` (zero-downtime rotation)
-- 상태: Task 2-M 코드 레벨 완료. Jayden secret 설정만 하면 엔드-투-엔드 활성화
+- Task: **Task 2-M-B-2 + 확장 완료** → **Task A (E2E 실전 검증)** 블로커 대기 중
+- 커밋: `cb03155` (B-2 초안) → `a8ac5a8` (middleware fix) → `7a74d12` (logEvent 확산 + 쿠키 상수) → `23eeeee` (zero-downtime rotation) — Session #20은 코드 변경 0건
+- 상태: 🚦 **BLOCKED — Jayden PRIMARY secret 미설정**. Session #20에서 `.env.local` 재검사 시 `INTERNAL_LOG_EVENT_SECRET_PRIMARY` 정의 0개 확인됨. 코드 레벨은 완료, secret만 설정되면 즉시 E2E 검증 가능
 - 다음:
-  1. ⚠️ **Jayden 수동 작업**: `INTERNAL_LOG_EVENT_SECRET_PRIMARY` 생성(`openssl rand -hex 32`) → `.env.local` + Vercel env + n8n Error Handler credential 등록 (🔴 원칙상 Claude가 생성/저장하지 않음). **SECONDARY는 rotation 중에만 설정**
-  2. ⚠️ **Jayden 수동 작업**: `.env.example`에 `INTERNAL_LOG_EVENT_SECRET_PRIMARY=your-64-char-hex-secret` placeholder 추가 (권한 제약으로 Claude가 직접 수정 불가)
-  3. **엔드-투-엔드 검증** (Jayden 환경변수 설정 후): `docs/runbooks/log-event-api.md` 부록의 test 스크립트 템플릿을 `docs/n8n-workflows/test-log-event.sh`로 저장 후 실행 + Supabase MCP로 `pipeline_events` 행 추가 확인
-  4. **Task 2-M-B-3-A (V2)**: Upstash Redis 기반 rate limiting (Upstash 가입 후 진행) — `docs/runbooks/log-event-api.md` V2 계획 참조
-  5. **Task 2-M-B-3-B (Jayden 수동)**: Supabase Dashboard에서 custom alert 실제 등록 (SQL은 runbook에 있음)
-  6. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+  1. 🚦 **[BLOCKER] Jayden 수동**: 터미널 또는 채팅창에 `!` 접두어로 아래 한 줄 실행 →
+     ```bash
+     !echo "INTERNAL_LOG_EVENT_SECRET_PRIMARY=$(openssl rand -hex 32)" >> .env.local
+     ```
+     `>>` append로 기존 변수 보존, `echo` 출력이 파일로 리다이렉트되어 Claude 컨텍스트에 값 미노출. 완료 후 **`pnpm dev` Ctrl+C → 재기동** (Next.js가 .env.local 재로드하려면 필수). **SECONDARY는 rotation 시점에만 설정**
+  2. ⚠️ **Jayden 수동**: Vercel Env (Preview + Production)에 동일 값 등록 + n8n Error Handler credential 등록
+  3. ⚠️ **Jayden 수동**: `.env.example`에 `INTERNAL_LOG_EVENT_SECRET_PRIMARY=your-64-char-hex-secret` placeholder 추가 (권한 제약으로 Claude가 직접 수정 불가)
+  4. **엔드-투-엔드 검증** (Jayden 1번 완료 후 즉시 Claude가 실행): `docs/runbooks/log-event-api.md` 부록(L164~243)의 test 스크립트 템플릿을 `docs/n8n-workflows/test-log-event.sh`로 저장(gitignore 대상) → 5개 시나리오(무인증 401 / 틀린 Bearer 401 / 정상 200 / level 누락 400 / 2001자 400) 실행 + Supabase MCP로 `pipeline_events` row 확인 + 테스트 row 정리
+  5. **Task 2-M-B-3-A (V2)**: Upstash Redis 기반 rate limiting (Upstash 가입 후 진행) — `docs/runbooks/log-event-api.md` V2 계획 참조
+  6. **Task 2-M-B-3-B (Jayden 수동)**: Supabase Dashboard에서 custom alert 실제 등록 (SQL은 runbook에 있음)
+  7. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -32,7 +37,55 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 완료 내역 (Session #19) — E2E 검증 + Task 11/12/13 일괄 처리
+## 이번 세션 상태 (Session #20, 2026-04-08) — Task A 블로커 확인, 코드 변경 0건
+
+Session #19에서 Task 2-M 코드 레벨 완료 직후, Session #20은 Task A (E2E 실전 검증)로 이어받을 예정이었다. 그러나 전제 확인 단계에서 Jayden PRIMARY secret이 실제로는 아직 설정되지 않은 상태임을 발견하고 **계획 단계에서 블로커 대기로 전환**.
+
+### 1. 진행 흐름
+1. `/start` 스킬 실행 → PROGRESS.md + learnings.md 로드 → Session #19 상태 정확 파악
+2. 제안 Task 4개(A/B/C/D) 중 Jayden **A 선택** — E2E 실전 검증
+3. Task A 계획 수립 + Jayden 승인
+4. 전제 자동 확인 → 🚦 블로커 발견
+
+### 2. 전제 확인 결과
+- `.env.local` 존재 ✅ / `INTERNAL_LOG_EVENT_SECRET_PRIMARY` 정의 **0개** ❌ / `_SECONDARY` 정의 0개
+- dev 서버 (포트 3800, PID 9793) 실행 중 ✅ — 단 .env.local에 PRIMARY 없어 500 응답 상태
+- `docs/runbooks/log-event-api.md` 부록 테스트 스크립트 템플릿 확인 완료 (L164~243, 5개 시나리오)
+
+### 3. 블로커 상세
+Session #19 종료 시점에 "Jayden 수동 작업 대기" 상태였고, Session #20 시작 시 Jayden이 질문 "값을 어디서 찾지?" → secret이 기존에 저장된 게 아니라 **지금 처음 생성해야 한다는 사실 자체가 명확하지 않았음**. 🔴 원칙상 Claude는 secret 생성/저장 불가.
+
+**제공한 안내**:
+- `!echo "INTERNAL_LOG_EVENT_SECRET_PRIMARY=$(openssl rand -hex 32)" >> .env.local` 1줄 명령 (append + 출력 리다이렉트로 Claude 컨텍스트 미노출)
+- `pnpm dev` 재기동 필수 (Next.js 환경변수 재로드 조건)
+- SECONDARY는 실제 rotation 시점에만 설정 (지금 불필요)
+
+### 4. 다음 세션(#21) 첫 실행 플로우
+1. `.env.local` PRIMARY 길이 재검사 (값 출력 금지, 길이만)
+2. dev 서버 재기동 여부 확인 (curl로 500 → 200 전환 여부)
+3. `docs/n8n-workflows/test-log-event.sh` 생성 (runbook 템플릿 복사)
+4. 5개 시나리오 실행 → 결과 파싱
+5. Supabase MCP로 `pipeline_events` 조회 → Test 3 row 1건 존재 확인
+6. 테스트 row DELETE (Session #19 패턴 준수)
+7. 리포트 + 이슈 있으면 별도 fix Task 제안
+
+### 5. 교훈 후보 (learnings.md 기록 보류)
+**관찰**: "Jayden 수동 작업 대기" 상태를 PROGRESS.md `현재 위치.상태` 필드가 아닌 `다음` 리스트 1번에만 명시했더니, Session #20에서 상태 로드 시 "Task 2-M 완료"로 오독하기 쉬웠음. **Session #20에서는 `🚦 BLOCKED:` 표기로 상태 필드 최상단에 명시적으로 고침**.
+
+**규칙 후보**: Task 완료 선언에 "Jayden 수동 블로커 유무"를 항상 `현재 위치.상태` 필드에 가시화. 블로커 있으면 `🚦 BLOCKED:` prefix 사용.
+
+**기록 보류 이유**: 경미한 낭비(대화 몇 턴), 첫 발생. 동일 패턴 재발 시 learnings.md에 정식 기록.
+
+### 6. Status
+- **Status**: 🚦 Jayden PRIMARY secret 생성 대기. Claude 측 준비 완료
+- **Blockers**:
+  - 🚦 `INTERNAL_LOG_EVENT_SECRET_PRIMARY` 미설정 (Session #19부터 이월)
+  - (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+- **Next**: Jayden secret 설정 후 Session #21에서 위 "다음 세션 첫 실행 플로우" 1~7 실행
+
+---
+
+## 이전 세션 (Session #19) — E2E 검증 + Task 11/12/13 일괄 처리
 
 Session #18에서 커밋한 Task 2-M-B-2를 실제로 검증하고, Jayden이 선택한 Task 2 → 3 → 4를 순차 완료. **총 4개 커밋**.
 
