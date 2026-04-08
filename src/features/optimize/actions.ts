@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { invokeN8nWebhook } from "@/lib/n8n/client";
 import { buildN8nPayload } from "@/lib/n8n/payload";
 import { N8nConfigError, N8nInvocationError } from "@/lib/n8n/errors";
+import { logEvent } from "@/lib/monitoring/log-event";
 import {
   DUPLICATE_CHECK_WINDOW_MS,
   runOptimizationSchema,
@@ -94,6 +95,14 @@ export async function runOptimization(
       userId: user.id,
       message: shopError.message,
     });
+    void logEvent({
+      service: "next-app",
+      level: "error",
+      message: `shops query 실패: ${shopError.message}`,
+      contextType: "optimization",
+      step: "shops_query",
+      userId: user.id,
+    });
     return {
       success: false,
       errorCode: "DB_FAILED",
@@ -121,6 +130,16 @@ export async function runOptimization(
       productId,
       message: productError.message,
     });
+    void logEvent({
+      service: "next-app",
+      level: "error",
+      message: `products query 실패: ${productError.message}`,
+      contextType: "optimization",
+      contextId: productId,
+      step: "products_query",
+      userId: user.id,
+      shopId: shop.id,
+    });
     return {
       success: false,
       errorCode: "DB_FAILED",
@@ -144,6 +163,18 @@ export async function runOptimization(
     };
   }
 
+  // 파이프라인 진입 시점 — auth/shop/product 소유권 검증 통과
+  void logEvent({
+    service: "next-app",
+    level: "info",
+    message: `Optimization 요청 시작 (plan=${plan})`,
+    contextType: "optimization",
+    contextId: productId,
+    step: "run_start",
+    userId: user.id,
+    shopId: shop.id,
+  });
+
   // ---- 4. 5분 중복 체크 (UX용 선제 안내) ----
   // 참고 — 이 체크는 race condition을 완전히 막지 못한다. 실제 원자적
   // 차단은 DB partial unique index(migration 005)가 담당한다. 여기서는
@@ -166,6 +197,16 @@ export async function runOptimization(
     console.error("[runOptimization] duplicate query failed", {
       productId,
       message: duplicateQueryError.message,
+    });
+    void logEvent({
+      service: "next-app",
+      level: "warn",
+      message: `duplicate query 실패 (fallthrough): ${duplicateQueryError.message}`,
+      contextType: "optimization",
+      contextId: productId,
+      step: "duplicate_query",
+      userId: user.id,
+      shopId: shop.id,
     });
     // 쿼리 실패 시 UX 안내를 포기하고 INSERT를 시도한다. DB partial
     // unique index가 race 방어의 최종 수단이므로 여기서 리턴하지 않는다.
@@ -201,6 +242,19 @@ export async function runOptimization(
     // condition으로 누군가 직전에 진입했다는 뜻이므로 DUPLICATE_IN_FLIGHT
     // 응답으로 사용자를 진행 중인 row로 안내한다.
     if (insertError?.code === "23505") {
+      // race condition 감지 — partial unique index(migration 005)가 차단.
+      // 운영 중 빈도를 추적하기 위해 warn 이벤트로 기록.
+      void logEvent({
+        service: "next-app",
+        level: "warn",
+        message: "중복 INSERT 차단 (partial unique index): race condition 감지",
+        contextType: "optimization",
+        contextId: productId,
+        step: "optimization_insert_race",
+        userId: user.id,
+        shopId: shop.id,
+      });
+
       const { data: recent } = await supabase
         .from("optimizations")
         .select("id")
@@ -222,6 +276,16 @@ export async function runOptimization(
       productId,
       plan,
       message: insertError?.message,
+    });
+    void logEvent({
+      service: "next-app",
+      level: "error",
+      message: `optimization INSERT 실패: ${insertError?.message ?? "unknown"}`,
+      contextType: "optimization",
+      contextId: productId,
+      step: "optimization_insert",
+      userId: user.id,
+      shopId: shop.id,
     });
     return {
       success: false,
@@ -249,6 +313,23 @@ export async function runOptimization(
       }),
     );
   } catch (err) {
+    // Task 2-M-B-1 — 호출측에서 pipeline_events에 기록한다.
+    // markOptimizationFailed는 userId/shopId를 받지 않으므로 여기서 context를 채움.
+    const errorStep =
+      err instanceof N8nInvocationError ? err.step : "unknown";
+    const rawMessage =
+      err instanceof Error ? err.message : String(err);
+    void logEvent({
+      service: "next-app",
+      level: "error",
+      message: `n8n invocation 실패 (step=${errorStep}): ${rawMessage}`,
+      contextType: "optimization",
+      contextId: optimizationId,
+      step: "invoke_n8n",
+      errorStack: err instanceof Error ? (err.stack ?? null) : null,
+      userId: user.id,
+      shopId: shop.id,
+    });
     return await markOptimizationFailed({
       supabase,
       optimizationId,
@@ -257,6 +338,16 @@ export async function runOptimization(
   }
 
   // ---- 7. 성공 ----
+  void logEvent({
+    service: "next-app",
+    level: "info",
+    message: "Optimization 요청 큐잉 완료",
+    contextType: "optimization",
+    contextId: optimizationId,
+    step: "run_success",
+    userId: user.id,
+    shopId: shop.id,
+  });
   revalidatePath("/optimizations");
   return { success: true, optimizationId };
 }
@@ -317,7 +408,8 @@ async function markOptimizationFailed(
     });
   }
 
-  // rawMessage는 서버 로그에만 — Task 2-M에서 pipeline_events로 확장
+  // rawMessage는 서버 로그에만. pipeline_events 기록은 호출측(runOptimization
+  // catch 블록)이 담당 — user/shop 컨텍스트를 거기서만 갖고 있기 때문 (Task 2-M-B-1).
   console.error("[runOptimization] n8n invocation failed", {
     optimizationId,
     errorStep,
