@@ -20,6 +20,39 @@
 
 ---
 
+### 2026-04-08 — [AI-Pitfall] 외부 서비스 UI 가이드는 내 기억보다 사용자 스크린샷이 진실
+- **증상**: Session #23에서 Upstash Redis DB 생성 안내를 하면서 "Type: Regional 선택, TLS: On 확인"을 포함한 체크리스트를 제시. Jayden이 실제 화면 스크린샷을 보여주자 그 두 옵션이 **현재 UI에 존재하지 않음**이 드러남. Upstash가 위저드를 2단계로 바꾸면서 Type/TLS 선택을 제거하거나 다른 페이지로 옮김. Jayden이 스크린샷을 안 보냈으면 "왜 Type 옵션이 없지?" 혼란으로 세션 시간이 낭비됐을 것
+- **원인**:
+  1. SaaS 대시보드 UI는 분기별로 바뀌는 것이 정상 — 내 훈련 데이터의 UI는 이미 낡았을 가능성이 높음
+  2. "내가 본 적 있는 UI"를 체크리스트로 단정해 제시 → 사용자가 틀린 걸 알아차려야만 정정됨
+  3. 특히 Jayden은 비개발자라 "이 옵션이 없는데요"라고 말하기보다 "뭘 잘못했나?"로 자기 탓을 하기 쉬움 → 무음 혼란
+- **해결**: Session #23에서는 Jayden이 즉시 스크린샷을 보냈기 때문에 2분 안에 정정됐고, "제 설명이 오래된 UI 기준이었습니다"라고 사과 후 수정 안내 진행
+- **규칙**:
+  1. **외부 SaaS 대시보드 가이드는 "화면 확인 → 안내" 순서로** — 필드명/버튼 위치/토글 유무를 단정하기 전에 "현재 화면 스크린샷 주실 수 있나요?"를 먼저 물을 것. 특히 가입 후 첫 설정 화면처럼 UI 변경이 잦은 곳
+  2. **"내 기억 기반 체크리스트"에 안전장치 붙이기** — 부득이 화면 없이 안내해야 할 때는 "아래는 제 기억 기준이라 UI가 바뀌었을 수 있어요. 화면과 다르면 알려주세요"를 명시. Jayden이 "이게 없다"고 말하는 데 심리적 부담을 줄임
+  3. **WebFetch로 가격 페이지 검증한 것처럼 UI 섹션도 검증 가능하면 하기** — 이번 Session #23에선 가격은 `curl`로 확인했지만 생성 UI는 확인 안 함. 공식 문서 링크(`/docs/` 하위)가 스크린샷 포함인 경우가 많음
+  4. **비개발자 사용자에게는 "틀려도 괜찮다"를 명시적으로 신호** — "스크린샷 보여주면 제가 다시 확인하겠습니다"를 첫 안내에 포함. 사용자가 "내가 뭘 잘못했나?"로 가는 걸 방지
+  5. **UI 가이드와 값/설정 가이드를 분리** — 값(`openssl rand -hex 32`)과 구조(`printf '\n%s\n'`) 같은 불변의 것은 단정적으로, UI(버튼 위치, 토글 이름)는 확률적으로 안내. 두 영역의 확신도를 언어로 구분
+- **컨텍스트**: Session #23 Task 2-M-B-3-A(Upstash rate limiting). Jayden이 Gmail로 Upstash 가입 직후 DB 생성 화면에서 내 설명과 실제 화면이 다르다고 지적. Type(Regional vs Global)과 TLS 토글은 현재 Upstash Console에 없음. 나머지 필드(Name, Primary Region, Read Regions, Eviction)는 일치했고 그대로 진행하면 됐음. 스크린샷 덕분에 2분 안에 정정 완료
+
+### 2026-04-08 — [Architecture] 🔴 감사 로그 API의 fail-open 정당화 기준
+- **결정**: `/api/v1/internal/log-event`에 Upstash Redis 기반 rate limiting을 추가하면서, **Redis 장애 시 rate limiter는 fail-open으로 통과**시키고 **env 부재 시에도 no-op로 통과**시키는 설계를 택함. 🔴 프로젝트의 "fail-closed가 기본" 원칙과 정반대 방향이라 명시적 정당화가 필요
+- **근거**:
+  1. **"허용해서는 안 되는 액션"이 아니라 "기록해야 하는 이벤트"를 다루는 엔드포인트**: 결제/OAuth/세션 엔드포인트라면 fail-closed가 절대적이지만, log-event API의 본질은 "n8n 에러 이벤트를 Supabase에 감사 기록"하는 것. fail-closed로 가면 "장애가 났다는 사실 자체가 감사 로그에 남지 않는다"는 2차 사고가 1차 사고보다 치명적
+  2. **Rate limit의 역할은 flooding 방어**: 토큰 유출 시 공격자가 분당 1만건씩 가짜 이벤트로 `pipeline_events`를 오염시키는 것을 막는 것. Redis 장애 시 잠깐 이 방어가 꺼지더라도, 정상 운영 범위는 분당 한 자릿수라 flooding 탐지는 Supabase alert로도 가능
+  3. **env 부재 no-op는 로컬 dev 편의성**: Upstash 계정 없이도 로컬에서 엔드포인트가 동작해야 함. 프로덕션 실수 배포 위험은 "배포 체크리스트 + no-op 진입 시 warn 로그"로 방어
+- **반대 사례 (이 규칙을 적용하면 안 되는 곳)**:
+  - `/api/v1/auth/*` → fail-closed 절대적
+  - `/api/v1/optimize` (결제 연결) → fail-closed 절대적
+  - `/api/v1/admin/*` → fail-closed 절대적
+  - RLS 관련 경로 → 절대 fail-open 금지
+- **규칙**:
+  1. **🔴 프로젝트에서 fail-open을 선택할 수 있는 유일한 조건**: "엔드포인트가 기록/관측 목적이고, 장애 시 관측이 꺼지는 2차 사고가 1차 사고보다 치명적"이 증명될 때만. 이 두 조건 모두 만족해야 함
+  2. **fail-open 결정은 코드에 주석 + 런북에 명시** — 이유를 읽을 수 있어야 함. 다음 엔지니어가 "왜 여기만 fail-closed가 아니지?"를 의심 없이 이해 가능하게
+  3. **fail-open 모드 진입 시 관측 가능해야 함** — 침묵하지 말 것. 최소한 `console.warn` 한 줄로 Vercel Logs에서 "언제 fail-open이 켜졌는지" 탐지 가능해야 함. Session #23에서 security-reviewer가 "no-op 완전 침묵"을 MEDIUM으로 지적한 이유
+  4. **Rate limit 이전에 인증 체크** — fail-open이든 fail-closed든, 미인증 요청이 rate limit 카운터에 섞이면 정상 호출자의 quota를 공격자가 소진시킬 수 있음. 순서는 항상 `인증 → rate limit → 본문 검증`
+- **컨텍스트**: Session #23 Task 2-M-B-3-A. security-reviewer가 이 판단을 명시적으로 APPROVE한 근거 섹션을 기록해둠으로써, 향후 "왜 🔴 프로젝트인데 fail-open이지?" 의문이 생길 때 재논의 없이 참조 가능하도록 함. 규칙 #1의 "두 조건"은 엄격하게 지킬 것 — 다른 엔드포인트에 fail-open을 복사하기 전에 반드시 두 조건을 검증
+
 ### 2026-04-08 — [AI-Pitfall] 환경변수 append 후 중복 감지 미수행 → Session #21 "완료" 선언이 허위
 - **증상**: Session #21에서 `.env.local`에 `INTERNAL_LOG_EVENT_SECRET_PRIMARY` append 후 런타임 검증(curl 401 + Supabase row insert) 전부 통과 → "Task 2-M 전체 완료"로 기록 및 커밋. Session #22 시작 직후 Jayden이 "값이 없는 것 같다"고 보고 → `grep -c "^KEY="` 확인 결과 **`2`**. 동일 변수가 서로 다른 정상 값으로 **두 라인 공존**. dotenv 파서는 "마지막 라인이 이김" 규칙으로 동작하므로 런타임은 완벽히 정상 작동, 하지만 파일 내부는 오염 상태
 - **원인**:

@@ -5,15 +5,14 @@
 
 ## 현재 위치
 - Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Task 2-M 완료 (clean state 복구)** — Session #22에서 `.env.local` 중복 정리 + 신규 값 재생성 + 런타임 재검증
-- 커밋: `f946ef8` (Session #21) → **Session #22 메타 커밋 예정**
-- 상태: ✅ `.env.local` 단일 PRIMARY clean state. 로컬 dev 검증(curl 401) 통과. `.env.example` INTERNAL 블록 추가는 다음 세션 Jayden 수동 대기
+- Task: **Task 2-M-B-3-A 완료** — Session #23에서 Upstash Redis 기반 rate limiting 구현 + 독립 security 리뷰 APPROVE + 리뷰 수정 2건 반영
+- 커밋: `399494c` (Session #22) → **Session #23 커밋 2개 예정** (feat + docs)
+- 상태: ✅ 로컬 검증 전부 통과 (401/401/200/429 + Retry-After + Supabase row 집계 정확). security-reviewer CRITICAL/HIGH 0건.
 - 다음:
-  1. ⚠️ **Jayden 수동 (다음 세션 첫 작업)**: `.env.example` 맨 끝에 INTERNAL_LOG_EVENT_SECRET 블록 추가 (블록 내용은 Session #22 대화 기록 또는 Claude에게 재요청)
-  2. ⚠️ **Jayden 수동 (배포 전)**: Vercel Env (Preview + Production)에 **현재 PRIMARY 값** 등록 + n8n Error Handler credential 등록 (Session #22에서 신규 생성된 값 기준)
-  3. **Task 2-M-B-3-A (V2)**: Upstash Redis 기반 rate limiting — `docs/runbooks/log-event-api.md` V2 계획 참조
-  4. **Task 2-M-B-3-B (Jayden 수동)**: Supabase Dashboard에서 custom alert 실제 등록
-  5. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+  1. ⚠️ **Jayden 수동 (다음 세션 첫 작업)**: `.env.example` 맨 끝에 INTERNAL_LOG_EVENT_SECRET 블록 추가 (Session #22 블록 그대로 — Claude에게 재요청 가능)
+  2. ⚠️ **Jayden 수동 (배포 전)**: Vercel Env에 3개 변수 등록 — `INTERNAL_LOG_EVENT_SECRET_PRIMARY` + `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`. 상세 절차: `docs/runbooks/log-event-api.md` "🚀 배포 전 등록 체크리스트"
+  3. **Task 2-M-B-3-B (Jayden 수동)**: Supabase Dashboard에서 custom alert 실제 등록 (runbook SQL 복사)
+  4. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -31,7 +30,67 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 상태 (Session #22, 2026-04-08) — `.env.local` 중복 정리 + clean state 복구 ✅
+## 이번 세션 상태 (Session #23, 2026-04-08) — Task 2-M-B-3-A Upstash Redis rate limiting ✅
+
+**목표**: `/api/v1/internal/log-event` 엔드포인트에 Bearer 토큰 단위 분당 100건 rate limiting을 추가하여 🔴 프로젝트의 감사 로그 flooding 공격 방어. Session #22 계획의 "V2 4번(Upstash rate limit)" 항목을 완료.
+
+### 1. 계획 (옵션 C: B 먼저 → A)
+- **B-1**: `.env.example`에 `INTERNAL_LOG_EVENT_SECRET` 블록 추가 (권한 차단 → Jayden 수동 보류)
+- **B-2**: Runbook에 "배포 전 등록 체크리스트" 섹션 신규
+- **A**: Upstash Redis 기반 rate limiter 구현
+
+### 2. Upstash 계정 + DB 생성 (Jayden 수동)
+- Gmail 로그인 → Redis DB 생성 (`chatsio-ratelimit`, Tokyo region)
+- `.env.local`에 `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` append
+- Upstash UI가 내 안내와 달랐음(Type/TLS 토글 없음) → Jayden 스크린샷으로 확인 후 정정
+- 비용: Free 티어 500K commands/month로 수십~수백 배 여유 (예상 사용량 3K~30K/월)
+
+### 3. 구현 (코드 변경 4파일 + 문서 2파일)
+- **`src/lib/env.ts`**: `getUpstashEnv()` 신규 — 옵셔널 + Zod refine (둘 다 설정 또는 둘 다 없음)
+- **`src/lib/monitoring/log-event-ratelimit.ts`** (신규): Upstash Ratelimit 싱글턴, slidingWindow(100,"1 m"), 토큰 SHA-256 해시 key (리뷰 후 전체 256bit 사용), env 부재 시 no-op + warn 로그, Redis 장애 시 fail-open
+- **`src/app/api/v1/internal/log-event/route.ts`**: `checkToken` 통과 직후(body 파싱 전) rate limit 체크 → 초과 시 `logEvent({step:'rate_limit_exceeded'})` 기록 + 429 + `Retry-After` 헤더
+- **`src/lib/api/response.ts`**: `ApiErrors.tooManyRequests(retryAfterSeconds?)` 헬퍼 추가
+- **`docs/runbooks/log-event-api.md`**: V2 rate limit 항목을 ✅ 완료로 전환, 환경변수 표에 UPSTASH_* 추가, "🚀 배포 전 등록 체크리스트" 섹션(5 Phase 12단계) 신규, 429 장애 대응 추가
+- **`package.json`**: `@upstash/ratelimit@2.0.8` + `@upstash/redis@1.37.0`
+
+### 4. 검증 (로컬 dev + Supabase 집계)
+| 테스트 | 기대 | 실제 |
+|---|---|---|
+| 무인증 curl | 401 | ✅ 401 |
+| 틀린 Bearer | 401 | ✅ 401 |
+| 유효 토큰 단일 | 200 | ✅ 200 (pipeline_events row 1건 insert) |
+| 110 burst × 2회 | 첫 100 → 200, 나머지 → 429 | ✅ Supabase: 정상 insert 100건 + `rate_limit_exceeded` 121건 (10 + 110 + 1) |
+| Retry-After 헤더 | 정수 초 | ✅ `retry-after: 22` |
+
+테스트 row 222건 정리 완료. `pnpm typecheck && lint && build` 전부 통과.
+
+### 5. 독립 security 리뷰 (security-reviewer 서브에이전트)
+**판정: APPROVE — CRITICAL/HIGH 0건**. 11개 검토 항목 중 9개 PASS, 2개 개선 제안:
+- **수정 A (LOW)**: SHA-256 해시 `slice(0,16)` → 전체 64자 (256bit). "왜 잘랐지?" 의문 제거.
+- **수정 B (MEDIUM 완화)**: no-op 모드 진입 시 warn 로그. Vercel Env 누락이 조용히 배포되는 블라인드 스팟 해소.
+
+두 수정 모두 반영 후 재검증 통과.
+
+### 6. 설계 결정 근거
+- **Redis 장애 시 fail-open**: 감사 로그 누락 > rate limit bypass. "허용해서는 안 되는 액션"을 수행하는 엔드포인트가 아니라 **감사 이벤트를 받는** 엔드포인트이기 때문.
+- **토큰 해시 key + Upstash 원본 미저장**: 🔴 원칙 "secret은 가는 모든 경로에서 익명화". SHA-256 단방향 해시만 Redis에 저장되어 Upstash 대시보드/로그 노출 시에도 역산 불가.
+- **인증 순서**: `checkToken → rate limit`. 미인증 요청이 정상 토큰 quota를 소진 못 하게 함.
+- **SlidingWindow vs FixedWindow**: "59초 100건 + 61초 100건" 경계 burst 차단.
+- **옵셔널 env**: 로컬 dev/CI에서 Upstash 없이도 API 동작. 프로덕션은 배포 체크리스트로 등록 강제.
+
+### 7. 파일 변경
+- **신규**: `src/lib/monitoring/log-event-ratelimit.ts`
+- **수정**: `src/lib/env.ts`, `src/app/api/v1/internal/log-event/route.ts`, `src/lib/api/response.ts`, `docs/runbooks/log-event-api.md`, `docs/PROGRESS.md`
+- **의존성**: `package.json` + `pnpm-lock.yaml` (`@upstash/ratelimit`, `@upstash/redis` 추가)
+
+### 8. 다음 세션 이월
+1. `.env.example` INTERNAL_LOG_EVENT_SECRET 블록 추가 (권한 차단 — Jayden 수동)
+2. Vercel Env 3개 등록 (runbook "배포 전 등록 체크리스트" 따라가면 됨)
+3. Task 2-M-B-3-B Supabase custom alert 등록
+
+---
+
+## 이전 세션 상태 (Session #22, 2026-04-08) — `.env.local` 중복 정리 + clean state 복구 ✅
 
 Session #21이 "Task A 전체 완료"로 기록·커밋됐지만, Session #22 진입 직후 `.env.local`의 `INTERNAL_LOG_EVENT_SECRET_PRIMARY`가 **서로 다른 2개 라인**으로 존재함이 드러남. 런타임은 정상(dotenv가 마지막 라인을 이김)이지만 파일 구조는 오염 상태. Jayden 수동 정리 + 신규 값 재생성 + 재검증으로 clean state 복구. **코드 변경 0건** (`.env.local`만 수정, gitignore 대상).
 
