@@ -5,12 +5,13 @@
 
 ## 현재 위치
 - Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Bugfix 완료** — onboarding 무한 리다이렉트 (Session #15)
-- 상태: `(onboarding)` 라우트 그룹 분리 + 신규 layout. Playwright 4 시나리오 + code-reviewer APPROVE 통과. Phase 2 백엔드 파이프라인은 Session #14.5에서 엔드-투-엔드 검증 완료
+- Task: **Bugfix 완료** — `onboarding_done` 쿠키 set 누락 (Session #16)
+- 상태: `completeOnboarding()` Server Action이 DB update 직후 미들웨어와 동일 옵션으로 `onboarding_done=1` 쿠키 set. typecheck/lint/build + code-reviewer APPROVE 통과. Phase 2 백엔드 파이프라인은 Session #14.5에서 엔드-투-엔드 검증 완료
 - 다음:
-  1. **Task 2-M** (통합 모니터링 인프라 — pipeline_events 테이블 + logEvent + 미니 admin 페이지, 약 2~2.5h)
-  2. **Bugfix: `onboarding_done` 쿠키 미설정** (`completeOnboarding()` Server Action에서 쿠키 set 누락 → 매 요청 DB 재조회 성능 이슈, 약 15분)
-  3. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+  1. **Task 2-M-B-1** (모니터링 인프라 1단계 ~1.5h) — 마이그레이션 006 `pipeline_events` + `lib/monitoring/log-event.ts` 헬퍼 + `(admin)/layout.tsx` RBAC 추가 + `optimize/actions.ts` logEvent 통합 + 검증
+  2. **Task 2-M-B-2** (모니터링 인프라 2단계 ~1.5h) — `POST /api/v1/internal/log-event` API + `/admin/events` 미니 페이지 + code-reviewer + security-reviewer
+  3. **Follow-up: 쿠키 옵션 상수 추출 리팩터** (~15분, code-reviewer Should Fix #2) — `src/lib/supabase/cookie-options.ts`에 `ONBOARDING_COOKIE_OPTIONS` 상수 정의 → 미들웨어 + Server Action 양쪽 import. "두 곳 동기화 깨짐" 구조적 차단
+  4. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -28,7 +29,104 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 완료 내역 (Session #15) — Bugfix: onboarding 무한 리다이렉트
+## 이번 세션 완료 내역 (Session #16) — Bugfix: `onboarding_done` 쿠키 set + Task 2-M 분할 결정
+
+옵션 A → 옵션 B 흐름으로 시작. 옵션 A(쿠키 fix)는 완료하여 커밋. 옵션 B(Task 2-M 모니터링 인프라)는 계획만 확정하고 다음 세션으로 이연.
+
+### 1. 옵션 A — `completeOnboarding()` 쿠키 set 누락 fix
+
+**문제**: `src/features/onboarding/actions.ts:126-146` `completeOnboarding()` Server Action이 `user_profiles.onboarding_completed=true`로 update만 하고 `onboarding_done` 캐싱 쿠키를 set 안 함. 결과: 온보딩 완료 직후 첫 요청에서 미들웨어(`src/lib/supabase/middleware.ts:64-89`)가 `user_profiles`를 1회 더 SELECT하고 나서야 캐싱 쿠키 set.
+
+**fix (1파일, +14줄/-0줄)**: `src/features/onboarding/actions.ts`
+- `import { cookies } from "next/headers"` 추가
+- `completeOnboarding()` DB update 성공 분기에서 `cookieStore.set("onboarding_done", "1", {...})` 추가. 옵션은 미들웨어와 정확히 동일 (httpOnly + secure(prod) + sameSite=lax + maxAge=3600)
+- 주석 4줄: 왜 캐싱하는지 + 왜 보안 경계가 아닌지 + 미들웨어와 동기화 필요 경고
+
+**검증**:
+- `pnpm typecheck` ✅ (0 에러)
+- `pnpm lint` ✅ (신규 warning 0, pre-existing 1건 무관)
+- `pnpm build` ✅
+- 풀 Playwright는 5줄 fix에 비례해 다음 통합 검증 사이클로 이연
+
+**code-reviewer APPROVE WITH COMMENTS**:
+| 등급 | 건수 | 처리 |
+|---|---|---|
+| 🔴 Must Fix | 0 | — |
+| 🟡 Should Fix | 2 | #1 즉시 반영 / #2 follow-up Task로 분리 |
+| 💡 Consider | 2 | 둘 다 무문제 확인 |
+
+- **Should Fix #1 (반영)**: 주석에 라인 번호(`L82-87`) 참조 → 함수명(`updateSession() 내 onboarding_done 쿠키 설정`) 기반으로 교체. 이유: 라인 번호는 미들웨어 수정 시 드리프트되고 컴파일러가 못 잡음
+- **Should Fix #2 (follow-up)**: `maxAge: 3600` 등 옵션이 미들웨어 + Server Action 두 곳에 별도 하드코딩 → `src/lib/supabase/cookie-options.ts`에 `ONBOARDING_COOKIE_OPTIONS` 상수로 추출. scope creep이라 별도 Task로 분리 (위 "다음" #3)
+- **Consider #1**: Server Action 응답의 Set-Cookie는 `router.push` 시점에 이미 적용됨 → 경쟁 조건 없음 (확인됨)
+- **Consider #2**: `path` 옵션 미명시 → 기본값 `/`로 미들웨어와 일치 (문제 없음)
+
+**보안 검토** (security 영향 0):
+- 쿠키는 UX 캐싱 힌트, 보안 경계는 `(dashboard)/layout.tsx`의 매 요청 DB 검증 그대로
+- `completeOnboarding()`은 이미 `auth.getUser()` + DB update 성공 시에만 쿠키 set → 위조 쿠키 발급 경로 없음
+- 사용자가 쿠키 위조해도 layout에서 차단 (Session #6 [Security/Architecture] 교훈 패턴)
+
+**커밋**: `2665882` `fix(onboarding): completeOnboarding에서 onboarding_done 쿠키 set으로 미들웨어 DB 1회 절약`
+
+### 2. 옵션 B — Task 2-M 계획 확정 + 분할 결정 (다음 세션)
+
+**Stop-and-Think 발견**: `src/app/(admin)/layout.tsx`(17줄)에 RBAC 0줄. 누구나 로그인만 하면 `/admin/*` 6개 페이지 접근 가능. 🔴 보안 등급 프로젝트 + 신규 events 페이지에 운영 데이터(에러 스택, user_id) 노출 예정 → 알고도 미루면 안 됨.
+
+→ 결정: **Task 2-M-B-1에 `(admin) layout` RBAC 추가 포함**. 5줄 변경 + 10분 작업으로 6개 기존 admin 페이지 + 신규 events 페이지 동시 보호. `(dashboard)/layout.tsx`와 동일 패턴(async Server Component + DB role 검증) 재사용.
+
+**분할 결정**: B를 한 번에 2.5h 진행하지 않고 **B-1 → B-2 두 단계** 분리. 각 ~1.5h.
+
+#### Task 2-M-B-1 (다음 세션 첫 작업)
+1. **Migration 006**: `supabase/migrations/006_pipeline_events.sql` + 롤백 SQL
+   - 컬럼: id / created_at / service / level (CHECK debug|info|warn|error) / context_type / context_id / step / message / error_stack / user_id (auth.users FK ON DELETE SET NULL) / shop_id (shops FK ON DELETE SET NULL)
+   - 인덱스: `(created_at DESC)`, `(level, created_at DESC)`, `(context_type, context_id)`, `(user_id, created_at DESC)`
+   - RLS: SELECT는 `user_profiles.role='admin'`만, INSERT는 service_role만
+   - 적용 방법: Supabase MCP `apply_migration` (drizzle push 불가, 2026-04-05 [Architecture] 교훈)
+2. **`src/lib/monitoring/log-event.ts` + `types.ts`** 신규 폴더
+   - `async function logEvent(input: LogEventInput): Promise<void>`
+   - service_role client로 INSERT, fail-safe (throw 안 함, console.error 폴백)
+   - fire-and-forget은 호출자가 `void logEvent(...)`로
+3. **`(admin)/layout.tsx` RBAC** (Stop-and-Think 결과)
+   - async Server Component 전환
+   - `auth.getUser()` 없음 → `/login` redirect
+   - `user_profiles.role !== 'admin'` → `/` redirect
+   - console.error fail-secure
+4. **`optimize/actions.ts` logEvent 통합** (602줄, Phase 2 핵심)
+   - 통합 지점 5~7군데: runOptimization 시작(info), 인증/소유권/duplicate 실패(warn), n8n 호출 전후(info), N8nConfigError/N8nInvocationError(error+stack), DB INSERT 실패(error)
+   - **이번 범위 한정**: products/onboarding/auth actions는 follow-up Task
+5. **검증 게이트**: typecheck/lint/build + Supabase MCP `list_tables` + `execute_sql` SELECT로 logEvent 동작 확인 + (가능 시) Playwright admin/member RBAC 검증
+
+#### Task 2-M-B-2 (B-1 검증 통과 후)
+1. **`src/app/api/v1/internal/log-event/route.ts`**
+   - Header `Authorization: Bearer <INTERNAL_LOG_EVENT_SECRET>` 검증 (불일치 → 401)
+   - Zod 스키마로 LogEventInput 검증 → `logEvent()` 호출 → 200
+   - env 추가: `INTERNAL_LOG_EVENT_SECRET` (.env.local + Vercel + n8n credential ⚠️ jayden 수동)
+2. **`src/app/(admin)/admin/events/page.tsx`** (MVP)
+   - Server Component, 최근 100건 테이블
+   - 컬럼: created_at(KST) / level 컬러 배지 / service / context_type / context_id 링크 / step / message
+   - 필터: level (all|error|warn|info), service (all|next-app|n8n)
+   - 페이지네이션: limit/offset 100 단위 next/prev
+   - **MVP 제외**: 차트, Realtime, CSV export, 풀텍스트 검색 (V2)
+   - 디자인: 기존 admin 페이지 톤 (DM Sans + Pretendard, table)
+3. **검증 + 2개 리뷰**: typecheck/lint/build + Bearer 토큰 401/200 테스트 + Playwright admin/member RBAC + **`code-reviewer`** + **`security-reviewer`** ⚠️ 🔴 보안 등급 + Bearer 토큰 + service_role + RLS + admin RBAC → 필수
+
+### 3. 안 건드리는 것 (다음 세션 스코프 보호)
+- ❌ products/actions.ts, onboarding/actions.ts, auth/actions.ts logEvent 통합 → 별도 follow-up Task
+- ❌ events 페이지 차트/Realtime/검색 → V2
+- ❌ 기존 admin 페이지 디자인/기능 개선 → Task 4-2
+- ❌ pipeline_events retention/cleanup cron → V2 (지금은 무한 누적, 폭발 시 처리)
+
+### 4. 메모리 정리
+- `project_onboarding_bug.md` (Session #14.5에서 발견·기록한 무한 리다이렉트 버그 메모리) 삭제 — Session #15에서 이미 해결됨, MEMORY.md 인덱스에서도 제거
+
+### Status
+- **Status**: 옵션 A 완료 + 옵션 B 계획 확정. Phase 2 백엔드 파이프라인은 Session #14.5에서 검증된 상태 그대로
+- **Blockers**:
+  - (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+- **Next**: Session #17 — Task 2-M-B-1 (마이그레이션 006 + log-event 헬퍼 + (admin) RBAC + optimize logEvent 통합)
+
+---
+
+## 이전 세션 — Session #15 — Bugfix: onboarding 무한 리다이렉트
 
 Session #14.5에서 발견·기록한 onboarding 무한 리다이렉트 버그를 수정. 코드 변경 범위 작고(파일 이동 3 + 신규 1 + 기존 0줄 수정) 검증 게이트 + 자동 E2E + 독립 코드 리뷰까지 거쳤다. 약 30분 작업.
 
