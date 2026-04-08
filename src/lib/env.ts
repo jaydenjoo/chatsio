@@ -19,9 +19,18 @@ const n8nEnvSchema = z.object({
 
 // Internal log-event API 전용 — `POST /api/v1/internal/log-event` 엔드포인트에서만
 // 필요. 다른 런타임 경로는 이 값을 호출하지 않으므로 분리된 스키마를 사용.
-// 최소 32자 제약: 브루트포스 방어를 위해 충분한 엔트로피 요구.
+//
+// Zero-downtime rotation 지원 (Task 4):
+//   - PRIMARY: 현재 활성 시크릿. 필수. 최소 32자.
+//   - SECONDARY: rotation 기간 동안만 설정. 옵션. 최소 32자.
+//
+// 요청 토큰은 PRIMARY와 SECONDARY 양쪽과 비교되며 **둘 중 하나라도 일치**하면
+// 통과. 이는 "새 시크릿 배포 → 호출자 전환 → 구 시크릿 제거" 3단계를
+// 무중단으로 실행하기 위한 설계. route.ts의 `checkToken` 함수가 타이밍
+// 일관성까지 보장한다.
 const internalLogEventEnvSchema = z.object({
-  INTERNAL_LOG_EVENT_SECRET: z.string().min(32),
+  INTERNAL_LOG_EVENT_SECRET_PRIMARY: z.string().min(32),
+  INTERNAL_LOG_EVENT_SECRET_SECONDARY: z.string().min(32).optional(),
 });
 
 /** 클라이언트 + 서버 공용 환경변수 */
@@ -81,15 +90,23 @@ export function getN8nEnv(): z.infer<typeof n8nEnvSchema> {
  * 다른 경로(페이지 렌더, Server Action)가 이 값 부재로 영향받지 않도록 분리.
  *
  * 생성 방법: `openssl rand -hex 32` (64자 hex)
+ *
+ * Rotation 사용법 (zero-downtime):
+ *   1. 신규 PRIMARY 생성 → 현재 PRIMARY를 SECONDARY로 복사 → 신규 값을 PRIMARY로 설정
+ *   2. n8n credential을 신규 PRIMARY 값으로 교체 (기존 SECONDARY는 rotation 기간 동안 fallback)
+ *   3. Vercel 재배포 완료 후 SECONDARY 환경변수 제거 → rotation 완료
+ *
+ * Runbook: docs/runbooks/log-event-api.md
  */
 export function getInternalLogEventEnv(): z.infer<typeof internalLogEventEnvSchema> {
   const parsed = internalLogEventEnvSchema.safeParse({
-    INTERNAL_LOG_EVENT_SECRET: process.env.INTERNAL_LOG_EVENT_SECRET,
+    INTERNAL_LOG_EVENT_SECRET_PRIMARY: process.env.INTERNAL_LOG_EVENT_SECRET_PRIMARY,
+    INTERNAL_LOG_EVENT_SECRET_SECONDARY: process.env.INTERNAL_LOG_EVENT_SECRET_SECONDARY,
   });
 
   if (!parsed.success) {
     throw new Error(
-      `INTERNAL_LOG_EVENT_SECRET 환경변수 누락 또는 32자 미만: ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}. .env.local 파일을 확인하세요.`
+      `INTERNAL_LOG_EVENT_SECRET_PRIMARY 환경변수 누락 또는 32자 미만 (SECONDARY는 옵션): ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}. .env.local 파일을 확인하세요.`
     );
   }
 
