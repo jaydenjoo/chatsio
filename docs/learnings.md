@@ -20,6 +20,36 @@
 
 ---
 
+### 2026-04-08 — [AI-Pitfall] 환경변수 append 후 중복 감지 미수행 → Session #21 "완료" 선언이 허위
+- **증상**: Session #21에서 `.env.local`에 `INTERNAL_LOG_EVENT_SECRET_PRIMARY` append 후 런타임 검증(curl 401 + Supabase row insert) 전부 통과 → "Task 2-M 전체 완료"로 기록 및 커밋. Session #22 시작 직후 Jayden이 "값이 없는 것 같다"고 보고 → `grep -c "^KEY="` 확인 결과 **`2`**. 동일 변수가 서로 다른 정상 값으로 **두 라인 공존**. dotenv 파서는 "마지막 라인이 이김" 규칙으로 동작하므로 런타임은 완벽히 정상 작동, 하지만 파일 내부는 오염 상태
+- **원인**:
+  1. Session #21 사고 #1(newline silent corruption) 복구 과정에서 에디터 수동 편집 + 재append를 섞어 진행 → 중간 어느 시점에 잔재 라인 1개가 남음
+  2. Session #21 검증 플로우가 "curl status + Supabase row"만 확인하고 **파일 구조적 건강도(`grep -c` = 1)는 점검 안 함**
+  3. dotenv의 "마지막 라인이 이김" 동작이 silent 중복을 완전히 숨김 → "동작한다 ≠ 깨끗하다"
+  4. `.env.local`은 🔴 보안 파일이라 `cat`/에디터 열기가 위험하므로 "런타임이 되면 OK"라는 편법 판단에 빠지기 쉬움
+- **해결**:
+  - Session #22에서 값 노출 0 진단 3종 세트로 상태 파악:
+    ```bash
+    grep -c "^KEY=" file                                 # 개수
+    awk '/^KEY=/{print NR": length="length($0)}' file    # 라인 번호 + 길이
+    grep "^KEY=" file | sort -u | wc -l                  # uniqueness
+    ```
+  - 두 라인 모두 length=98(정상) + unique=2 → "서로 다른 정상 값" 진단
+  - Jayden이 에디터로 두 라인 모두 수동 삭제 → `printf '\n%s\n' "KEY=$(openssl rand -hex 32)" >> file` 재append → `grep -c=1` 확인 → `pnpm dev` 재기동 → curl 401 재검증
+  - 두 기존 값 모두 폐기 → 신규 단일 값으로 clean state
+- **규칙**:
+  1. **🔴 환경변수 append 완료 선언 전 `grep -c "^KEY="` 필수** — 결과가 `1`이 아니면 Task 미완료. 런타임 검증 통과와 **완전히 분리된** 항목. secret 관련 Task의 완료 체크리스트에 반드시 포함
+  2. **dotenv 계열 파서의 "마지막 라인이 이김" 동작을 silent 중복 가리개로 의심** — 런타임 정상 = 파일 정상 아님. "동작한다 ≠ 깨끗하다"
+  3. **값 노출 0 진단 3종 세트 표준화** — `grep -c` + `awk length` + `sort -u | wc -l`. `cat`/`head`/`tail`/`grep 전체라인` 금지. 이 3종으로 중복/길이 이상/값 상이 전부 감지 가능
+  4. **에디터 수동 편집 후에도 재검증 필수** — "내가 직접 고쳤으니 OK"는 가장 위험한 착각. 수동 편집 → 즉시 `grep -c` 돌리기
+  5. **Session #21 사고 #1 복구 플로우의 맹점** — append 시도 실패 후 복구할 때 "실패 잔재 제거"와 "신규 append"를 같은 흐름에서 하면 중복이 숨어든다. 복구 시 **파일을 완전히 clean state로 되돌린 후(기존 라인 0) 새로 append**하는 패턴이 안전
+  6. **🔴 Task 완료 선언 체크리스트 (secret 관련)**:
+     - [ ] 런타임 검증 (curl/Playwright 등 status code)
+     - [ ] 파일 내 해당 변수 정확히 1개 (`grep -c`)
+     - [ ] 기대 길이 일치 (`awk length`)
+     - [ ] Vercel/n8n 등 외부 등록 지점 목록화 (있으면)
+- **컨텍스트**: Session #22. Session #21 Task A "완료" 기록이 실제로는 파일 구조상 허위였음이 드러남. 두 기존 값 모두 외부(Vercel/n8n) 등록 전이라 피해 0, 오히려 신규 값으로 clean 재시작. 하지만 외부 등록 후였다면 rotation 비상 절차 필요. Session #21 learnings의 "[Security] append 명령은 한 번에 성공하도록 사전 검증"과 **짝 교훈** — 전자는 append **전** 준비, 후자는 append **후** 검증
+
 ### 2026-04-08 — [Security] 🚨 secret 값을 채팅에 직접 붙여넣음 — Claude 컨텍스트 노출 사고
 - **증상**: Task A E2E 검증 1차 실패 후 진단 과정에서 Jayden이 `.env.local`의 잘못된 라인 전체(`EOFINTERNAL_LOG_EVENT_SECRET_PRIMARY=990e...2160`)를 채팅창에 그대로 붙여넣음. 64자 hex secret이 Claude API 요청에 포함되어 컨텍스트로 들어옴
 - **유출 경로**:

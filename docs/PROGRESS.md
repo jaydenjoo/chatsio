@@ -5,14 +5,14 @@
 
 ## 현재 위치
 - Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Task 2-M-B-2 + 확장 + Task A (E2E 실전 검증) 완료** ✅
-- 커밋: `cb03155` → `a8ac5a8` → `7a74d12` → `23eeeee` → `e1f654a` (Session #20 메타) → **Session #21 메타 커밋 예정**
-- 상태: ✅ **Task 2-M 전체 완료 + 실전 동작 입증**. 5개 시나리오 PASS + Supabase row insert 확인 + 정리 완료
+- Task: **Task 2-M 완료 (clean state 복구)** — Session #22에서 `.env.local` 중복 정리 + 신규 값 재생성 + 런타임 재검증
+- 커밋: `f946ef8` (Session #21) → **Session #22 메타 커밋 예정**
+- 상태: ✅ `.env.local` 단일 PRIMARY clean state. 로컬 dev 검증(curl 401) 통과. `.env.example` INTERNAL 블록 추가는 다음 세션 Jayden 수동 대기
 - 다음:
-  1. ⚠️ **Jayden 수동 (배포 전)**: Vercel Env (Preview + Production)에 `INTERNAL_LOG_EVENT_SECRET_PRIMARY` 등록 + n8n Error Handler credential 등록
-  2. ⚠️ **Jayden 수동**: `.env.example`에 `INTERNAL_LOG_EVENT_SECRET_PRIMARY=your-64-char-hex-secret` placeholder 추가
-  3. **Task 2-M-B-3-A (V2)**: Upstash Redis 기반 rate limiting (Upstash 가입 후 진행) — `docs/runbooks/log-event-api.md` V2 계획 참조
-  4. **Task 2-M-B-3-B (Jayden 수동)**: Supabase Dashboard에서 custom alert 실제 등록 (SQL은 runbook에 있음)
+  1. ⚠️ **Jayden 수동 (다음 세션 첫 작업)**: `.env.example` 맨 끝에 INTERNAL_LOG_EVENT_SECRET 블록 추가 (블록 내용은 Session #22 대화 기록 또는 Claude에게 재요청)
+  2. ⚠️ **Jayden 수동 (배포 전)**: Vercel Env (Preview + Production)에 **현재 PRIMARY 값** 등록 + n8n Error Handler credential 등록 (Session #22에서 신규 생성된 값 기준)
+  3. **Task 2-M-B-3-A (V2)**: Upstash Redis 기반 rate limiting — `docs/runbooks/log-event-api.md` V2 계획 참조
+  4. **Task 2-M-B-3-B (Jayden 수동)**: Supabase Dashboard에서 custom alert 실제 등록
   5. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
@@ -31,7 +31,64 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 상태 (Session #21, 2026-04-08) — Task A E2E 실전 검증 완료 ✅
+## 이번 세션 상태 (Session #22, 2026-04-08) — `.env.local` 중복 정리 + clean state 복구 ✅
+
+Session #21이 "Task A 전체 완료"로 기록·커밋됐지만, Session #22 진입 직후 `.env.local`의 `INTERNAL_LOG_EVENT_SECRET_PRIMARY`가 **서로 다른 2개 라인**으로 존재함이 드러남. 런타임은 정상(dotenv가 마지막 라인을 이김)이지만 파일 구조는 오염 상태. Jayden 수동 정리 + 신규 값 재생성 + 재검증으로 clean state 복구. **코드 변경 0건** (`.env.local`만 수정, gitignore 대상).
+
+### 1. 발견 흐름
+1. `/start` → Jayden이 옵션 A 선택 (`.env.example` PRIMARY placeholder 추가)
+2. `.env.example` 읽기 시도 → 🔴 permission denied → 복붙 블록 제시 방식으로 전환
+3. Jayden "`.env.local`에 없다" 보고 → 확인 제안
+4. `grep -c "^INTERNAL_LOG_EVENT_SECRET_PRIMARY=" .env.local` → 예상 `0 or 1`, **실제 `2`** 🚨
+
+### 2. 진단 (값 노출 0 — "3종 세트")
+```bash
+awk '/^INTERNAL_LOG_EVENT_SECRET_PRIMARY=/{print NR": length="length($0)}' .env.local
+# 17: length=98
+# 18: length=98
+grep "^INTERNAL_LOG_EVENT_SECRET_PRIMARY=" .env.local | sort -u | wc -l
+# 2
+```
+- 두 라인 모두 length=98(정상: `KEY=` 34자 + hex 64자) → silent corruption 아님
+- Unique=2 → **서로 다른 정상 값** 두 개 공존
+- dotenv는 마지막 라인이 이김 → 라인 18이 Session #21 검증에 쓰인 실효 값, 라인 17은 한 번도 로드 안 된 죽은 값
+
+### 3. 정리 (Jayden 수동 + Claude 명령어)
+1. `cp .env.local /tmp/env.local.bak.*` — 백업 (재부팅 시 자동 정리)
+2. Jayden 에디터로 `.env.local` 열기 → `INTERNAL_LOG_EVENT_SECRET_PRIMARY` 검색 → **두 라인 모두** 통째 삭제 (값 보지 말고 라인 단위 선택 후 삭제) → 저장
+3. `grep -c` → `0` 확인
+4. `printf '\nINTERNAL_LOG_EVENT_SECRET_PRIMARY=%s\n' "$(openssl rand -hex 32)" >> .env.local` — newline-safe + 값은 `$()` 내부에서만 평가되어 Claude 컨텍스트 미노출
+5. `grep -c` = `1` + `awk -F= '{print length($2)}'` = `64` 확인
+6. `pnpm dev` 재기동 + `curl POST /api/v1/internal/log-event` → **HTTP 401** ✅ (인증 실패 = 엔드포인트 정상 동작 + PRIMARY 로드 성공)
+
+### 4. 왜 Session #21이 중복을 발견 못 했나
+Session #21 검증 플로우:
+- [x] 무인증 curl → 401
+- [x] 5개 시나리오 curl → 전부 기대값 일치
+- [x] Supabase pipeline_events row insert + DELETE 정리
+- [ ] **파일 내부 구조 건강도 (`grep -c` = 1) — 미수행**
+
+dotenv의 "마지막이 이김" 동작이 중복을 완전히 숨김. 런타임 검증만으로는 감지 불가. **파일 상태 검증은 런타임 검증과 분리된 별도 항목**이어야 함 → learnings.md 정식 기록.
+
+### 5. 피해 평가 (다행히 0)
+- 라인 17(죽은 값) + 라인 18(살아있던 값) 모두 외부(Vercel/n8n) 등록 이력 0
+- Session #22에서 **완전히 새 값으로 교체** → 두 기존 값 모두 폐기
+- 🔴 만약 외부 등록 후였다면 rotation 비상 절차 필요했을 것
+
+### 6. 파일 변경
+- `.env.local` (gitignore): 중복 2라인 → 신규 단일 라인 1개
+- `docs/PROGRESS.md`: Session #22 기록 + 현재 위치 갱신
+- `docs/learnings.md`: "환경변수 append 후 중복 감지 미수행" 교훈 정식 기록
+
+### 7. Status
+- **Status**: ✅ `.env.local` clean + 로컬 dev 검증 통과
+- **미완료 (다음 세션 첫 작업)**: `.env.example`에 INTERNAL 블록 추가 (Jayden 수동)
+- **Blockers**: (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+- **Next**: `.env.example` 블록 추가 → Task 2-M-B-3-A/B 또는 Phase 2 다음 단계
+
+---
+
+## 이전 세션 (Session #21, 2026-04-08) — Task A E2E 실전 검증 완료 ✅ ⚠️ 중복 잠복 상태로 기록됨 (Session #22에서 발견)
 
 Session #20에서 블로커였던 PRIMARY secret 설정을 해결하고 Task A 5개 시나리오 + Supabase 검증 + 정리까지 완수. **코드 변경 0건** (스크립트 파일 env var 이름만 fix, gitignore 대상).
 
