@@ -23,9 +23,111 @@ n8n Error Handler 워크플로우가 Chatsio 외부에서 `pipeline_events` 테�
 | `INTERNAL_LOG_EVENT_SECRET_PRIMARY` | `.env.local` (로컬) | `openssl rand -hex 32` | 현재 활성 토큰 | **필수** / 64자 hex |
 | `INTERNAL_LOG_EVENT_SECRET_PRIMARY` | Vercel Env (Preview + Production) | 로컬과 동일 값 복사 | 현재 활성 토큰 | **필수** |
 | `INTERNAL_LOG_EVENT_SECRET_SECONDARY` | `.env.local` + Vercel | `openssl rand -hex 32` | rotation 기간 동안만 설정 | **옵션** (rotation 중에만) |
+| `UPSTASH_REDIS_REST_URL` | `.env.local` + Vercel | Upstash Dashboard → DB → REST API → `.env` 탭 복사 | rate limiter Redis 엔드포인트 | **프로덕션 필수** / 로컬 옵션 |
+| `UPSTASH_REDIS_REST_TOKEN` | `.env.local` + Vercel | 위와 동일 | rate limiter Redis 인증 토큰 | **프로덕션 필수** / 로컬 옵션 |
 | n8n Credential | n8n instance → Credentials → HTTP Header Auth | Name: `Authorization` / Value: `Bearer <secret>` | n8n 호출 시 PRIMARY 값 사용 | Error Handler 노드에서 참조 |
 
 **최소 길이 제약**: `src/lib/env.ts`의 `getInternalLogEventEnv()`가 PRIMARY 32자 미만 또는 누락 시 throw → 엔드포인트가 500. SECONDARY는 설정될 때만 32자 이상 검증.
+
+**Upstash 옵셔널 규칙**: `UPSTASH_REDIS_REST_URL`과 `UPSTASH_REDIS_REST_TOKEN`은 **둘 다 설정하거나 둘 다 비워야** 한다(Zod refine). 둘 다 비어있으면 rate limiter가 no-op 모드로 통과시킨다 — 로컬 dev/CI에서 Upstash 계정 없이 API가 동작하도록 하기 위한 설계. 프로덕션에서는 반드시 두 값을 등록해야 flooding 방어가 활성화된다.
+
+## 🚀 배포 전 등록 체크리스트 (Session #23 B-2)
+
+처음 배포하거나 새 프로덕션 환경에 log-event API를 활성화할 때 따라가는
+체크리스트. Vercel Env + n8n Credential + Upstash Redis 세 곳에 값을 넣어야
+엔드포인트가 정상 동작한다.
+
+### Phase 1 — 값 준비 (로컬)
+
+```bash
+# 1-A. INTERNAL_LOG_EVENT_SECRET_PRIMARY 생성
+openssl rand -hex 32
+# → 64자 hex 출력. 이 값을 안전한 임시 저장소에 보관 (예: Bitwarden/1Password)
+# 🔴 채팅창/슬랙/이메일에 붙여넣기 금지
+
+# 1-B. Upstash Redis 값 준비
+# Upstash Dashboard → chatsio-ratelimit DB → REST API → ".env" 탭 복사.
+# 두 값이 있어야 함:
+#   UPSTASH_REDIS_REST_URL="https://xxx.upstash.io"
+#   UPSTASH_REDIS_REST_TOKEN="AXXXxxxx..."
+```
+
+### Phase 2 — Vercel Env 등록 (Preview + Production 둘 다)
+
+Vercel Dashboard → 프로젝트 → Settings → Environment Variables:
+
+| 이름 | 값 | Environment | Sensitive |
+|---|---|---|---|
+| `INTERNAL_LOG_EVENT_SECRET_PRIMARY` | Phase 1-A의 hex | Preview + Production | ✅ |
+| `UPSTASH_REDIS_REST_URL` | Phase 1-B의 URL | Preview + Production | (optional) |
+| `UPSTASH_REDIS_REST_TOKEN` | Phase 1-B의 token | Preview + Production | ✅ |
+
+**주의**:
+- 🔴 Sensitive 플래그 필수 — Vercel이 로그/UI에서 값을 가리게 한다.
+- **"Preview"와 "Production" 둘 다 체크** — 한쪽만 넣으면 Preview 배포 시 500.
+- SECONDARY는 rotation 중에만 추가. 첫 배포에선 비워둠.
+- 저장 후 **재배포 트리거 필수**. Vercel은 env 변경만으로는 재배포 안 함.
+  → Deployments → 최근 배포 → "Redeploy" 클릭 (또는 git push 빈 커밋).
+
+### Phase 3 — n8n Credential 등록
+
+n8n instance → Credentials → **+ Add Credential** → **HTTP Header Auth**:
+
+| 필드 | 값 |
+|---|---|
+| Credential Name | `Chatsio Log Event API` (알아보기 쉬운 이름) |
+| Name (header) | `Authorization` |
+| Value | `Bearer <Phase 1-A의 hex>` — **Bearer 뒤 공백 1칸 필수** |
+
+저장 후 Error Handler 워크플로우의 HTTP Request 노드에서 이 credential을
+선택한다. URL은 `https://<chatsio-prod-domain>/api/v1/internal/log-event`.
+
+### Phase 4 — 검증 (3종 테스트)
+
+Vercel 재배포 완료 후 프로덕션 URL로 검증:
+
+```bash
+PROD="https://<chatsio-prod-domain>"
+
+# 4-A. 인증 누락 → 401
+curl -s -o /dev/null -w "%{http_code}\n" \
+  -X POST "$PROD/api/v1/internal/log-event" \
+  -H "Content-Type: application/json" \
+  -d '{"service":"n8n","level":"info","message":"test"}'
+# 기대: 401
+
+# 4-B. 틀린 토큰 → 401
+curl -s -o /dev/null -w "%{http_code}\n" \
+  -X POST "$PROD/api/v1/internal/log-event" \
+  -H "Authorization: Bearer <INVALID_TOKEN_PLACEHOLDER>" \
+  -H "Content-Type: application/json" \
+  -d '{"service":"n8n","level":"info","message":"test"}'
+# 기대: 401 (placeholder는 실제 실행 시 임의 문자열로 치환)
+
+# 4-C. n8n Error Handler에서 테스트 실행 (Trigger workflow manually)
+#      → Supabase MCP로 pipeline_events 테이블에서 새 row 확인
+#      SELECT * FROM pipeline_events
+#      WHERE service = 'n8n' AND created_at > NOW() - INTERVAL '2 minutes'
+#      ORDER BY created_at DESC LIMIT 5;
+```
+
+### Phase 5 — 값 폐기
+
+- Phase 1-A의 임시 저장소에 저장한 hex 값 삭제 (`.env.local`과 Vercel,
+  n8n 3곳에만 남도록)
+- Bitwarden/1Password처럼 감사 로그가 있는 저장소를 쓴다면 접근 이력 기록
+- **터미널 history에 hex가 남았다면 `history -d <line>` 또는 shell 재시작**
+
+### 체크리스트 요약
+
+- [ ] `openssl rand -hex 32`로 INTERNAL_LOG_EVENT_SECRET_PRIMARY 생성
+- [ ] Upstash Dashboard에서 REST URL + TOKEN 복사
+- [ ] Vercel Env에 3개 변수 등록 (Preview + Production, Sensitive ✅)
+- [ ] Vercel 재배포 트리거 + 완료 대기
+- [ ] n8n Credential `Chatsio Log Event API` 생성 (Bearer 공백 확인)
+- [ ] 401 검증 2건 (무인증, 틀린 토큰) 모두 통과
+- [ ] n8n 수동 트리거 → Supabase에 row 생성 확인
+- [ ] 임시 저장소 정리 + 터미널 history 삭제
 
 ## 🔄 Zero-downtime rotation 절차 (Task 4에서 구현됨 ✅)
 
@@ -101,17 +203,15 @@ WHERE service = 'n8n'
 
 ## V2 계획 (후속 Task)
 
-현재 MVP는 rate limiting이 없다. 🔴 등급 프로젝트의 감사 로그 보호를 위해
-아래 항목을 다음 sprint에 추가 예정:
-
-1. **Upstash Redis 기반 rate limit** — Bearer 토큰 단위 분당 100건 상한 (Task 2-M-B-3-A 예정)
-2. **Supabase alert 실제 설정** — 위 SQL을 Dashboard에 등록 (Jayden 수동)
+1. ✅ **Upstash Redis 기반 rate limit** — Bearer 토큰 단위 분당 100건 상한 (Task 2-M-B-3-A **완료**, Session #23)
+2. **Supabase alert 실제 설정** — 위 SQL을 Dashboard에 등록 (Task 2-M-B-3-B — Jayden 수동 대기)
 3. **IP allowlist (선택)** — n8n instance 고정 IP가 있다면 추가 방어 계층
 4. **토큰 prefix 분리** — `nlog_` 같은 prefix로 로그에 토큰 노출 시 즉시 식별 가능
 5. **request 메트릭** — 성공률/지연/실패 이유 집계 (별도 /admin/events 대시보드)
 
 ### ✅ 완료된 V1 항목
-- **Zero-downtime rotation** (Task 4, 커밋 예정) — PRIMARY/SECONDARY 이중 시크릿 지원. 위 "Zero-downtime rotation 절차" 섹션 참조.
+- **Zero-downtime rotation** (Task 4, Session #20) — PRIMARY/SECONDARY 이중 시크릿 지원. 위 "Zero-downtime rotation 절차" 섹션 참조.
+- **Rate limiting** (Task 2-M-B-3-A, Session #23) — Upstash Redis + `@upstash/ratelimit` sliding window. 토큰 SHA-256 해시를 key로 사용(원본 미저장). env 부재 시 no-op, Redis 장애 시 fail-open. 구현: `src/lib/monitoring/log-event-ratelimit.ts`.
 
 ## 장애 대응
 
@@ -143,6 +243,23 @@ WHERE service = 'n8n'
 1. Vercel Logs에서 `getInternalLogEventEnv` 에러 메시지 검색
 2. Supabase `createAdminClient` 관련 에러 (service_role key 문제)
 3. logEvent 내부의 `insert failed` 로그 (RLS/FK 제약)
+```
+
+### 증상: 429 Too Many Requests가 반복됨
+
+```
+1. Supabase pipeline_events 테이블에서 최근 10분 내
+   step = 'rate_limit_exceeded' row 집계:
+   SELECT COUNT(*), MIN(created_at), MAX(created_at)
+   FROM pipeline_events
+   WHERE step = 'rate_limit_exceeded'
+     AND created_at > NOW() - INTERVAL '10 minutes';
+2. 1분당 100건 초과 → 정상 호출자라면 호출 주기 문제(n8n 루프),
+   이상 호출자라면 **🚨 토큰 유출 의심** → 즉시 긴급 rotation 절차 실행
+   (위 "긴급 rotation (compromised)" 섹션)
+3. Vercel Logs의 `[log-event ratelimit]` prefix로 Redis 장애 여부 확인 —
+   "Redis 호출 실패" 메시지가 있으면 Upstash 상태 페이지 점검.
+   Redis 장애 중에는 fail-open으로 통과하므로 429가 아닌 200 응답.
 ```
 
 ## 관련 파일

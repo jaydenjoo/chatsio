@@ -33,6 +33,29 @@ const internalLogEventEnvSchema = z.object({
   INTERNAL_LOG_EVENT_SECRET_SECONDARY: z.string().min(32).optional(),
 });
 
+// Upstash Redis (REST API) — Task 2-M-B-3-A rate limiting 전용.
+//
+// `/api/v1/internal/log-event`에서 Bearer 토큰 단위 per-minute 제한을 거는
+// 분산 카운터 저장소. 옵셔널 — 두 값이 모두 있을 때만 rate limiter가 활성화되고,
+// 둘 다 없으면 로컬 dev/CI처럼 "no-op"로 통과한다. 한쪽만 있는 경우는 설정
+// 실수로 간주하여 Zod가 막는다(양쪽 모두 설정되거나 모두 부재여야 함).
+const upstashEnvSchema = z
+  .object({
+    UPSTASH_REDIS_REST_URL: z.url().optional(),
+    UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+  })
+  .refine(
+    (val) =>
+      (val.UPSTASH_REDIS_REST_URL === undefined &&
+        val.UPSTASH_REDIS_REST_TOKEN === undefined) ||
+      (val.UPSTASH_REDIS_REST_URL !== undefined &&
+        val.UPSTASH_REDIS_REST_TOKEN !== undefined),
+    {
+      error:
+        "UPSTASH_REDIS_REST_URL과 UPSTASH_REDIS_REST_TOKEN은 둘 다 설정하거나 둘 다 비워야 합니다.",
+    },
+  );
+
 /** 클라이언트 + 서버 공용 환경변수 */
 export function getPublicEnv(): z.infer<typeof envSchema> {
   const parsed = envSchema.safeParse({
@@ -107,6 +130,34 @@ export function getInternalLogEventEnv(): z.infer<typeof internalLogEventEnvSche
   if (!parsed.success) {
     throw new Error(
       `INTERNAL_LOG_EVENT_SECRET_PRIMARY 환경변수 누락 또는 32자 미만 (SECONDARY는 옵션): ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}. .env.local 파일을 확인하세요.`
+    );
+  }
+
+  return parsed.data;
+}
+
+/**
+ * Upstash Redis 환경변수 — log-event API rate limiter 전용.
+ *
+ * **옵셔널 설계**: 두 값 모두 부재면 `{ url: undefined, token: undefined }`을
+ * 리턴하여 호출자가 no-op 경로를 택할 수 있게 한다. 두 값 중 하나만 있으면
+ * 설정 실수이므로 Zod refine으로 throw. 두 값 모두 있으면 정상 활성화.
+ *
+ * 로컬 dev에서 Upstash를 띄우지 않은 상태로도 API가 동작하도록 하는 것이
+ * 목적. 프로덕션에서는 Vercel Env에 두 값을 반드시 등록해야 rate limiting이
+ * 활성화된다.
+ *
+ * Runbook: docs/runbooks/log-event-api.md
+ */
+export function getUpstashEnv(): z.infer<typeof upstashEnvSchema> {
+  const parsed = upstashEnvSchema.safeParse({
+    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+
+  if (!parsed.success) {
+    throw new Error(
+      `Upstash 환경변수 설정 오류: ${parsed.error.issues.map((i) => i.message).join(", ")}. .env.local 파일을 확인하세요.`
     );
   }
 

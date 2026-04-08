@@ -55,4 +55,22 @@ export const ApiErrors = {
   internal(): NextResponse {
     return apiError("INTERNAL_ERROR", "서버 오류가 발생했습니다.", 500);
   },
+  /**
+   * 429 Too Many Requests — rate limit 초과.
+   *
+   * `Retry-After` 헤더(초 단위)를 선택적으로 첨부한다. RFC 7231 §7.1.3에
+   * 따라 정수 초. 호출자가 다음 허용 시점을 알 수 있게 하여 정상 호출자는
+   * 자연스럽게 백오프하고, 공격자에게는 추가 정보 가치가 없다.
+   */
+  tooManyRequests(retryAfterSeconds?: number): NextResponse {
+    const response = apiError(
+      "RATE_LIMITED",
+      "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.",
+      429,
+    );
+    if (retryAfterSeconds !== undefined && retryAfterSeconds > 0) {
+      response.headers.set("Retry-After", String(Math.ceil(retryAfterSeconds)));
+    }
+    return response;
+  },
 } as const;

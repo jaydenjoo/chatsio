@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 import { apiError, apiSuccess, ApiErrors, validateBody } from "@/lib/api";
 import { getInternalLogEventEnv } from "@/lib/env";
 import { logEvent } from "@/lib/monitoring/log-event";
+import { checkLogEventRateLimit } from "@/lib/monitoring/log-event-ratelimit";
 
 /**
  * POST /api/v1/internal/log-event — Task 2-M-B-2 + Task 4 (Zero-downtime rotation)
@@ -40,11 +41,14 @@ import { logEvent } from "@/lib/monitoring/log-event";
  *    - Bearer 토큰은 브라우저가 cross-origin 요청에 자동으로 첨부하지 않는다.
  *      쿠키 기반 세션이 아니라서 CSRF 공격 벡터가 존재하지 않는다.
  *
- * 5. **Rate limiting 제외 (MVP)**
- *    - Bearer 토큰 보유자만 호출 가능하고, 현재 호출자는 내부 n8n 워크플로우
- *      단일 루트뿐. 토큰 유출 시에는 rate limit보다 토큰 rotation이 우선이며
- *      이제 zero-downtime으로 가능.
- *    - V2: Upstash Redis 기반 per-IP rate limit 도입 검토 (별도 Task).
+ * 5. **Rate limiting (Task 2-M-B-3-A)**
+ *    - Upstash Redis 기반 sliding window, Bearer 토큰 단위 분당 100건 상한.
+ *    - 토큰 원본이 아닌 SHA-256 해시를 key로 사용 → Redis에 평문 토큰 미저장.
+ *    - env (`UPSTASH_REDIS_REST_URL`/`TOKEN`) 부재 시 no-op 통과 (로컬 dev).
+ *    - Redis 장애 시 fail-open — 감사 로그 누락이 rate limit bypass보다 위험.
+ *    - 초과 시 429 + `Retry-After` 헤더 + pipeline_events에 `rate_limit_exceeded`
+ *      로 기록하여 flooding 탐지 가능.
+ *    - 구현: `src/lib/monitoring/log-event-ratelimit.ts`.
  *
  * 6. **Fire-and-forget logEvent**
  *    - `logEvent`는 throw하지 않는 fail-safe 래퍼. DB insert 실패도 console
@@ -154,7 +158,36 @@ export async function POST(request: NextRequest): Promise<Response> {
     return ApiErrors.unauthorized();
   }
 
-  // 3) Body 파싱 + Zod 검증 — 공용 `validateBody` 헬퍼 재사용.
+  // 3) Rate limit 체크 — Task 2-M-B-3-A
+  //
+  // 인증 통과 직후, body 파싱 **전**에 rate limit을 건다. 이유:
+  //   1. 미인증 요청을 카운트에 섞으면 정상 호출자가 피해를 본다
+  //      (공격자가 랜덤 토큰 대량 투척으로 정상 토큰의 quota 소진 유도)
+  //   2. body 파싱 전에 차단하면 JSON 디코드/Zod 비용까지 절약
+  //
+  // no-op 경로(Upstash env 부재)나 Redis 장애 시에는 `success: true`가
+  // 리턴되어 정상 흐름 유지. 초과 시에만 429로 조기 반환.
+  const rateLimit = await checkLogEventRateLimit(providedToken);
+  if (!rateLimit.success) {
+    const retryAfterSeconds = Math.max(
+      0,
+      Math.ceil((rateLimit.reset - Date.now()) / 1000),
+    );
+
+    // flooding 탐지용 기록 — 이 호출 자체는 rate limit이 거부했지만,
+    // `logEvent`는 Supabase에 직접 insert하므로 재귀 위험이 없다.
+    // step='rate_limit_exceeded'로 Supabase alert에서 집계 가능.
+    void logEvent({
+      service: "next-app",
+      level: "warn",
+      message: "log-event API rate limit exceeded",
+      step: "rate_limit_exceeded",
+    });
+
+    return ApiErrors.tooManyRequests(retryAfterSeconds);
+  }
+
+  // 4) Body 파싱 + Zod 검증 — 공용 `validateBody` 헬퍼 재사용.
   //
   // 이 엔드포인트는 보안 민감 (🔴 등급) 이므로 `validated.response`(상세
   // issue가 포함된 422)를 그대로 사용하지 않고, generic 400 응답으로
@@ -176,7 +209,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     return apiError("INVALID_PAYLOAD", "invalid payload", 400);
   }
 
-  // 4) logEvent 호출 — fire-and-forget. insert 실패도 200으로 응답.
+  // 5) logEvent 호출 — fire-and-forget. insert 실패도 200으로 응답.
   //
   // `validated.data`는 `LogEventBodySchema`가 구조적으로 `LogEventInput`과
   // 동일하므로 직접 전달. 수동 필드 매핑은 새 필드 추가 시 silent drop
