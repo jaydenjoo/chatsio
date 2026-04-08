@@ -20,6 +20,18 @@
 
 ---
 
+### 2026-04-08 — [Bug] Middleware matcher에 새 API prefix 제외 누락 → 내부 API가 307 `/login`으로 튕김
+- **증상**: Task 2-M-B-2 구현 직후 E2E 검증(Playwright + curl)에서 발견. `POST /api/v1/internal/log-event`가 Bearer 토큰 검증 로직에 도달하지 못하고 `HTTP 307 → /login?next=/api/v1/internal/log-event`로 리다이렉트. n8n이 세션 쿠키 없이 호출하면 **엔드포인트가 runtime에 완전 무력화**
+- **원인**: `src/middleware.ts`의 `config.matcher` negative lookahead에 `api/health`만 제외되어 있었고 `api/v1/internal` 제외가 없었음. middleware(`updateSession`)가 세션 쿠키 없는 요청을 `/login`으로 리다이렉트 → API 엔드포인트 자체는 실행조차 안 됨. 엔드포인트 내부의 Bearer 토큰 검증 + timing-safe 비교 + Zod 스키마가 전부 **도달 불가능한 코드**였음
+- **해결**: `middleware.ts`의 matcher 정규식에 `api/v1/internal` 추가 — `/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/health|api/v1/internal).*)`. matcher 레벨 제외는 middleware 실행 자체를 건너뛰므로 (a) 성능 이득 + (b) 의도 명확("internal API는 Bearer로 자체 인증"). 주석으로 "Task 2-M-B-2 E2E 검증 중 발견"과 "새 내부 API도 이 prefix 아래에 둘 것" 컨벤션 명시
+- **규칙**:
+  1. **새 API 라우트를 만들 때 middleware matcher 확인 필수** — 특히 외부 서비스가 세션 쿠키 없이 호출하는 엔드포인트(Webhook, internal API, Bearer 토큰 API). matcher가 새 prefix를 가로채면 엔드포인트 내부 인증 로직 전부 무의미
+  2. **내부 Bearer 토큰 API는 `/api/v1/internal/` prefix 아래에 둔다** — 일관된 예외 처리 가능. 향후 API 추가 시 matcher 재수정 불필요
+  3. **tsc/lint/build + 코드 리뷰는 middleware-엔드포인트 경계 버그를 못 잡는다** — 전부 static 분석이라 runtime의 요청 라우팅을 확인 못 함. code-reviewer + security-reviewer 둘 다 API 파일만 보고 middleware 연계를 안 봄. **런타임 검증(curl 또는 Playwright)은 생략 불가**
+  4. **보안 리뷰 요청 시 middleware 파일도 명시적으로 포함** — "이 API 엔드포인트 보안 리뷰해줘"라고 하면 리뷰어가 엔드포인트 파일만 본다. "middleware matcher + 이 API의 전체 요청 경로를 검증해줘"로 요청
+  5. **E2E 검증은 Task 완료 선언 전에 반드시 실행** — Session #15 learnings의 "운영 검증은 실제 UI 경로까지 꼭 밟아야 한다"가 Session #18에서 **크리티컬 보안 버그**로 재확인됨. 커밋 직전 최소한 "secret 없이 curl → 401/500 중 어느 쪽인지" 확인만 해도 이 버그를 잡을 수 있었음
+- **컨텍스트**: Session #18 Task 2-M-B-2. 최초 구현 + 2개 리뷰 + 검증 게이트 통과 후 **커밋까지 한 상태**에서 E2E 실행 시 발견. 만약 Jayden 요청이 없었다면 프로덕션 배포 후 n8n workflow가 "왜 이벤트가 하나도 안 쌓이지?" 상황에서 발견했을 가능성이 높음. 이 순서: **커밋 후 E2E 검증 → 버그 발견 → 별도 fix 커밋** 패턴은 최소한 "E2E가 존재한다"는 전제. E2E 없는 Task 완료는 앞으로 금지 수준으로 엄격 적용 필요
+
 ### 2026-04-08 — [Security] Bearer 토큰 상수 시간 비교 앞에 early return 분기 금지 — 타이밍 오라클
 - **증상**: Task 2-M-B-2 `log-event API` 1차 구현에서 `if (providedToken.length === 0) return 401;` → `if (!constantTimeEquals(...)) return 401;` 두 분기를 두었음. security-reviewer가 HIGH로 지적
 - **원인**: 빈 토큰 요청은 SHA-256 두 번 비용(수 μs)을 건너뛰고 즉시 401을 반환한다. 공격자가 빈 토큰 vs 1자 이상 토큰의 응답 시간을 대량 측정하면 이론적으로 분기를 판별 가능 → 상수 시간 비교를 도입한 *의도*와 불일치. 실전 exploit 난이도는 높지만 방어 일관성 파손
