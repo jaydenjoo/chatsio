@@ -9,10 +9,11 @@
 - 커밋: `399494c` (Session #22) → **Session #23 커밋 2개 예정** (feat + docs)
 - 상태: ✅ 로컬 검증 전부 통과 (401/401/200/429 + Retry-After + Supabase row 집계 정확). security-reviewer CRITICAL/HIGH 0건.
 - 다음:
-  1. ⚠️ **Jayden 수동 (다음 세션 첫 작업)**: `.env.example` 맨 끝에 INTERNAL_LOG_EVENT_SECRET 블록 추가 (Session #22 블록 그대로 — Claude에게 재요청 가능)
-  2. ⚠️ **Jayden 수동 (배포 전)**: Vercel Env에 3개 변수 등록 — `INTERNAL_LOG_EVENT_SECRET_PRIMARY` + `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`. 상세 절차: `docs/runbooks/log-event-api.md` "🚀 배포 전 등록 체크리스트"
-  3. **Task 2-M-B-3-B (Jayden 수동)**: Supabase Dashboard에서 custom alert 실제 등록 (runbook SQL 복사)
-  4. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+  1. ⚠️ **Jayden 수동 (배포 전)**: Vercel Env에 3개 변수 등록 — `INTERNAL_LOG_EVENT_SECRET_PRIMARY` + `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`. 상세 절차: `docs/runbooks/log-event-api.md` "🚀 배포 전 등록 체크리스트"
+  2. **Task 2-M-B-3-B (Jayden 수동)**: Supabase Dashboard에서 custom alert 실제 등록 (runbook SQL 복사)
+  3. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+
+> **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소**. 이유: 환경변수 목록이 이미 `src/lib/env.ts`(Zod 스키마, 런타임 검증)와 `docs/runbooks/log-event-api.md`(환경변수 표 + 배포 체크리스트) 두 곳에 단일 출처로 존재. `.env.example`에 추가하면 3번째 동기화 대상이 되어 드리프트 위험만 증가. Jayden은 솔로 프로젝트라 새 팀원 온보딩 수요가 없고, `.env.example`의 permission 차단으로 Session #22/23에서 이미 우회 비용이 누적됨.
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
