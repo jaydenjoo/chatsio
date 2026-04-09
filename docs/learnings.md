@@ -20,6 +20,87 @@
 
 ---
 
+### 2026-04-09 — [Security] 대화 중 secret 노출 → 즉시 revoke 프로토콜
+- **증상**: Session #25 Phase 2에서 텔레그램 봇 생성 중 Jayden이 curl 명령어 전체를 복사-붙여넣기하면서 봇 토큰(`8732104937:AAEuLO...`) 전체를 채팅에 노출. 내가 직전에 "토큰 값 직접 보내지 마세요"라고 1회 안내했지만 터미널 전체 복사 흐름에서 그 경고가 가려짐. 이어지는 추가 시도(getMe, sendMessage)까지 같은 토큰이 반복 노출됨
+- **원인**:
+  1. 비개발자 흐름: "에러 났어, 잘못한 거 확인해줘"라고 할 때 자연스럽게 터미널 출력 통째 공유
+  2. curl 예시에 `<토큰>` placeholder는 있었지만 "출력 공유 시 가리기" 안내는 예시 바로 옆에 없었음
+  3. 1회 경고는 쉽게 잊힘 — 특히 디버깅 중 연속 실패하는 상황에서
+- **해결**:
+  1. 즉시 BotFather `/revoke` 절차 3단계로 단순화해서 안내
+  2. 이후 모든 secret 관련 안내에 "출력 공유 시 토큰 부분을 `<TOKEN>`으로 가려주세요" 반복 포함
+  3. 2026-04-09 KST에 Jayden이 `@BotFather /revoke` 실행 완료 → 구 토큰 `8732104937:AAEuLO...` 무효화 확인
+- **규칙**:
+  1. **secret 다루는 모든 curl/API 예시 직후 "출력 공유 시 가림" 안내 필수** — 과잉 같아도 1회 안내는 잊힘. 비개발자는 특히
+  2. **curl/API 예시에 placeholder + "실행 결과 공유 시 토큰 자리를 `<TOKEN>`으로" 쌍으로** — 하나만 쓰면 무용지물
+  3. **즉시 revoke 절차는 복원 불가 secret 전용** (토큰/API key/password). 일회용 OTP/nonce는 제외. 상시 토큰은 revoke 필수
+  4. **비개발자 흐름 가정**: "에러 났어"라고 할 때 전체 터미널 복사. 예방(안내)이 사후 대응(revoke)보다 저렴
+  5. **대화 로그는 제3자 접근 가능성 0 아님** — Claude 서버, 로컬 히스토리, 공유 세션 등. 노출 = 즉시 revoke 원칙 무조건
+- **컨텍스트**: Session #25 Phase 2 (텔레그램 봇 생성). 다행히 Public 레포/공개 채팅 노출이 아니고 대화 내 노출이라 revoke로 봉합 가능. 하지만 `getMe` 응답으로 bot id가 구 토큰의 id와 동일한 것이 확인되면서 "아직 revoke 안 했음"이 드러나 추가 재촉 필요했음
+
+---
+
+### 2026-04-09 — [Architecture] pg_cron + pg_net + Vault로 DB 내부 알림 완결 패턴
+- **결정**: Supabase에서 서버-사이드 알림(`pipeline_events`에 `rate_limit_exceeded` 분당 50건 초과 시 텔레그램)을 Next.js 서버 / Vercel Cron / Edge Function 없이 **DB 내부에서 완결**. 구현: `supabase/migrations/007_notify_rate_limit_spike.sql`
+- **구성**:
+  ```
+  pg_cron (매 분 00초)
+    → plpgsql 함수 notify_rate_limit_spike()
+    → vault.decrypted_secrets (telegram_bot_token, telegram_chat_id 복호화)
+    → net.http_post → api.telegram.org/sendMessage (비동기)
+    → pipeline_events.alert_fired 이벤트 기록 (쿨다운 기준점)
+  ```
+- **근거**:
+  1. **외부 의존 0 → 알림 신뢰성 극대화**: 알림은 "다른 시스템 고장 시" 작동해야 의미 있음. Next.js 서버가 고장나면 Next.js 기반 알림도 고장. DB만 살아있으면 알림이 가도록 설계
+  2. **비용 0**: pg_cron/pg_net은 Supabase 플랜에 포함. 별도 cron 서비스/Edge Function 호출 비용 없음
+  3. **지연 < 100ms**: Session #25 Phase 5 검증 — cron 트리거 → Telegram 도달 약 77ms
+  4. **Vault 통합**: secret을 `.env`나 코드에 두지 않고 Supabase Vault로 → 인프라 경계 유지 + 감사
+- **반대 사례** (이 패턴 적용 금지):
+  - 복잡한 비즈니스 로직 알림 (예: 구매 이력 + 재고 + 설정 종합 판단) → TypeScript가 유리
+  - 외부 API 응답 파싱 후 조건 분기 → pg_net 비동기라 응답 대기 어려움
+  - 사용자별 개인화 대량 알림 (DM 수십~수백 개) → pg_cron 1회 호출로 N개 http_post는 부하 분산 고려 필요
+  - 복잡한 포맷 (이미지, 버튼, 인터랙티브 메시지) → TypeScript SDK가 유리
+- **규칙**:
+  1. **관측/모니터링 목적 단순 알림 → DB 내부 완결이 1순위 옵션** — Chatsio 같은 솔로 프로젝트에서 특히
+  2. **함수는 반드시 `SECURITY DEFINER` + `SET search_path = public, vault, net`** — Vault 접근 권한 + injection 방어
+  3. **쿨다운은 DB 이벤트(alert_fired row) 기반** — 함수 내 변수/세션 상태 금지. 재시작/재배포에도 견고
+  4. **pg_net `request_id`를 `pipeline_events.context_id`에 저장** → `net._http_response.id`와 join으로 어느 호출이 실패했는지 추적 가능
+  5. **함수 외부 `EXCEPTION WHEN OTHERS` 필수** — cron이 멈추지 않도록 감싸기. 함수 폭발 = 영구 알림 중단 = 관측 침묵 (2차 사고)
+  6. **Vault secret 이름 규칙**: `<service>_<purpose>` 스네이크 케이스 (예: `telegram_bot_token`, `telegram_chat_id`)
+- **컨텍스트**: Session #25 Task 2-M-B-3-B. Phase 4/5 완전 검증. 7단계 체인(cron→함수→카운트→쿨다운→Vault→pg_net→alert_fired) 전부 OK. 한국어 메시지 포맷 적용 (상세형 옵션 2)
+
+---
+
+### 2026-04-09 — [Operational] cron jitter vs 쿨다운 경계 ms 단위 주의
+- **증상**: pg_cron은 매 분 00초에 트리거되지만 실제 함수 시작 시점은 jitter로 `00초 + 10~130ms` 사이 변동. Session #25 runid 21은 127ms 지연 관측. 쿨다운 interval을 실행 주기와 **동일하게** 설정하면 ms 경계에서 판정이 엇갈릴 수 있음
+- **이번 관측**: Phase 5-3 쿨다운 테스트에서 정확히 300초 경계 시점 cron 실행:
+  - `alert_fired` created_at: `04:15:00.016348 UTC`
+  - 쿨다운 판정 cron 실행: `04:20:00.015249 UTC`
+  - 차이: 약 -0.001초 (alert_fired가 1ms 후에 발생) → `alert_fired > NOW() - 5min` 조건 TRUE → suppress 성공
+  - 만약 alert_fired가 `04:15:00.005`였다면 → FALSE → 쿨다운 풀림 → **중복 알림 발송**
+- **규칙**:
+  1. **쿨다운 interval은 실제 주기와 일치 금지** — 1분 주기면 `50s` 또는 `1m 10s`, 5분 쿨다운이면 `5m 5s` 또는 `4m 50s`
+  2. **방향 선택**: "스팸 방지 > 정확 타이밍"이면 **약간 길게** (`5m 5s`, 정상 5분 중 일부 이벤트가 suppress). "정확 타이밍 > 스팸 방지"면 **약간 짧게** (`4m 50s`, 경계 탈주 시 최대 10초 일찍 재알림 허용). Chatsio는 전자
+  3. **비교 연산자**: `alert_fired > NOW() - interval` 유지 — 경계 시 TRUE(쿨다운 유지)가 안전. `>=`는 경계 FALSE → 쿨다운 해제(위험)
+  4. **cron jitter는 제어 불가**: Supabase pg_cron은 ms 단위 보장 없음. 설계 단계에서 ms 의존 금지
+  5. **현재 함수 상태**: `v_cooldown_interval := '5 minutes'`. 운영 배포 전에 `'5 minutes 5 seconds'` 로 변경 권장. PROGRESS.md 다음 할 일 #2
+- **컨텍스트**: Session #25 Phase 5-3 쿨다운 검증 중 발견. 0.5ms 여유로 간신히 통과. "테스트는 통과했지만 설계 흠"이라 즉시 교훈 기록. 다음 유사 시스템 설계 시 초기부터 반영
+
+---
+
+### 2026-04-09 — [AI-Pitfall] Supabase Dashboard UI 위치 오예측 — Session #23 교훈 "세 번째 반복"
+- **증상**: Session #25 Phase 3에서 Vault 메뉴 위치를 "Project Settings → Vault 또는 Database → Vault" 로 안내. 실제는 **Integrations → Vault (NEW 뱃지)**. 내 기억 둘 다 틀림. 추가로 Phase 0 초기 안내에 "Database → Reports → Custom Alerts" 도 부정확(Supabase UI에 Custom Alerts 없음) — 기존 runbook에 내가 수록한 정보였음
+- **누적 패턴**: Session #23 Upstash UI → Session #25 Supabase Vault → Session #25 Supabase Reports → **세 번째 반복**. 내 훈련 데이터 기반 SaaS Dashboard 기억은 **신뢰 불가**
+- **규칙**:
+  1. **Supabase Dashboard 가이드 첫 문장에 "실제 메뉴 위치가 내 설명과 다르면 즉시 알려주세요. Supabase UI는 분기별로 재구성됩니다" 명시** (Session #23 교훈 강화)
+  2. **"NEW" 뱃지 달린 기능은 최근 추가 → 내 기억 없을 확률 ↑** → 화면 확인 먼저
+  3. **Supabase 안정 영역**: Database(스키마/데이터), Auth, Storage. **유동 영역**: Project Settings / Integrations / Advisors → 유동 영역은 **항상 화면 확인 프로토콜**
+  4. **기존 runbook이 내 안내 기반이면 분기마다 재검증 필요** — Session #20/#21에 내가 작성한 "Database → Reports → Custom Alerts" 도 이미 부정확했음. 이번 Session #25에서 runbook을 실제 구현(pg_cron + pg_net + Vault)으로 재작성
+  5. **같은 패턴 3회 반복은 경고 신호** — 다음엔 "세 번째다, 왜 아직 선제 검증 프로토콜 안 적용했나?" 스스로 감지
+- **컨텍스트**: Session #25 Phase 3/4. Jayden의 스크린샷 공유 습관으로 2분 내 정정 가능했지만, 예방적 안내가 올바른 방향. Session #23 교훈의 적용 범위를 Integrations/Project Settings/Advisors까지 확장
+
+---
+
 ### 2026-04-09 — [AI-Pitfall] `.env.local` 키 존재 ≠ 외부 시스템 등록 상태 (단정형 추측 금지)
 - **증상**: Session #24에서 Jayden이 `.env.local`의 키 12개를 (값 마스킹한 채) 보여주며 "Vercel에 일괄 등록 가능한데 등록해도 되나"라고 질문. 내가 답변에서 위험 5가지를 정리하면서, 키별 등록 절차 표 안에 일부 키를 **"이미 등록되어 있을 것"**이라고 단정형으로 표기. Jayden이 즉시 정정: **"버셀에 프로젝트 등록이 안되어있는데??? 이미등록되어있다는것은 무슨말이지?"**. 내 추론 오류가 드러남
 - **원인**:

@@ -5,16 +5,16 @@
 
 ## 현재 위치
 - Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Session #24 — `.env.local` 잔재 키 정리 완료** ✅. 이전 누적 상태(Task 2-M-B-3-A)는 Session #23 그대로 유지.
-- 커밋: `aa92fcb` (Session #23) → **Session #24 커밋 1개 예정** (docs only — `.env.local`은 gitignore)
-- 상태: ✅ `.env.local` clean state — 잔재 키 0 / 중복 키 0 / 빈 값 0 / `pnpm dev` 부팅 OK (`Ready in 284ms`).
+- Task: **Session #25 — Task 2-M-B-3-B Supabase Rate Limit Spike 알림 완료** ✅ (pg_cron + pg_net + Vault + Telegram, 한국어 메시지)
+- 커밋: `837bc22` (Session #24) → **Session #25 커밋 1개 예정** (docs + `supabase/migrations/007_notify_rate_limit_spike.sql`)
+- 상태: ✅ DB 내부 완결 알림 체인 완전 검증 — cron→함수→Vault→pg_net→Telegram 77ms 지연 / 쿨다운 5분 정상 작동 / 한국어 메시지 포맷 OK
 - 다음:
-  1. ⚠️ **Jayden 수동 (배포 전)**: Vercel Env에 3개 변수 등록 — `INTERNAL_LOG_EVENT_SECRET_PRIMARY` + `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`. 상세 절차: `docs/runbooks/log-event-api.md` "🚀 배포 전 등록 체크리스트". ⚠️ Session #24에서 드러남: **Vercel에 chatsio 프로젝트 자체가 미등록 상태** — `vercel link`부터 시작해야 함 (별도 Task로 분리 권장)
-  2. **Task 2-M-B-3-B (Jayden 수동)**: Supabase Dashboard에서 custom alert 실제 등록 (runbook SQL 복사)
+  1. ⚠️ **Jayden 수동 (배포 전)**: Vercel 프로젝트 신규 등록 (`vercel link`) + Env에 3개 변수 등록 — `INTERNAL_LOG_EVENT_SECRET_PRIMARY` + `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`. 상세 절차: `docs/runbooks/log-event-api.md` "🚀 배포 전 등록 체크리스트". ⚠️ Session #24에서 드러남: **Vercel에 chatsio 프로젝트 자체가 미등록 상태**
+  2. 🆕 **쿨다운 interval 여유 추가** — 현재 함수 `v_cooldown_interval := '5 minutes'`를 `'5 minutes 5 seconds'`로 상향. 근거: Session #25 learnings #3 (cron jitter vs 쿨다운 경계 ms 단위 주의). 운영 배포 전 반영 권장. 5분 소요 SQL 1개
   3. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
-  4. ⚠️ **신규 (Session #24 부수 발견)**: Next.js 16.2 deprecation — `middleware` 파일 컨벤션이 `proxy`로 변경됨. `src/middleware.ts` → `src/proxy.ts` 마이그레이션 필요. 별개 Task로 분리. 참조: https://nextjs.org/docs/messages/middleware-to-proxy
+  4. (기존) Next.js 16.2 deprecation — `src/middleware.ts` → `src/proxy.ts` 마이그레이션. 참조: https://nextjs.org/docs/messages/middleware-to-proxy
 
-> **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소**. 이유: 환경변수 목록이 이미 `src/lib/env.ts`(Zod 스키마, 런타임 검증)와 `docs/runbooks/log-event-api.md`(환경변수 표 + 배포 체크리스트) 두 곳에 단일 출처로 존재. `.env.example`에 추가하면 3번째 동기화 대상이 되어 드리프트 위험만 증가. Jayden은 솔로 프로젝트라 새 팀원 온보딩 수요가 없고, `.env.example`의 permission 차단으로 Session #22/23에서 이미 우회 비용이 누적됨.
+> **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소** (단일 출처 원칙).
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -32,7 +32,105 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 상태 (Session #24, 2026-04-09) — `.env.local` 잔재 키 정리 ✅
+## 이번 세션 상태 (Session #25, 2026-04-09) — Task 2-M-B-3-B Rate Limit Spike 알림 ✅
+
+**목표**: `pipeline_events`에 `rate_limit_exceeded` 이벤트가 분당 50건 초과 쌓이면 Telegram으로 자동 알림 발송. Task 2-M-B-3-A(Upstash rate limit) 이후 2차 방어선. Session #24 이후 이월된 "Supabase custom alert 등록" 항목 완료.
+
+### 1. 계획 수립 (옵션 B 하이브리드 확정)
+
+세션 중반에 **작업 방식 자체를 옵션 결정**: 지금까지처럼 모든 DB 작업을 Jayden 수동 수행할지, MCP로 자동화할지. 결정 내용은 learnings.md의 기존 교훈들을 바탕으로:
+- **옵션 A**: 항상 수동
+- **옵션 B (선택)**: Plan 승인 후 MCP 자동화 + 🔴 민감 작업(vault secret, RLS, Findably 테이블 등)만 수동 유지
+- **옵션 C**: 읽기만 MCP, 쓰기는 수동
+
+이후 Phase 2(봇 생성)는 수동, Phase 3(Vault 저장)은 Dashboard 수동, Phase 4(함수/cron 등록)는 수동 SQL Editor, Phase 5(검증)부터 MCP 자동화 전환 — **하이브리드 운영**.
+
+### 2. 6 Phase 실행
+
+- **Phase 2 — 텔레그램 봇 생성 (Jayden 수동)**: BotFather `/newbot` → `@jayden_chatsio_bot` 생성 → chat_id `@userinfobot`으로 확인 → sendMessage 테스트
+- **Phase 3 — Supabase Vault secret 저장 (Jayden 수동)**: `telegram_bot_token` + `telegram_chat_id` 2개 secret 등록 (Integrations → Vault → Secrets 탭)
+- **Phase 4 — SQL 실행 (Jayden 수동 SQL Editor)**:
+  1. `pg_cron` + `pg_net` extension 활성화 (Database → Extensions UI)
+  2. `notify_rate_limit_spike()` 함수 생성 (SECURITY DEFINER, search_path 고정, 7단계 로직)
+  3. `cron.schedule('rate-limit-spike-alert', '* * * * *', ...)` 등록
+  4. 첫 실행 `succeeded` 확인
+- **Phase 5 — 3단계 검증 (MCP 자동화)**:
+  - **5-1 Baseline**: rate_limit_exceeded 0건 / cron 5회 연속 succeeded / alert 이벤트 0건
+  - **5-2 Burst**: pipeline_events에 51건 `rate_limit_exceeded` insert → 42초 후 cron 트리거 → 함수가 51건 감지 → Vault 복호화 → pg_net 텔레그램 호출 (status 200, 77ms) → alert_fired 기록 → **Jayden 텔레그램 수신 확인**
+  - **5-3 쿨다운**: 다시 51건 insert → 쿨다운 5분 내 → alert_suppressed 기록 → 텔레그램 추가 알림 없음 확인
+- **Phase 6 — 문서 + 커밋**:
+  - `supabase/migrations/007_notify_rate_limit_spike.sql` 신규 (멱등 재등록 가능)
+  - runbook "Supabase Alert 권장 설정" 섹션 전면 재작성 (부정확한 "Database → Reports → Custom Alerts" 제거)
+  - learnings 4건 추가 / PROGRESS 갱신
+
+### 3. Task #6 — 한국어 메시지 전환 (세션 내 포함)
+
+Phase 5 완료 후 Jayden 요청: "한국어로 알람 가능해?" → 가능함 확인 → 옵션 2 (상세형) 선택:
+
+```
+⚠️ Chatsio 알림 — Rate Limit 급증 감지
+
+• 감지 건수: 51건 (최근 1분)
+• 설정 임계값: 50건
+• 발생 시각: 2026-04-09 13:29:00 KST
+• 대상 서비스: n8n → /api/v1/internal/log-event
+
+👉 Supabase → pipeline_events 테이블에서
+   step='rate_limit_exceeded' 이벤트 확인
+```
+
+- 함수 `CREATE OR REPLACE` 로 교체 (로직 변경 없음, `v_message` 포맷만)
+- 51건 재검증 burst → 한국어 메시지 수신 확인 완료
+- 테스트 이벤트 총 156건 모두 DELETE (Phase 5: 104 + 한국어 검증: 52)
+
+### 4. 주요 발견 / 사고
+
+#### 🚨 사고 1건: 텔레그램 봇 토큰 채팅 노출
+Phase 2 curl 테스트 중 Jayden이 터미널 명령어를 통째로 복사-붙여넣기하면서 봇 토큰 `8732104937:AAEuLO...` 전체를 노출. 즉시 BotFather `/revoke` 안내 → 완료. `getMe` 결과로 bot id가 구 토큰의 id와 일치하는 것을 보고 "아직 revoke 안 됐다"고 감지하여 재촉. learnings.md `[Security]` 카테고리로 기록 — "비개발자 터미널 전체 복사 흐름은 통계적으로 발생한다고 가정, 예방 > 사후 대응".
+
+#### 🔍 발견 1: Supabase Dashboard UI 위치 또 오예측 (Session #23에 이어 세 번째)
+- Vault 위치를 "Project Settings 또는 Database" 로 예측 → 실제는 **Integrations → Vault (NEW 뱃지)**
+- 기존 runbook의 "Database → Reports → Custom Alerts" 도 부정확 (Supabase에 Custom Alerts 없음)
+- Session #23 Upstash UI + Session #25 Vault + Session #25 Reports = **세 번째 반복**
+- 대응: Supabase 유동 영역(Project Settings/Integrations/Advisors)은 **항상 화면 확인 프로토콜** 적용. learnings 재강화.
+
+#### ⚠️ 발견 2: cron jitter vs 쿨다운 경계 ms 차이
+Phase 5-3 쿨다운 테스트가 정확히 300초 경계에서 실행됨. alert_fired(04:15:00.016) vs 쿨다운 판정(04:20:00.015) → 약 0.5ms 여유로 suppress 성공. 만약 alert_fired가 0.005였다면 중복 알림 발송 위험. **운영 배포 전 `'5 minutes' → '5 minutes 5 seconds'` 여유 추가 필요** — 다음 할 일 #2로 기록.
+
+### 5. 검증 결과
+
+| 항목 | 기대 | 실제 | 판정 |
+|---|---|---|---|
+| cron 매 분 실행 | 1분 간격 | 15회 연속 (runid 19~33) | ✅ |
+| 함수 early return (정상) | 2~3ms | 2.2~2.4ms | ✅ |
+| 임계 초과 감지 | 51건 | 51건 정확 | ✅ |
+| Vault 복호화 | 토큰/chat_id | pg_net 200 응답으로 간접 확인 | ✅ |
+| pg_net HTTP | status 200 | 200, 77ms | ✅ |
+| 텔레그램 실제 수신 (영어) | 1건 | Jayden 확인 OK | ✅ |
+| 텔레그램 실제 수신 (한국어) | 1건 | Jayden 확인 OK (포맷 완벽) | ✅ |
+| 쿨다운 suppress | alert_suppressed 기록 | 정확히 기록, pg_net 호출 스킵 | ✅ |
+| 쿨다운 시 pg_net 스킵 | 호출 0건 | 호출 0건 (id=1,2 외 없음) | ✅ |
+| 윈도우 밖 early return | return | 모든 후속 cron return | ✅ |
+
+**10/10 통과**. DB 내부 완결 알림 파이프라인 완전 검증.
+
+### 6. 파일 변경
+
+- `supabase/migrations/007_notify_rate_limit_spike.sql` (신규, ~220줄) — extensions + 함수 + cron job (멱등) + 검증 쿼리 + 롤백
+- `docs/runbooks/log-event-api.md` — "Supabase Alert 권장 설정" 섹션 전면 재작성, V2 계획 Task 2-M-B-3-B ✅ 전환 + Task 6(쿨다운 여유) 추가
+- `docs/PROGRESS.md` — 현재 위치 Session #25 갱신 + 이 섹션 추가
+- `docs/learnings.md` — 4건 추가 ([Security] 토큰 노출, [Architecture] pg_cron 패턴, [Operational] cron jitter, [AI-Pitfall] Dashboard UI 세 번째 반복)
+- **코드(src/) 변경 0건** — Supabase 내부만
+
+### 7. Status
+- ✅ Task 2-M-B-3-B 완료 — 실제 운영 가능 상태
+- ✅ 한국어 메시지 적용 — Task #6 완료
+- 🔄 다음 할 일: (1) Vercel 프로젝트 신규 등록, (2) 쿨다운 여유 추가 5분 → 5분5초, (3) Phase 2 AI 구조화 파이프라인 진입
+- 차단 요소: 없음
+
+---
+
+## 이전 세션 상태 (Session #24, 2026-04-09) — `.env.local` 잔재 키 정리 ✅
 
 **목표**: `.env.local`에 남아있던 사용처 0건 환경변수 잔재를 안전하게 정리. 코드 변경 0건. 🔴 보안 파일이라 모든 작업을 "값 노출 0 패턴"으로 진행.
 

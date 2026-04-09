@@ -182,36 +182,102 @@ Phase 4 — 검증
 5. pipeline_events에 401 에러가 rotation 창 동안 쌓임 (수용 가능한 trade-off)
 ```
 
-## Supabase Alert 권장 설정
+## Supabase Alert 설정 (Task 2-M-B-3-B, Session #25)
 
-rate limiting이 없는 MVP 상태에서 audit log flooding 공격 탐지용.
+Upstash Redis rate limiter(Task 2-M-B-3-A) 이후 **2차 방어선**. rate limiter를
+뚫고 들어오는 flooding 또는 rate_limit_exceeded 이벤트 급증을 DB 내부에서
+감지하고 Telegram 봇으로 한국어 알림 발송.
 
-Supabase Dashboard → Database → Reports → Custom Alerts (또는 Logflare/Grafana):
+### 구성 — DB 내부 완결 (외부 의존 0)
 
-```sql
--- 1분 윈도우 내 n8n 서비스 이벤트 수가 100건을 초과하면 알림
-SELECT COUNT(*)
-FROM pipeline_events
-WHERE service = 'n8n'
-  AND created_at > NOW() - INTERVAL '1 minute';
+```
+pg_cron (매 분 실행)
+  → notify_rate_limit_spike() 함수
+  → vault.decrypted_secrets (telegram_bot_token / chat_id)
+  → net.http_post → api.telegram.org/sendMessage
+  → pipeline_events.alert_fired 이벤트 기록
 ```
 
-임계값 기준:
-- 정상: 분당 한 자릿수~십몇 건 (실패한 optimization run마다 수 개)
-- 주의: 분당 100건 초과 → 대량 실패 또는 flooding 의심
-- 위험: 분당 1000건 초과 → 즉시 토큰 rotation + n8n 노드 비활성화
+**핵심 설계**:
+- **pg_cron**: 매 분 00초에 함수 호출 (Supabase 기본 확장)
+- **pg_net**: 함수 내부에서 Telegram API 비동기 호출 (fire-and-forget)
+- **Vault**: 토큰/chat_id는 `.env`/코드가 아닌 Supabase Vault(`Integrations → Vault → Secrets`)에 암호화 저장
+- **쿨다운 5분**: 같은 급증이 연속 감지되어도 5분에 1회만 알림 (DB 이벤트 기반, 재배포 견고)
+- **한국어 메시지**: 운영자 가독성 (Task #6 반영)
+- **Fail-safe**: 함수 내부 `EXCEPTION WHEN OTHERS`로 cron 계속 돌음
+
+### 임계값
+
+```
+v_threshold := 50       -- 분당 50건 초과 시 알림
+v_cooldown := 5 minutes  -- ⚠️ 운영 배포 전 '5 minutes 5 seconds' 로 여유 추가 권장 (cron jitter 대응, learnings Session #25 #3)
+```
+
+임계값 근거:
+- **정상**: 분당 한 자릿수 (실패한 optimization run마다 수 개)
+- **주의 (50 초과)**: rate limiter가 Upstash에서 차단한 이벤트가 분당 50건 넘음 → 정상 운영 범위 벗어남 → 알림
+- **Upstash rate limit 100건**과 다른 이유: rate_limit_exceeded는 "차단된 요청" 자체의 건수. rate limiter가 작동 중이어도 flooding 공격은 수천~수만 건 시도 → 50 초과는 이미 이상 시그널
+
+### 구현 파일
+
+- **SQL**: `supabase/migrations/007_notify_rate_limit_spike.sql` — extensions + 함수 + cron job (멱등 재등록 가능)
+- **Vault Secrets**:
+  - `telegram_bot_token` (BotFather 발급)
+  - `telegram_chat_id` (운영자 개인 chat_id, 다중 수신자는 그룹 chat_id 사용)
+
+### 운영 검증 쿼리
+
+```sql
+-- 1. Cron job 상태 (active=t 여야 함)
+SELECT jobid, jobname, schedule, active FROM cron.job
+WHERE jobname = 'rate-limit-spike-alert';
+
+-- 2. 최근 실행 기록 (매 분 succeeded)
+SELECT runid, status, return_message, start_time
+FROM cron.job_run_details
+WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'rate-limit-spike-alert')
+ORDER BY start_time DESC LIMIT 10;
+
+-- 3. 알림 발송 이력 (context_type='rate_limit_spike')
+SELECT created_at, step, LEFT(message, 120) FROM pipeline_events
+WHERE context_type = 'rate_limit_spike'
+ORDER BY created_at DESC LIMIT 20;
+
+-- 4. pg_net HTTP 응답 (status 200 이어야 정상)
+SELECT id, status_code, LEFT(content::text, 150) AS response, created
+FROM net._http_response ORDER BY created DESC LIMIT 5;
+
+-- 5. 지난 24시간 알림 발송 빈도
+SELECT DATE_TRUNC('hour', created_at) AS hour, COUNT(*) AS alerts
+FROM pipeline_events
+WHERE step = 'alert_fired' AND context_type = 'rate_limit_spike'
+  AND created_at > NOW() - INTERVAL '24 hours'
+GROUP BY 1 ORDER BY 1 DESC;
+```
+
+### 장애 대응 — 알림이 안 올 때
+
+```
+1. cron job 비활성화 의심 → `SELECT active FROM cron.job WHERE jobname='rate-limit-spike-alert'`
+2. 함수 에러 누적 의심 → pipeline_events에서 step='alert_function_error' 조회
+3. Vault secret 누락 → step='alert_failed', context_type='rate_limit_spike' 조회
+4. Telegram API 401/404 → net._http_response에서 status_code ≠ 200 조회 → 토큰 revoke 여부 확인
+5. 쿨다운으로 인한 suppress (정상 동작이지만 의심될 때) → step='alert_suppressed' 조회
+```
 
 ## V2 계획 (후속 Task)
 
 1. ✅ **Upstash Redis 기반 rate limit** — Bearer 토큰 단위 분당 100건 상한 (Task 2-M-B-3-A **완료**, Session #23)
-2. **Supabase alert 실제 설정** — 위 SQL을 Dashboard에 등록 (Task 2-M-B-3-B — Jayden 수동 대기)
+2. ✅ **Supabase alert 실제 설정** — pg_cron + pg_net + Vault + Telegram (Task 2-M-B-3-B **완료**, Session #25). 구현: `supabase/migrations/007_notify_rate_limit_spike.sql`
 3. **IP allowlist (선택)** — n8n instance 고정 IP가 있다면 추가 방어 계층
 4. **토큰 prefix 분리** — `nlog_` 같은 prefix로 로그에 토큰 노출 시 즉시 식별 가능
 5. **request 메트릭** — 성공률/지연/실패 이유 집계 (별도 /admin/events 대시보드)
+6. **쿨다운 interval 여유 추가** — 현재 함수 `v_cooldown_interval := '5 minutes'` → `'5 minutes 5 seconds'` (cron jitter 경계 리스크 제거). learnings Session #25 #3 참조
 
 ### ✅ 완료된 V1 항목
 - **Zero-downtime rotation** (Task 4, Session #20) — PRIMARY/SECONDARY 이중 시크릿 지원. 위 "Zero-downtime rotation 절차" 섹션 참조.
 - **Rate limiting** (Task 2-M-B-3-A, Session #23) — Upstash Redis + `@upstash/ratelimit` sliding window. 토큰 SHA-256 해시를 key로 사용(원본 미저장). env 부재 시 no-op, Redis 장애 시 fail-open. 구현: `src/lib/monitoring/log-event-ratelimit.ts`.
+- **Rate limit spike 알림** (Task 2-M-B-3-B, Session #25) — pg_cron 매 분 + pg_net + Vault + Telegram. 분당 50건 초과 시 한국어 알림, 쿨다운 5분. DB 내부 완결 (외부 의존 0). 구현: `supabase/migrations/007_notify_rate_limit_spike.sql`.
 
 ## 장애 대응
 
