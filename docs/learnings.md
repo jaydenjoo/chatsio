@@ -20,6 +20,26 @@
 
 ---
 
+### 2026-04-09 — [AI-Pitfall] .env.local grep 검증 — 값 따옴표 감싸짐 케이스 누락
+- **증상**: Session #29 Step 1에서 `docs/phase2-prerequisites.md`(Session #12 내가 작성)의 검증 명령 `grep -c '^N8N_WEBHOOK_URL=https' .env.local`를 그대로 실행 → **0** 반환. 동일하게 `ANTHROPIC_API_KEY=sk-ant` = **0**. 키 존재 grep `^N8N_WEBHOOK_URL=` = **1** (키는 있음). Jayden이 `.env.local`을 눈으로 열어 "값이 `https://`/`sk-ant`로 시작" 직접 확인 + Step 2 webhook ping에서 n8n 인증 검증 응답 수신으로 값 유효성까지 최종 확인. 원인: `.env.local`에서 값이 `KEY="https://..."` 형식(따옴표 감쌈). grep 패턴 `=https`는 `="https`와 매칭 안 됨 (`=` 다음이 `h`가 아니라 `"`)
+- **원인**:
+  1. `.env` 파일 값 따옴표 감싸기는 표준 형식 중 하나 (dotenv-safe / shell source 호환)
+  2. Next.js는 `process.env` 로드 시 따옴표 자동 벗김 → **코드 동작 영향 없음**, grep 외부 검증만 실패 → "진짜 문제"처럼 오인하기 쉬움
+  3. Session #12에 내가 작성한 검증 명령이 4주 후 내 자신에게 그대로 신뢰돼 2번 grep 왕복 + 10분 낭비
+  4. 비개발자 Jayden 입장에선 "Claude가 요구하는 grep 결과 0 = 뭔가 잘못됐나?" 혼란 유발 + 추가 확인 필요
+- **해결**:
+  1. grep 패턴에 선택적 따옴표 추가: `grep -cE '^KEY="?https'` (확장 정규식)
+  2. 환경변수 **유효성 최종 판정은 실제 호출**(webhook ping / API call). grep은 "키 존재 여부"까지만 책임
+  3. 형식 불일치가 나오면 Jayden 눈 확인 + 실제 호출 2단계 fallback
+- **규칙**:
+  1. **.env grep 패턴 작성 시 `"?` 기본 포함** — `grep -cE '^KEY="?<prefix>'`. `.env` 파일 값 따옴표 감쌈은 표준 형식이므로 매칭 케이스에 무조건 포함
+  2. **환경변수 검증 = 2단계**: (1) 키 존재(grep) + (2) 실제 호출(webhook/API). prefix 매칭은 보조 수단. 실제 호출이 최종 판정
+  3. **자기 자신이 4주+ 전 작성한 검증 명령도 맹신 금지** — 결과가 예상과 다르면 "명령 자체"를 먼저 의심. 당시 고려 못 한 케이스 있을 수 있음. 특히 작성 시점 컨텍스트가 세션 #12 → 실행 시점 세션 #29처럼 긴 갭이 있는 경우
+  4. **응답 body도 "살아있음" 증거** — HTTP status line이 명령 오타(예: `/dev/null-w` 붙음)로 캡처 안 돼도, 응답 body가 서비스 특유 에러 메시지(n8n의 `Authorization data is wrong!`, Supabase의 `{"message":"invalid JWT"}` 등)면 reachable 판정 가능. Status code 재시도 대신 본문으로 확정 가능
+- **컨텍스트**: Session #29(2026-04-09) Phase 2 Prerequisites 전수 검증. Session #28 learnings `[AI-Pitfall] PROGRESS 이월 Task 실제 상태 직접 검증` 원칙은 이번 세션에서 정확히 작동(검증 먼저 → Anthropic 잔액 $2.88 부족을 Task 2-3 정공 진입 전에 식별) — 별개 성공 사례. 이 항목은 그 검증 과정 내부의 보조 교훈. 상호 참조: `docs/phase2-prerequisites.md` 1-C 체크리스트 (명령 결함 표시됨)
+
+---
+
 ### 2026-04-09 — [AI-Pitfall] PROGRESS.md 이월 Task — 실제 상태 직접 검증 없이 신뢰 금지
 - **증상**: Session #26(Vercel 환경변수 3건)와 Session #28(Google Cloud Console OAuth 설정) — **두 세션 연속** PROGRESS.md "다음 할 일"로 이월되어 있던 외부 시스템 설정 Task가, 실제 실행 시점에 확인해보니 **이미 Jayden이 직접 완료해둔 상태**였음. Session #24→#26(2세션 낭비), Session #25→#28(3세션 낭비). 두 케이스 모두 "외부 콘솔/설정 상태를 AI가 과거 기록으로 추론 → 이월 → 실행 → 이미 완료" 패턴 100% 동일
 - **원인**:

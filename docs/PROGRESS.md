@@ -4,19 +4,21 @@
 > **프로젝트 경로**: `/Users/jayden/projects/chatsio/` (Session #10에서 `/Volumes/jayden-ssd/chatsio`에서 이동 — 아래 "프로젝트 이동" 섹션 참조)
 
 ## 현재 위치
-- Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Session #28 — Google OAuth 설정 검증 완료** ✅ (외부 콘솔 설정이 이미 100% 완료 상태였음)
-- 커밋: `a55b746` (Session #27) → **Session #28 커밋 1개 예정** (PROGRESS.md + learnings.md + 코드 변경 0)
-- 상태: ✅ Google Cloud Console OAuth Client + Supabase Google Provider + Supabase Redirect URLs 3중 설정 전부 확인. 로컬 로그인 실제 작동 + 프로덕션 OAuth 체인 Playwright 자동 검증 통과 (Google 공식 로그인 페이지까지 도달)
+- Epic: **Phase 2 진입 준비 완료** (AI 구조화 파이프라인)
+- Task: **Session #29 — Phase 2 Prerequisites 전수 검증** ✅ 5/6 통과 + 🟡 Anthropic 잔액 $2.88 1건 주의
+- 커밋: `85529c0` (Session #28) → **Session #29 커밋 1개 예정** (PROGRESS.md + learnings.md + phase2-prerequisites.md, 코드 0)
+- 상태: ✅ n8n Elest.io Running + v8 워크플로우 Anthropic 사용 확정 + webhook ping 통과 + n8n 내부 credential 확인. 🟡 Anthropic 잔액 $2.88 (PRD 기대 $10+ 미달) + Auto reload disabled + Limits 페이지 미확인 — Jayden 세션 밖 액션 필요
 - 다음:
-  1. (후속) Phase 2 AI 구조화 파이프라인 본격 진입 — **남은 유일한 할 일**
-  2. (선택) 프로덕션 환경 Jayden 수동 최종 검증 1회 (실제 브라우저에서 Google 계정 로그인 → /products 복귀)
-  3. (backlog) Supabase Redirect URLs 중 v1 시절 `electric.app` 잔재 URL 정리 — 기능 영향 없음, 스코프 크리프 방지로 이번 세션 보류
+  1. (Jayden, 세션 밖) Anthropic Console → Billing → $10~20 충전 + Auto reload ON + Limits 설정 (월 $50 / 일 $5 권장)
+  2. (Session #30) Task 2-3 Plan 작성 — 최적화 실행 페이지 (상품 선택 → 플랜 선택 → 실행). n8n 실제 호출은 Task 2-4에서
+  3. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리 — 기능 영향 없음
+  4. (backlog) `docs/phase2-prerequisites.md` 검증 명령 패턴 수정: `grep -cE '^KEY="?<prefix>'` 적용 (learnings 반영)
 
 > **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소** (단일 출처 원칙).
 > **Session #26 판정**: "Vercel 프로젝트 신규 등록" 항목은 **폐기** — 이미 등록 + 배포 중 확인. Session #24 AI 오판단이 원인.
 > **Session #27 판정**: "Next.js 16.2 middleware → proxy" 이월 항목은 **완료** — 공식 codemod 미사용, 수동 3줄 + 주석 4줄.
 > **Session #28 판정**: "Google Cloud Console OAuth 설정" 이월 항목은 **폐기** — 이미 완료 상태. Session #26 Vercel env 오판단과 **동일 패턴 재발** (2세션 연속). learnings.md 신규 [AI-Pitfall] 항목으로 규칙 강화.
+> **Session #29 판정**: "Phase 2 Prerequisites 검증" **5/6 통과 + 1🟡**. n8n 환경 완비(Elest.io + v8 워크플로우 + Anthropic credential + webhook ping) + 🟡 Anthropic 잔액 $2.88 1건만 남음. Session #28 learnings 적용 **성공 사례** — "검증 먼저" 규칙이 Task 2-3 정공 진입 전에 잔액 부족 이슈 정확히 식별. 별개 교훈 1건 기록(.env grep 따옴표 감쌈 케이스 누락).
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -33,6 +35,118 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 **원본 상태**: `/Volumes/jayden-ssd/chatsio`는 **그대로 보존**. Jayden이 검증 후 "삭제 OK" 지시 시 제거.
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
+
+## 이번 세션 상태 (Session #29, 2026-04-09) — Phase 2 Prerequisites 전수 검증 ✅ (5/6 + 1🟡)
+
+**목표**: Phase 2 정공 진입(Task 2-3) 전 `docs/phase2-prerequisites.md`(Session #12 작성, 4주 경과) 체크리스트 6개 항목 전수 검증. Session #28 learnings 핵심 규칙("이월 Task 실제 상태 직접 검증")의 정면 적용 첫 케이스.
+
+### 1. 배경
+
+Session #26/28 두 세션 연속 경험: "PROGRESS에 미완료로 이월된 외부 설정이 실제로는 이미 완료" 패턴 2회 재발. Session #28 learnings `[AI-Pitfall] PROGRESS.md 이월 Task 검증`으로 규칙 확립. Session #29는 그 규칙의 첫 정면 적용 케이스.
+
+### 2. Task 구조 (4 Steps)
+
+- Step 1 — 로컬 환경변수 grep (내가 실행, Bash 권한 이슈 발생 시 Jayden `!` prefix fallback)
+- Step 2 — n8n webhook curl ping (Jayden 실행)
+- Step 3 — Jayden Dashboard 스크린샷 (n8n HTTP 노드 + Anthropic Billing 2건)
+- Step 4 — 결과 집계 + docs 업데이트 + 다음 Task 결정
+
+### 3. Step 1 — 환경변수 검증 (2번 왕복)
+
+1차 grep (phase2-prerequisites.md 명령 그대로):
+
+| 변수 | `^KEY=<prefix>` | 결과 |
+|---|---|---|
+| `N8N_WEBHOOK_URL=https` | 0 | ❌ 형식 불일치 |
+| `N8N_WEBHOOK_SECRET=.` | 1 | ✅ (`.`은 `"`도 매칭) |
+| `ANTHROPIC_API_KEY=sk-ant` | 0 | ❌ 형식 불일치 |
+
+2차 grep (키 존재만):
+- `^N8N_WEBHOOK_URL=` = 1 ✅
+- `^ANTHROPIC_API_KEY=` = 1 ✅
+
+→ 진단: 키는 있는데 값 prefix 매칭 실패 = placeholder 또는 다른 형식 의심. Jayden이 `.env.local`을 눈으로 직접 열어 "값이 `https://`/`sk-ant`로 시작" 확인 → 따옴표 감쌈 가설 (`KEY="https://..."`). Step 2 webhook ping 성공으로 값 유효성까지 최종 확인. 이 왕복 과정의 교훈은 별도 `learnings.md` 항목으로 기록(2026-04-09 `[AI-Pitfall] .env.local grep 검증 — 값 따옴표 감싸짐 케이스 누락`).
+
+**Step 1 판정**: ✅ 통과 (값 유효 + 명령 결함은 별개 이슈)
+
+### 4. Step 2 — n8n webhook ping
+
+명령 (Jayden `!` prefix 실행):
+```
+URL=$(grep '^N8N_WEBHOOK_URL=' .env.local | cut -d= -f2- | tr -d '"') && \
+curl -s -o /dev/null -w "HTTP:%{http_code}\n" -X POST \
+  -H 'Content-Type: application/json' -d '{"ping":true}' "$URL" --max-time 10
+```
+
+실행 결과: `Authorization data is wrong!` (응답 body)
+
+- 명령 자체에 `/dev/null-w` 오타 (공백 누락)로 status 라인 캡처 실패
+- 그러나 응답 body가 **n8n Webhook 노드의 Header Auth 검증 실패 시 기본 에러 메시지**
+- 의미: webhook reachable + n8n v8 워크플로우 수신 중 + 인증 검증 활성 = 201/401/403 등가
+
+**Step 2 판정**: ✅ 통과
+
+### 5. Step 3 — Jayden Dashboard 스크린샷 (2건)
+
+**스크린샷 1 — n8n 워크플로우 "P1 상품 분석기" HTTP 노드 상세**
+- 도메인: `chatsio-n8n-u865111.vm.elestio.app` → **Elest.io 인스턴스 확인**
+- HTTP URL: `https://api.anthropic.com/v1/messages` → **Anthropic 사용 확정**
+- Authentication: Predefined Credential Type → **Anthropic account** (credential 실제 연결)
+- Headers: `anthropic-version: 2023-06-01`
+- 좌측 노드 구조: P1 Prep / Premium 분기? / 플로 분기 / 데이터 정제 / Webhook / Variables and context → PRD 부록 B의 P1~P6 + Basic/Premium 분기 구조와 일치 (워크플로우 이름은 "v8"이 아닌 "P1 상품 분석기"지만 기능적으로는 Claude Sonnet 기반 ✅)
+- **2-E (n8n 내부 credential)도 이 스크린샷으로 자동 확정**
+
+**스크린샷 2 — Anthropic Console Billing**
+- Credit balance: **US$2.88 Remaining** ⚠️ PRD 기대 $10+ 미달
+- Auto reload: **disabled** 🟡
+- Limits 페이지(사이드바에 존재): 미확인
+
+### 6. 6개 항목 최종 판정표
+
+| # | 항목 | 판정 | 근거 |
+|---|---|---|---|
+| 2-A | Elest.io Running | ✅ | Step 2 webhook 응답 + 스크린샷 1 도메인 |
+| 2-B | v8 워크플로우 Active + Anthropic | ✅ | 스크린샷 1 HTTP 노드 URL + Credential |
+| 2-C | webhook ping 200/401/403 | ✅ | Step 2 body 응답으로 등가 판정 |
+| 2-D | Anthropic 잔액 $10+ | 🟡 | **$2.88 미달** |
+| 2-D' | Anthropic 일 상한 설정 | ❓ | Limits 페이지 미확인 (별도 메뉴) |
+| 2-E | n8n 내부 credential | ✅ | 스크린샷 1 Credential Type |
+
+**결과: 5/6 통과 + 1건 주의 (Anthropic 잔액)**
+
+### 7. Anthropic 잔액 영향 분석
+
+Phase 2 Task 2-3~2-9 예상 소비 (Claude Sonnet 4.6, 이미지+텍스트, 상품당 ~$0.05):
+- 개발 dry-run 20건: ~$1.00
+- 통합 테스트 30건: ~$1.50
+- PRD 검증 의류 100건: ~$5.00
+- 예비(에러/재시도): ~$2.00
+- **총 예상 ~$9.50** > 현재 **$2.88**
+
+→ Phase 2 본격 진입 전 **$10~20 충전 필요**. Task 2-3 UI 뼈대 단계는 LLM 호출 거의 없어 현 잔액으로도 시작 가능하지만, Session #28 learnings "검증 → 작업" 엄격 분리 원칙 + CLAUDE.md "한 번에 1~2기능만" 원칙 적용으로 **경로 C(검증만 완료 + 세션 종료)** 선택.
+
+### 8. 파일 변경
+
+- `docs/PROGRESS.md` — 현재 위치 갱신 + Session #29 섹션 추가 + 판정 라인 추가
+- `docs/learnings.md` — 신규 `[AI-Pitfall] .env.local grep 검증 — 값 따옴표 감싸짐 케이스 누락` 1건
+- `docs/phase2-prerequisites.md` — 체크리스트 8개 중 6개 업데이트 (1-A 스코프 밖, 1-B/1-C 수정, 2-A~2-E 실제 상태 반영)
+- **코드(src/) 변경 0건**
+
+### 9. 다음 세션 (Session #30) 진입 조건
+
+- **필수** (Jayden 세션 밖 액션):
+  - Anthropic Console → Billing → Add credits **$10~20** 충전
+  - (권장) Auto reload ON + 월 $50 / 일 $5 Limits 설정
+- **Session #30 시작 명령**: `/start` → 목표 = **Task 2-3 Plan 작성** (최적화 실행 페이지)
+- **Task 2-3 사전 지식 진입 경로**: PRD line 391, phase2-prerequisites.md, `src/features/products/`(Phase 1 완료 상태) 구조 Grep/Read → Plan → 승인 → 구현
+
+### 10. Status
+
+- ✅ Session #29 Task 완료 — Phase 2 Prerequisites 전수 검증 5/6 + 1🟡
+- 🟢 Phase 2 정공 진입 조건: **Anthropic 잔액 충전 1건만 남음** (Jayden 외부 액션)
+- 차단 요소: Anthropic 잔액 $10+ 충전 (세션 밖)
+
+---
 
 ## 이번 세션 상태 (Session #28, 2026-04-09) — Google OAuth 설정 검증 완료 ✅
 
