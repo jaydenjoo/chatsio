@@ -10,7 +10,7 @@
 - 상태: ✅ 쿨다운 경계 안전장치 적용 완료. cron 정상 작동 + COMMENT 메타데이터까지 복구 (10/10 검증 통과)
 - **Session #26 부수 발견 (중요)**: Session #24에서 "Vercel 미등록" 으로 기록했던 것은 **AI 오판단**. 실제로는 `jaydens-projects-f5e92399/chatsio` 프로젝트 존재 + GitHub Apps 기반 자동 배포 중. 최근 3개 커밋(`660477b`/`837bc22`/`aa92fcb`) 모두 Production 성공. Production URL: `https://chatsio-lla0k4c2e-jaydens-projects-f5e92399.vercel.app`. `vercel` CLI는 "No projects found" 반환하는 이상 징후 있음(별도 이슈, 배포에는 영향 없음)
 - 다음:
-  1. ⚠️ **Jayden 수동 확인 필요**: Vercel 환경 변수 3개 등록 여부 — `INTERNAL_LOG_EVENT_SECRET_PRIMARY` + `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`. Dashboard → Settings → Environment Variables에서 확인. 미등록 시 `/api/v1/internal/log-event`가 500 에러 발생. 상세 절차: `docs/runbooks/log-event-api.md` "🚀 배포 전 등록 체크리스트"
+  1. ✅ **완료 (Session #26 말미)**: Vercel 환경 변수 3개 등록 확인 — `INTERNAL_LOG_EVENT_SECRET_PRIMARY` + `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` 3개 모두 **All Environments** (Prod/Preview/Dev) 등록됨. Jayden Dashboard 스크린샷 2장으로 검증 (값 가림 상태). 등록 시점은 14h ago = Session #23 직후(2026-04-09 00:28경), Session #24에서는 이미 등록된 상태였음. Production 엔드포인트 런타임 가동 조건 충족
   2. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
   3. (기존) Next.js 16.2 deprecation — `src/middleware.ts` → `src/proxy.ts` 마이그레이션. 참조: https://nextjs.org/docs/messages/middleware-to-proxy
   4. (후속) Phase 2 AI 구조화 파이프라인 본격 진입
@@ -94,11 +94,29 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 - `docs/learnings.md` — **추가 없음** (기존 learnings.md 2026-04-09 `[Operational]` 항목의 "적용 사례"이므로 중복)
 - **코드(src/) 변경 0건**
 
-### 6. Status
+### 6. Vercel 환경변수 3개 등록 확인 (세션 말미 부수 작업)
 
+**실행**: Jayden Dashboard → Settings → Environment Variables 스크린샷 2장 공유 (값 `••••••` 가림 상태, 보안 체크 PASS). 이미지 경로는 `/Users/jayden/Desktop/스크린샷 2026-04-09 오후 2.27.53.png` + `오후 2.28.15.png`. 한글 공백 파일명 때문에 Glob 매칭 실패 → Bash `ls` 로 fallback 후 경로 확정.
+
+**결과** (3/3 확인):
+| 키 | 등록 | 적용 환경 | 등록 시점 |
+|---|---|---|---|
+| `INTERNAL_LOG_EVENT_SECRET_PRIMARY` | ✅ | All Environments | 14h ago |
+| `UPSTASH_REDIS_REST_URL` | ✅ | All Environments | 14h ago |
+| `UPSTASH_REDIS_REST_TOKEN` | ✅ | All Environments | 14h ago |
+
+**부수 발견**:
+- 14h ago = 2026-04-09 14:28 기준 역산 → **2026-04-09 00:28경 등록**. Session #23(Upstash Redis rate limiting) 종료 직후 Jayden이 즉시 등록함
+- 결과적으로 Session #24 "Vercel 미등록" 기록은 **등록된 상태에서 만들어진 AI 오판단**. 실제 운영 상태와 PROGRESS 기록이 2세션 동안 불일치
+- 보너스: 스크린샷에서 `N8N_PREMIUM_WEBHOOK_URL` 없음 확인 → Session #24 잔재 정리(`.env.local` 2개 키 삭제)와 **Vercel 상태 완전 정합**
+- 스크린샷에 보이는 전체 env var: `N8N_WEBHOOK_URL` / `NEXT_PUBLIC_APP_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` / `ANTHROPIC_API_KEY` / `N8N_WEBHOOK_SECRET` / `DATABASE_URL` + 위 3개 = 총 11개 + 🔒 All Environments
+
+**Status**:
 - ✅ Task 2-M-B-3-C 완료 — 쿨다운 경계 안전장치 적용
 - ✅ Vercel 자동배포 상태 정정 완료 — 실제 Production 가동 중 확인
-- 🔄 다음 할 일: (1) Vercel 환경변수 3개 등록 확인 (Jayden Dashboard), (2) Phase 2 AI 구조화 파이프라인 진입
+- ✅ Vercel 환경변수 3개 등록 확인 완료 — Production 엔드포인트 런타임 가동 조건 충족
+- ✅ learnings.md `[AI-Pitfall] Vercel 배포 상태 검증 — CLI 단독 신뢰 금지` 1건 추가
+- 🔄 다음 할 일: (1) Next.js 16.2 middleware → proxy 마이그레이션, (2) Phase 2 AI 구조화 파이프라인 진입 (별도 세션 권장)
 - 차단 요소: 없음
 
 ---

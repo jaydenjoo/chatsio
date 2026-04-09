@@ -20,6 +20,28 @@
 
 ---
 
+### 2026-04-09 — [AI-Pitfall] Vercel 배포 상태 검증 — `vercel` CLI 단독 신뢰 금지
+- **증상**: Session #26 시작 시 "Vercel 자동배포 되고 있어 확인해" 지시 수행 중, `vercel project ls` 가 로그인된 팀(`jaydens-projects-f5e92399`)에서 "No projects found" 반환. 실제로는 **동일 팀 아래 `chatsio` 프로젝트가 존재 + 자동 배포 중**이었음. `gh api repos/.../commits/660477b/statuses` → Vercel bot `state: success` + `gh api .../deployments` → 최근 3커밋(660477b/837bc22/aa92fcb) 전부 Production 성공 확인 → **CLI가 잘못 말함**
+- **원인**:
+  1. `vercel` CLI 인증/캐시/권한 스코프 이슈 (구체적 원인 미파악, 별도 이슈)
+  2. Vercel GitHub Apps 기반 자동배포는 classic webhooks API(`repos/hooks`)에 기록 안 됨 → 그쪽만 보면 "연동 없음"으로 오판 위험
+  3. Session #24 "Vercel 미등록" 기록이 `.env.local` 존재 + CLI 출력 추론으로 만들어진 AI 오판단. Session #25 PROGRESS에 "배포 전 Vercel 등록 필요"로 이월 → Session #26에서 Jayden 지적으로 재정정
+- **해결**:
+  1. 배포 검증 1순위 = **GitHub Deployments/Statuses API**:
+     - `gh api repos/{owner}/{repo}/deployments --jq '.[0] | {environment, ref, created_at}'`
+     - `gh api repos/{owner}/{repo}/commits/{sha}/statuses --jq '.[] | select(.creator.login == "vercel[bot]")'`
+     - `gh api repos/{owner}/{repo}/deployments/{id}/statuses --jq '.[] | {state, environment_url}'`
+  2. `vercel` CLI는 보조. CLI 결과와 GitHub API 결과가 불일치하면 **GitHub API 신뢰**
+  3. 환경변수 확인은 Dashboard 직접 확인(값 가림 상태 스크린샷) 또는 CLI 성공 시 `vercel env ls`로 키 이름만
+- **규칙**:
+  1. **배포 검증 첫 쿼리는 `gh api deployments`** — CLI 맹신 금지. "로컬 CLI 출력 ≠ 실제 외부 시스템 상태" 원칙 (기존 2026-04-09 [AI-Pitfall] Supabase Dashboard 교훈의 확장)
+  2. **PROGRESS.md에 "XX 미등록" 기록 시 반드시 API 근거 병기** — 증거 없는 "없음" 판정 금지. 1회 오판단이 다음 세션 PROGRESS로 이월되면 **재생산됨** (Session #24 → #25 → #26 = 2세션 낭비)
+  3. **Vercel-GitHub Apps 연동은 classic `repos/hooks` API 비어있음** — `[]` 반환 ≠ "연동 없음". GitHub Apps 시대 산물
+  4. **연쇄 오판단 차단**: 초기 검증 시 `gh api deployments` 1회만 돌렸으면 Session #24~#26 오판단 전체가 5분 내 사전 차단 가능했음. "외부 시스템 상태"는 항상 **권위 있는 API** 한 번 더 체크
+- **컨텍스트**: Session #26 시작 부수 작업. 검증 코스트 5분. 동일 세션 내 Jayden Dashboard 스크린샷(값 가림 상태)으로 `INTERNAL_LOG_EVENT_SECRET_PRIMARY` + `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` 3개 All Environments 등록 확인 완료(2026-04-09 00:28경, Session #23 직후 Jayden이 이미 등록했음)
+
+---
+
 ### 2026-04-09 — [Security] 대화 중 secret 노출 → 즉시 revoke 프로토콜
 - **증상**: Session #25 Phase 2에서 텔레그램 봇 생성 중 Jayden이 curl 명령어 전체를 복사-붙여넣기하면서 봇 토큰(`8732104937:AAEuLO...`) 전체를 채팅에 노출. 내가 직전에 "토큰 값 직접 보내지 마세요"라고 1회 안내했지만 터미널 전체 복사 흐름에서 그 경고가 가려짐. 이어지는 추가 시도(getMe, sendMessage)까지 같은 토큰이 반복 노출됨
 - **원인**:
