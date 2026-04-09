@@ -20,6 +20,78 @@
 
 ---
 
+### 2026-04-09 — [AI-Pitfall] DB 상태만 보고 외부 시스템 원인 성급 결론 금지
+- **증상**: Session #31에서 Task 2-3 실데이터 수동 검증 중 Jayden이 "n8n 에러 확인해줘, UI 계속 로딩 중"이라고 보고. 내가 Supabase 조회 결과 `status=processing`, `processing_step=3`, `error_*=null`, `updated_at=created_at`, `pipeline_events`에 n8n 서비스 이벤트 0건을 보고 **즉시 "n8n이 에러났는데 UPDATE 누락으로 Silent Failure"라고 확신**하고 상세 보고. 이후 Jayden이 n8n Executions 스크린샷 공유 → workflow가 "Succeeded in 23.27s"로 **성공** 표시 → 내 진단이 **완전히 틀림** 확인 → 재진단 → "Basic 경로 최종 UPDATE 노드 누락" 확정. 즉 **3번째 진단에서야 정답 도달**
+- **원인**:
+  1. **DB 필드 패턴만으로 외부 시스템 동작 추정** — `status=processing, error_*=null`을 보고 "n8n이 실패 UPDATE도 안 했으니 에러"라고 추정. 하지만 이 패턴은 "n8n이 에러"와 "n8n이 정상 완료됐지만 UPDATE 노드 누락" 두 경우 모두 가능. 패턴만으로는 구분 불가
+  2. **`updated_at = created_at` 함정** — Supabase 기본 설정은 `updated_at` 자동 갱신 트리거 없음. 트리거 없으면 UPDATE 있어도 `updated_at`은 INSERT 시점 그대로. 이 구조를 모르고 "updated_at 안 바뀜 = UPDATE 없음"으로 오해
+  3. **빠른 결론 유혹** — Jayden이 "n8n 에러"라고 말했으니 그 프레임을 그대로 받아 "어떻게 에러났나"를 찾는 방향으로 조사. "진짜 에러인가?"를 물어보지 않음. 사용자 보고 프레임을 의심 없이 수용
+  4. **외부 시스템 스크린샷 요청을 첫 단계가 아닌 후속 단계로 미룸** — 처음에는 Supabase 조회만 하고, 스크린샷은 나중에 요청. CLAUDE.md 디버깅 프로토콜 "외부 서비스 디버깅 순서: 서비스 응답 확인 먼저 → 코드 진단"을 제대로 적용 안 함. DB는 "코드 진단"에 더 가까움
+- **해결**:
+  1. Session #31 3번째 시도에서 Jayden 구두 확인(Basic 경로가 n8n에서는 완료 표시)으로 정답 도달. 그 전까지 틀린 진단 2회 발표
+  2. 옵션 A(수동 DB UPDATE로 row UNLOCK)로 현재 세션 UI 해제 + FailedView 회귀 검증을 동시에 수행
+- **규칙**:
+  1. **외부 시스템 진단 = 해당 시스템 UI 스크린샷이 1차 증거** — n8n/Vercel/Cloudflare/Supabase 문제 진단 시, DB 조회나 코드 분석보다 **해당 시스템의 콘솔 UI 스크린샷**을 먼저 요청. DB는 해당 시스템의 "결과물"이지 "원인"이 아님. 콘솔 UI에는 에러 메시지, 실행 로그, 성공/실패 판정이 직접 표시됨
+  2. **`updated_at` 자동 갱신 트리거 부재 가정** — Supabase 프로젝트는 기본으로 `updated_at` 자동 트리거를 만들지 않음. `updated_at = created_at`은 **UPDATE 없음의 증거가 아님**. 확실히 알고 싶으면 `information_schema.triggers`로 트리거 존재 여부 먼저 확인. 트리거 없으면 `updated_at`은 **애플리케이션 코드가 명시적으로 UPDATE할 때만** 갱신됨
+  3. **사용자 프레임을 1차 가설로만 수용, 재검증 필수** — Jayden이 "n8n 에러"라고 말해도 그건 **1차 가설**일 뿐. 실제 에러인지 확인은 내가 직접. 사용자가 비개발자라면 증상("UI 로딩 중")을 원인("에러")으로 번역해서 말하는 경향 있음
+  4. **DB 필드 패턴의 다의성 인정** — 동일한 DB 상태가 여러 다른 원인에서 나올 수 있음. `status=processing + processing_step=3`은 (a) 에러, (b) 성공 UPDATE 누락, (c) 여전히 처리 중, (d) 부분 UPDATE 후 크래시 등 최소 4가지 시나리오 가능. 패턴 하나로 원인 하나를 단정 짓는 습관 금지
+  5. **진단 보고서에 "확신도"를 명시** — "확정" vs "추정"을 문구로 분리. "n8n이 에러했다" (확정이 아닌 추정인데 확정처럼 썼음) → "DB 패턴으로 **추정** — 실제 원인은 외부 시스템 스크린샷 필요"로 써야. 내 보고서 말투가 "~확정", "~핵심 발견"처럼 강해서 Jayden이 반박하기 어려운 톤이었음
+- **컨텍스트**: Session #31(2026-04-09) Task 2-3 실데이터 수동 검증. 3번의 진단 수정: ① "n8n 에러 + UPDATE 누락" → ② "n8n workflow Step 4 최종 노드 누락" → ③ "Basic 경로 최종 UPDATE 노드 누락". Jayden이 n8n Executions + workflow canvas 스크린샷 공유 → Jayden 구두 정정으로 최종 확정. 부수 발견: `optimizations` 테이블에 UPDATE 트리거 0개(별도 learnings). 상호 참조: 이번 세션 [Architecture] updated_at 트리거 부재, [Bug] n8n Chatsio V8 Basic 경로 결함
+
+---
+
+### 2026-04-09 — [Architecture] optimizations 테이블 updated_at 자동 갱신 트리거 부재 — 진단 함정 + 폴링 취약점
+- **증상**: Session #31 진단 중 Supabase `optimizations` 테이블의 `updated_at = created_at`을 보고 "UPDATE가 한 번도 없었다"고 해석 → 완전히 잘못된 결론 도출. 재확인(`information_schema.triggers` 조회) 결과 `optimizations` 테이블에 트리거 **0개** = UPDATE 시 `updated_at` 자동 갱신 메커니즘 부재. 실제로는 `processing_step=3`으로 UPDATE가 여러 번 있었는데 `updated_at`은 INSERT 시점 그대로 유지
+- **원인**:
+  1. **Supabase 기본 설정 오해** — Supabase가 `updated_at` 컬럼을 자동 관리해준다고 무의식적으로 가정. 실제는 PostgreSQL + PostgREST 조합이므로 `updated_at` 자동 갱신은 **프로젝트가 직접 트리거를 만들어야** 함
+  2. **마이그레이션 작성 시 관례 누락** — migration 001~005 작성 시점에 `updated_at timestamptz default now()`만 넣고 UPDATE 트리거는 안 만듦. 디폴트 값은 INSERT 시점에만 작동, UPDATE 시에는 무효
+  3. **폴링 fallback 취약점** — `optimization-status.tsx` 5초 폴링이 `POLL_SELECT_COLUMNS`에 `updated_at` 포함하지만, 현재 `applyRowUpdate`는 모든 필드를 diff 비교해서 덮어쓰므로 실질 영향 없음. 하지만 향후 "row가 바뀌었는지" 판정 로직을 `updated_at` 기반으로 바꾸면 **감지 실패** 가능. 또한 외부 모니터링 쿼리가 `updated_at`으로 "최근 활동" 판정하면 잘못된 결과
+- **해결**:
+  1. 근본 해결 (Session #32 예정): migration 파일 신규 작성 — `optimizations` 테이블에 `BEFORE UPDATE` 트리거 추가. PostgreSQL 표준 패턴:
+     ```sql
+     CREATE OR REPLACE FUNCTION set_updated_at() RETURNS TRIGGER AS $$
+     BEGIN NEW.updated_at = now(); RETURN NEW; END;
+     $$ LANGUAGE plpgsql;
+
+     CREATE TRIGGER optimizations_set_updated_at
+     BEFORE UPDATE ON optimizations
+     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+     ```
+  2. 다른 Chatsio 테이블도 같은 문제 있을 가능성 — 전수 조사 후 동일 트리거 적용
+  3. Drizzle ORM 스키마에도 반영 필요 (있다면)
+- **규칙**:
+  1. **Supabase/PostgreSQL 테이블 생성 시 `updated_at` 자동 갱신 트리거 함께 생성** — `updated_at timestamptz default now()` 단독은 INSERT만 커버, UPDATE는 커버 못 함. 트리거를 빠뜨리면 나중에 진단 함정 + 모니터링 오류 유발. 새 테이블 생성 시 **반드시 트리거 페어로** 만들 것
+  2. **`updated_at = created_at` = "UPDATE 없음"이 아니다** — 트리거 존재 여부 확인 없이 이 등식 적용 금지. `information_schema.triggers` 조회 1회가 10분 낭비 차단
+  3. **마이그레이션 템플릿에 트리거 포함** — 프로젝트 마이그레이션 템플릿(있다면)에 `updated_at` 트리거를 디폴트로 포함. 매번 까먹는 실수 방지
+  4. **코드 상에서 `updated_at`으로 row 변경 감지하는 로직 금지** — 현재 `applyRowUpdate`는 모든 필드를 덮어쓰는 방식이라 안전하지만, 향후 최적화 시 "updated_at 비교로 변경 감지" 패턴 도입 금지. 트리거 없으면 작동 안 함
+- **컨텍스트**: Session #31(2026-04-09). Jayden의 Task 2-3 실데이터 검증 중 발견. n8n Basic 경로 결함을 진단하다가 부수적으로 드러남. 확정 근거: `SELECT trigger_name FROM information_schema.triggers WHERE event_object_table = 'optimizations'` → **빈 배열**. 기존 마이그레이션 파일 001~005에 트리거 생성 DDL 없음. Chatsio 다른 테이블(shops, products, shop_industries, prompts, optimization_events 등)도 동일 상태일 가능성 높음. 상호 참조: 이번 세션 [AI-Pitfall] DB 상태만 보고 성급 결론, [Bug] n8n Chatsio V8 Basic 경로 결함
+
+---
+
+### 2026-04-09 — [Bug] n8n workflow "Chatsio V8" Basic 경로 최종 UPDATE 노드 누락 — Silent Failure
+- **증상**: Session #31 Task 2-3 실데이터 검증 중 Jayden이 Basic 플랜으로 테스트 → 255초 경과 후에도 UI가 Step 4("결과 저장")에서 멈춤. 예상 35초 대비 7배 초과. n8n Executions 화면에서는 동일 실행이 "Succeeded in 23.27s"로 **성공** 표시. 즉 n8n workflow는 에러 없이 끝났지만 Supabase `optimizations` 테이블의 `status`는 여전히 `processing`, `result_json`/`jsonld`/`score`/`duration_ms` 모두 null. `processing_step`만 3까지 올라감 (Step 1/2/3 UPDATE 노드는 작동)
+- **원인**:
+  1. **Basic 경로 마지막 UPDATE 노드 누락** — Jayden 구두 확인: "n8n에서 베이직으로 넘어가서 완료된 것으로 확인되나 웹사이트에서는 완료가 안되고 계속 로딩중". 즉 Basic 경로는 Step 3 처리 후 **Supabase UPDATE 노드 없이 workflow가 성공 종료**. Premium 경로는 완전하지만 Basic은 반쪽 상태
+  2. **Task 2-1/2-2 n8n 프롬프트 전환 시점 누락** — 과거 세션(#12 이전 추정)에서 n8n 프롬프트를 Claude Sonnet 4.6로 전환하면서 Premium 경로는 끝까지 완성, Basic 경로는 마무리 로직이 누락된 채 커밋. PRD Task 2-1 완료 판정이 실제 E2E 없이 "n8n 워크플로우 노드 변환 완료"로 내려진 것으로 추정
+  3. **n8n workflow 성공 판정 = 최종 UPDATE 검증 안 함** — n8n "Succeeded"는 모든 노드가 에러 없이 실행됐다는 뜻일 뿐. "최종 UPDATE가 의도한 row에 반영됐는지"는 workflow 자체가 검증 안 함. 즉 workflow 정의 자체에 최종 UPDATE 노드가 없어도 "성공"으로 끝남 — 구조적 Silent Failure
+  4. **PRD 에러 처리 3원칙 #1 "Silent Failure 금지" 위반** — 사용자 관점에서 "에러인데 에러 메시지 없이 무한 로딩"은 전형적 Silent Failure. Chatsio PRD(2026-04-05 CEO+Eng Review)에서 명시적으로 금지된 패턴
+- **해결**:
+  1. Session #31 즉시 임시 조치: DB 수동 UPDATE로 `status='failed'` 마킹 → Realtime으로 UI를 FailedView로 전환 → 현재 갇힌 row 해제 + FailedView 회귀 검증 동시 수행
+  2. Session #32 근본 조치 (다음 세션 최우선):
+     - Jayden이 n8n 에디터에서 `Chatsio V8` workflow 열기 → `Basic Step 3` 다음 노드 확인 → Supabase UPDATE 노드 추가 (또는 Premium 경로 공통 저장 노드와 연결)
+     - UPDATE body 표준: `status='completed'`, `processing_step=4`, `result_json={{...}}`, `jsonld={{...}}`, `score={{...}}`, `duration_ms={{...}}` (`idempotency_key={{...}}` WHERE 절)
+     - Claude는 가이드 작성, 실제 수정은 Jayden 수동 (CLAUDE.md: n8n 자동화는 AI 분석 파이프라인 한정, Jayden 영역)
+     - 수정 후 같은 테스트 상품으로 Basic 재실행 → 실제 `status=completed` 도달 → **Task 2-6 CompletedView 4개 신규 컴포넌트 실데이터 검증**
+  3. 장기 조치: n8n workflow "성공" 판정 후 **별도 검증 스텝** 추가 — `optimizations` WHERE `idempotency_key=...` AND `status=completed` 확인 노드. 실패 시 pipeline_events에 에러 기록
+- **규칙**:
+  1. **n8n workflow "Succeeded" ≠ "의도된 작업 완료"** — workflow 성공 표시는 "모든 노드가 에러 없이 실행됨"만 의미. "결과가 DB에 올바르게 반영됐는지"는 별도 검증 필요. workflow 정의 자체가 불완전하면 "성공"도 Silent Failure
+  2. **플랜별 분기 workflow 설계 시 "공통 마무리 노드" 또는 "각 경로 독립 마무리 노드" 둘 중 하나 명확히 선택** — Chatsio V8은 Premium 경로는 끝까지 완성, Basic 경로는 마무리 누락. 반쪽 구조가 가장 취약. 설계 원칙: **모든 분기 경로가 동일한 "terminal 마무리 노드"로 merge** 하거나 **각 경로가 독립적 마무리 노드 보유**. 혼합 금지
+  3. **PRD Task 완료 판정 = E2E 테스트 포함** — "n8n 프롬프트 변환 완료" 수준으로 Task 완료 판정하면 마무리 로직 누락 같은 결함 못 잡음. Task 완료 기준에 "실데이터로 1건 이상 E2E 성공" 포함 필수. Chatsio Session #12 시점에 이게 빠진 것으로 추정
+  4. **Chatsio 코드 규칙 #2**: pipeline_events에 **n8n service 이벤트가 0건**이면 n8n workflow가 `/api/v1/internal/log-event` API를 전혀 호출하지 않는 상태 = workflow 로깅 통합 불완전 지표. 이것도 별도 수정 대상
+- **컨텍스트**: Session #31(2026-04-09). Task 2-3 실데이터 수동 검증 과정에서 발견. 영향: Phase 2 E2E 미완. Basic 플랜으로 최적화 실행하는 모든 사용자가 무한 로딩 화면을 보게 됨 — 프로덕션 배포 전 **반드시 수정 필요**. Premium 플랜은 정상 작동 추정(미검증). 임시 조치(row UNLOCK)로 현재 세션 해제됐지만 다음 최적화 요청도 동일 증상 재발. 다음 세션 최우선 Task. 상호 참조: 이번 세션 [AI-Pitfall] DB 상태만 보고 성급 결론, [Architecture] updated_at 트리거 부재, `docs/PRD.md` Section 12.2 에러 처리 3원칙, `src/features/optimize/actions.ts:61-353` `runOptimization` Server Action
+
+---
+
 ### 2026-04-09 — [AI-Pitfall] PROGRESS 이월 Task 재발 #3 — "코드도 이미 구현됐을 수 있다"
 - **증상**: Session #30 Task 2-3 Plan 작성 시작 → 사전 조사 중 `ls src/features/optimize/` 1회 실행 → **Task 2-3 관련 파일 11개 전부 이미 존재** 발견. `actions.ts:46` 주석에 "Task 2-3 Plan v3 비동기 패턴" 명시 + migration 005 partial unique index 반영 + H1~H3/M1~M3 과거 이슈 수정 태그 다수 = **이미 여러 세션에 걸쳐 구현+리뷰+고도화된 성숙 코드**. Session #26(Vercel env), #28(Google OAuth)에 이어 **3회 연속 동일 패턴 재발**
 - **원인**:

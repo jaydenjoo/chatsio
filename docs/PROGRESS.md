@@ -4,16 +4,17 @@
 > **프로젝트 경로**: `/Users/jayden/projects/chatsio/` (Session #10에서 `/Volumes/jayden-ssd/chatsio`에서 이동 — 아래 "프로젝트 이동" 섹션 참조)
 
 ## 현재 위치
-- Epic: **Phase 2 AI 구조화 파이프라인 — 실행 파이프라인 코어 100% 완성 확인**
-- Task: **Session #30 — Task 2-3 Plan 시도 → 이미 완료 발견 + 온보딩 UX 2026 트렌드 검증(현상유지 결정)**
-- 커밋: `d4d2dea` (Session #29) → **Session #30 커밋 1개 예정** (PROGRESS.md + learnings.md, 코드 0)
-- 상태: ✅ Anthropic 잔액 충전 완료 (Jayden 세션 시작 직후 확인) + Task 2-3 실행 페이지 이미 완료 상태 발견 (Session #26/#28에 이어 **3회 연속 이월 재발 패턴**) + Phase 2 실행 파이프라인 코어 100% 완성 확인 + 온보딩 UX 4단계 강제 wizard **현상유지** 결정 (2026 트렌드 리서치 5건 기반 3가지 옵션 검토 후 Chatsio 도메인 특성상 선택)
+- Epic: **Phase 2 AI 구조화 파이프라인 — Task 2-6 정식 결과 UI 구현 완료 + n8n workflow Basic 경로 결함 발견**
+- Task: **Session #31 — Task 2-6 UI 코드 완성 + Task 2-3 실데이터 검증 중 n8n Basic 경로 최종 UPDATE 누락 진단**
+- 커밋: `f1a2bd2` (Session #31 Task 2-6 코드) → **Session #31 save 커밋 1개 예정** (PROGRESS.md + learnings.md)
+- 상태: ✅ Task 2-6 정식 UI 4개 컴포넌트 + 가이드 문서 구현/검증/커밋 완료 + FailedView 실데이터 렌더링 회귀 없음 확인 + 🔴 **n8n workflow "Chatsio V8" Basic 경로의 최종 UPDATE 노드 누락/끊김** 발견 (workflow는 "Succeeded" 표시되지만 Supabase optimizations에 `result_json`/`jsonld`/`score`/`status=completed` UPDATE 없음, `processing_step=3`에서 멈춤) + 추가로 `optimizations` 테이블 `updated_at` 자동 갱신 트리거 부재 발견 (폴링 fallback 취약점)
 - 다음:
-  1. (다음 세션 최우선) **Task 2-6 정식 UI** — 현재 `optimization-status.tsx:199-241` CompletedView가 raw JSON `<pre>` 태그만 표시. 속성 목록 + JSON-LD 미리보기 + 점수 UI로 교체 (PRD Phase 2 완료 기준 직접 관련)
-  2. (다음 세션 병행) **Task 2-3 실제 작동 수동 검증** — Jayden 본인 브라우저에서 기존 상품으로 최적화 1건 실행 → 결과 스크린샷 공유 (Anthropic ~$0.05). Session #30에서 Playwright 세션 이슈로 생략됐음
-  3. (backlog) Task 2-7 결과 수동 편집, Task 2-8 최적화 이력 목록 페이지, Task 2-9 llms.txt 자동 생성
-  4. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리
-  5. (backlog) `docs/phase2-prerequisites.md` 검증 명령 패턴 수정
+  1. (다음 세션 **최우선**) **n8n workflow Basic 경로 최종 UPDATE 노드 수정** — Jayden이 n8n 에디터에서 `Basic Step 3` 다음 노드 확인 → 누락 시 Supabase UPDATE 노드 추가 (`status='completed'`, `result_json`, `jsonld`, `score`, `duration_ms` 기록). Claude는 가이드만 작성, 실제 수정은 Jayden 수동 (n8n = AI 분석 파이프라인 범위)
+  2. (수정 후) **Task 2-3 + Task 2-6 CompletedView 실데이터 재검증** — 같은 테스트 상품으로 Basic 재실행 → 실제 `status=completed` 도달 → CompletedView 4개 신규 컴포넌트(QualityScoreRing / AttributeList / JsonldPreview / OptimizationResult) 렌더링 + 한글 라벨 매핑 정확도 확인
+  3. (근본) **`optimizations` 테이블 `updated_at` 자동 갱신 트리거 추가** — migration 파일 작성 (폴링 fallback의 row 변경 감지 정확도 개선). Task 2-M 후속
+  4. (backlog) Task 2-7 결과 수동 편집, Task 2-8 최적화 이력 목록 페이지, Task 2-9 llms.txt 자동 생성
+  5. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리
+  6. (backlog) `docs/phase2-prerequisites.md` 검증 명령 패턴 수정 (`"?` 포함)
 
 > **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소** (단일 출처 원칙).
 > **Session #26 판정**: "Vercel 프로젝트 신규 등록" 항목은 **폐기** — 이미 등록 + 배포 중 확인. Session #24 AI 오판단이 원인.
@@ -21,6 +22,7 @@
 > **Session #28 판정**: "Google Cloud Console OAuth 설정" 이월 항목은 **폐기** — 이미 완료 상태. Session #26 Vercel env 오판단과 **동일 패턴 재발** (2세션 연속). learnings.md 신규 [AI-Pitfall] 항목으로 규칙 강화.
 > **Session #29 판정**: "Phase 2 Prerequisites 검증" **5/6 통과 + 1🟡**. n8n 환경 완비 + 🟡 Anthropic 잔액 $2.88 1건만 남음. Session #28 learnings 적용 **성공 사례**.
 > **Session #30 판정**: "Task 2-3 구현" 이월 항목은 **폐기** — 이미 완전 구현 + 리뷰 + 고도화된 성숙 상태. Session #26(외부 Vercel) → #28(외부 Google OAuth) → #30(내부 **코드**)로 **패턴이 코드 영역까지 확장**됐음이 확인됨. learnings 규칙 #2가 "외부 시스템"에만 묶여있던 한계가 드러남 → 코드 영역 커버하도록 강화.
+> **Session #31 판정**: "Task 2-6 정식 결과 UI" **구현 완료** — 속성 목록 + JSON-LD + 품질 스코어 4개 신규 컴포넌트 + 탭 분리. FailedView 실데이터 회귀 없음 검증. Task 2-3 실데이터 수동 검증 중 **n8n workflow Basic 경로 최종 UPDATE 노드 누락** 발견 — Session #31 주요 성과는 "코드 완성"보다 "**숨겨진 파이프라인 결함 발견**". 다음 세션 최우선은 n8n workflow 수정.
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -37,6 +39,116 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 **원본 상태**: `/Volumes/jayden-ssd/chatsio`는 **그대로 보존**. Jayden이 검증 후 "삭제 OK" 지시 시 제거.
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
+
+## 이번 세션 상태 (Session #31, 2026-04-09) — Task 2-6 정식 결과 UI 구현 완료 + n8n Basic 경로 결함 발견 🔴
+
+**목표**: Session #30에서 확정된 "Task 2-6 정식 UI(속성 목록 + JSON-LD + 점수)" 구현 + Task 2-3 실제 작동 수동 검증.
+
+### 1. Step B — Task 2-3 수동 검증 가이드 작성 ✅
+
+Playwright MCP는 persistent browser context의 테스트 유저 세션 문제 + Google OAuth bot 감지 위험(Session #28 learnings)으로 E2E 스모크 불가. Jayden 본인 브라우저로 검증할 수 있는 6단계 체크리스트 문서 작성:
+
+- `docs/task-2-3-manual-verification.md` 신규 (~170줄)
+- 사전 조건 / 실행 순서 6단계 / 성공 판정 기준 / 실패 시 대응 / Jayden 보고 형식 / 비용 안내(Anthropic ~$0.05) / 참고 파일 목록 포함
+
+### 2. Step A — Task 2-6 정식 결과 UI 구현 ✅
+
+**기존 문제**: `optimization-status.tsx:199-241` `CompletedView`가 raw JSON `<pre>` 태그만 표시 (Task 2-3 흡수 시 임시 코드, "Task 2-6에서 정식 UI 예정" 주석 있었음).
+
+**Plan 승인**: Stitch `ai 최적화결과상세/` 디자인(Editorial Architect) 참조 → 탭 분리 방식(속성 목록 / JSON-LD 코드), 품질 스코어 상단 배치, llms.txt 탭 제외(Task 2-9 범위).
+
+**신규 4개 컴포넌트 + 1개 수정**:
+
+| 파일 | 역할 | 라인 |
+|---|---|---|
+| `src/features/optimize/components/quality-score-ring.tsx` | SVG 2 circle 원형 게이지. 컬러 분기(≥80 success / 60~79 warning / <60 error). null fallback | 121 |
+| `src/features/optimize/components/attribute-list.tsx` | `resultJson` entries 렌더링 + 의류 도메인 27개 한글 라벨 매핑 + 타입별 분기(primitive/array/object/null) | 184 |
+| `src/features/optimize/components/jsonld-preview.tsx` | pretty JSON 코드 블록 + 복사 버튼(clipboard API + textarea fallback) + Google Rich Results Test 외부 링크 카드 | 142 |
+| `src/features/optimize/components/optimization-result.tsx` | 메인 컨테이너. 완료 헤더 + QualityScoreRing + 탭 바 + 탭 콘텐츠 | 114 |
+| `src/features/optimize/components/optimization-status.tsx` | `CompletedView` body → `<OptimizationResult>` 호출로 교체. 이중 카드 방지: completed 상태만 외부 래퍼 제거 | -55/+15 |
+
+**디자인 규칙 준수**: 1px 라인 금지 (배경색 전환), shadow 2레이어, primary 그라디언트(135deg), surface 계층(container-lowest/low/container), DM Sans+Pretendard 폰트 변수, 4px grid, radius 스케일(xl/2xl/3xl).
+
+**검증**: `pnpm typecheck` ✅ 에러 0 / `pnpm lint` ✅ 내 파일 clean(기존 `product-search-bar.tsx` 1건 경고는 범위 외) / `pnpm build` ✅ 2.3s 컴파일 + 25 static pages.
+
+**커밋**: `f1a2bd2 feat(optimize): Task 2-6 정식 결과 UI — 속성 목록 + JSON-LD + 품질 스코어` (6 files, +794 / -48)
+
+### 3. Task 2-3 실데이터 수동 검증 → n8n Basic 경로 결함 발견 🔴
+
+Jayden이 본인 브라우저에서 가이드 따라 Basic 플랜으로 실행 → **255초 경과 후에도 `processing_step=4` "결과 저장" 단계에서 멈춤** (예상 35초 대비 7배 초과). n8n 콘솔에서는 workflow가 "Succeeded in 23.27s"로 표시. UI는 계속 로딩 중. 스크린샷 3장으로 진단.
+
+#### 진단 여정 (3회 방향 수정)
+
+1. **첫 번째 추정 (틀림)**: DB 상태만 보고 "n8n이 에러 발생, Silent Failure로 UPDATE 누락" 결론. 근거 = `status=processing`, `processing_step=3`, `error_*=null`, `updated_at=created_at`, `pipeline_events`에 n8n 서비스 이벤트 0건.
+2. **두 번째 추정 (부분 틀림)**: 스크린샷(n8n Executions) 확인 → workflow "Succeeded" 표시 → "에러 아님, workflow 최종 UPDATE 노드 누락" 결론. 하지만 어느 플랜 경로인지 모름.
+3. **세 번째 확정 (Jayden 정정)**: 스크린샷(workflow canvas) + Jayden 구두 확인 → "Basic으로 테스트, Basic 경로는 n8n에서 완료 표시되지만 DB UPDATE 안 됨" → **Basic 경로 최종 UPDATE 노드 누락/끊김 확정**.
+
+#### 확정된 사실
+
+- **`optimizations` 테이블에 UPDATE 트리거 0개** (확인 완료) → `updated_at = created_at`은 "UPDATE 없음"의 증거가 **아님**. 트리거 없으면 UPDATE 있어도 `updated_at`은 그대로. 이전 진단에서 이 함정에 빠짐
+- **`processing_step=3`은 누군가 UPDATE 했다는 증거** — DB 컬럼 기본값 null, `actions.ts:229-235` INSERT에 processing_step 없음. 즉 n8n이 Step 1/2/3 UPDATE 노드는 실행함
+- **n8n workflow "Chatsio V8" Basic 경로에 Step 4(결과 저장) UPDATE 노드 누락 또는 연결 끊김** — Jayden 구두 확인
+- **PRD 에러 처리 3원칙 #1 "Silent Failure 금지" 위반 상태**
+
+#### 임시 조치 — DB 수동 UPDATE로 row UNLOCK (옵션 A 승인)
+
+```sql
+UPDATE optimizations
+SET status = 'failed',
+    error_step = 'manual_intervention',
+    error_message = 'n8n workflow Basic 경로 최종 UPDATE 노드 누락 — 수동 복구 예정. Session #31 진단.',
+    failed_at = NOW()
+WHERE id = '6bab8929-2ae8-4666-a4aa-f4924f431195' AND status = 'processing';
+```
+
+실행 후 42초 이내 Jayden 브라우저에서 **Realtime이 UPDATE 감지 → UI가 FailedView로 자동 전환**. 에러 단계 뱃지 + 메시지 + "다시 시도" 버튼 정상 렌더링.
+
+**부수 검증 효과**:
+- ✅ Supabase Realtime `postgres_changes` 정상 작동
+- ✅ `applyRowUpdate` snake_case → camelCase 변환 정상
+- ✅ `FailedView` 컴포넌트 실데이터 렌더링 정상
+- ✅ H3 status whitelist 검증 통과 (`failed` 반영)
+- ✅ 이번 세션 `optimization-status.tsx` 수정(이중 카드 방지 wrapper 분기) **회귀 없음**
+
+### 4. 근본 조치 (다음 세션 최우선)
+
+1. **n8n workflow Basic 경로 수정**: Jayden이 n8n 에디터에서 `Basic Step 3` 다음 노드 확인 → Supabase UPDATE 노드 추가 또는 연결선 복구. Claude는 가이드 작성, 실제 수정은 Jayden 수동.
+2. **`optimizations` 테이블 `updated_at` 자동 갱신 트리거 추가**: migration 파일 작성. 폴링 fallback의 row 변경 감지 정확도 개선. Task 2-M 후속.
+3. **수정 후 재테스트**: 같은 테스트 상품으로 Basic 재실행 → 실제 `status=completed` → **Task 2-6 CompletedView 4개 신규 컴포넌트 실데이터 검증** (한글 라벨 매핑 정확도 포함).
+
+### 5. 파일 변경
+
+- `docs/task-2-3-manual-verification.md` — 신규 (Step B 가이드)
+- `src/features/optimize/components/quality-score-ring.tsx` — 신규
+- `src/features/optimize/components/attribute-list.tsx` — 신규
+- `src/features/optimize/components/jsonld-preview.tsx` — 신규
+- `src/features/optimize/components/optimization-result.tsx` — 신규
+- `src/features/optimize/components/optimization-status.tsx` — 수정 (CompletedView 교체 + 이중 카드 방지 wrapper)
+- `docs/PROGRESS.md` — 이 섹션 + 현재 위치 + 판정 라인
+- `docs/learnings.md` — 신규 3건 (아래)
+
+### 6. learnings.md 추가 교훈
+
+- `[AI-Pitfall] DB 상태만 보고 외부 시스템 원인 성급 결론 금지` — 스크린샷/외부 증거 없이 DB 필드 패턴만으로 "n8n이 에러"라고 결론. 세 번째 진단에서 뒤집혔음. 규칙: **외부 시스템 진단 시 외부 시스템 UI(n8n 콘솔, Vercel 로그 등) 스크린샷 먼저 요청, DB 추론은 보조**
+- `[Architecture] optimizations 테이블 updated_at 자동 갱신 트리거 부재 — 진단 함정 + 폴링 취약점` — Supabase 기본 설정은 `updated_at` 자동 트리거를 만들어주지 않음. 트리거 없으면 UPDATE 있어도 `updated_at = created_at` 그대로. 이건 구조적 함정. 근본 해결: migration으로 trigger 추가
+- `[Bug] n8n workflow "Chatsio V8" Basic 경로 최종 UPDATE 노드 누락` — Task 2-1/2-2 n8n 프롬프트 전환 시점에 Basic 경로 마무리 저장 로직이 빠짐. Premium 경로는 완전하지만 Basic은 Step 3까지만. "Succeeded" 표시되는 Silent Failure. PRD 에러 처리 3원칙 #1 위반. 다음 세션 최우선 수정 대상
+
+### 7. Session #32 진입 조건
+
+- ✅ Task 2-6 UI 코드 100% 완성 (컴파일/린트/빌드 통과)
+- ✅ FailedView + OptimizationProgress 실데이터 검증 완료
+- 🔴 **Task 2-6 CompletedView 실데이터 미검증** (n8n 수정 후 가능)
+- 🔴 **n8n workflow Basic 경로 수정** 필요
+- 🟡 `optimizations` updated_at 트리거 추가 필요 (미migration)
+
+### 8. Status
+
+- ✅ Task 2-6 코드 완성 및 커밋
+- ✅ FailedView 회귀 검증 완료
+- 🔴 Phase 2 E2E 미완 (n8n Basic 경로 결함)
+- 차단 요소: **n8n workflow Basic 경로 수정 (Jayden 수동 작업)**
+
+---
 
 ## 이번 세션 상태 (Session #30, 2026-04-09) — Task 2-3 Plan → 이미 완료 발견 + 온보딩 UX 2026 트렌드 검증(현상유지) ✅
 
