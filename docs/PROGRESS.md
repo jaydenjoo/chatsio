@@ -4,21 +4,23 @@
 > **프로젝트 경로**: `/Users/jayden/projects/chatsio/` (Session #10에서 `/Volumes/jayden-ssd/chatsio`에서 이동 — 아래 "프로젝트 이동" 섹션 참조)
 
 ## 현재 위치
-- Epic: **Phase 2 진입 준비 완료** (AI 구조화 파이프라인)
-- Task: **Session #29 — Phase 2 Prerequisites 전수 검증** ✅ 5/6 통과 + 🟡 Anthropic 잔액 $2.88 1건 주의
-- 커밋: `85529c0` (Session #28) → **Session #29 커밋 1개 예정** (PROGRESS.md + learnings.md + phase2-prerequisites.md, 코드 0)
-- 상태: ✅ n8n Elest.io Running + v8 워크플로우 Anthropic 사용 확정 + webhook ping 통과 + n8n 내부 credential 확인. 🟡 Anthropic 잔액 $2.88 (PRD 기대 $10+ 미달) + Auto reload disabled + Limits 페이지 미확인 — Jayden 세션 밖 액션 필요
+- Epic: **Phase 2 AI 구조화 파이프라인 — 실행 파이프라인 코어 100% 완성 확인**
+- Task: **Session #30 — Task 2-3 Plan 시도 → 이미 완료 발견 + 온보딩 UX 2026 트렌드 검증(현상유지 결정)**
+- 커밋: `d4d2dea` (Session #29) → **Session #30 커밋 1개 예정** (PROGRESS.md + learnings.md, 코드 0)
+- 상태: ✅ Anthropic 잔액 충전 완료 (Jayden 세션 시작 직후 확인) + Task 2-3 실행 페이지 이미 완료 상태 발견 (Session #26/#28에 이어 **3회 연속 이월 재발 패턴**) + Phase 2 실행 파이프라인 코어 100% 완성 확인 + 온보딩 UX 4단계 강제 wizard **현상유지** 결정 (2026 트렌드 리서치 5건 기반 3가지 옵션 검토 후 Chatsio 도메인 특성상 선택)
 - 다음:
-  1. (Jayden, 세션 밖) Anthropic Console → Billing → $10~20 충전 + Auto reload ON + Limits 설정 (월 $50 / 일 $5 권장)
-  2. (Session #30) Task 2-3 Plan 작성 — 최적화 실행 페이지 (상품 선택 → 플랜 선택 → 실행). n8n 실제 호출은 Task 2-4에서
-  3. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리 — 기능 영향 없음
-  4. (backlog) `docs/phase2-prerequisites.md` 검증 명령 패턴 수정: `grep -cE '^KEY="?<prefix>'` 적용 (learnings 반영)
+  1. (다음 세션 최우선) **Task 2-6 정식 UI** — 현재 `optimization-status.tsx:199-241` CompletedView가 raw JSON `<pre>` 태그만 표시. 속성 목록 + JSON-LD 미리보기 + 점수 UI로 교체 (PRD Phase 2 완료 기준 직접 관련)
+  2. (다음 세션 병행) **Task 2-3 실제 작동 수동 검증** — Jayden 본인 브라우저에서 기존 상품으로 최적화 1건 실행 → 결과 스크린샷 공유 (Anthropic ~$0.05). Session #30에서 Playwright 세션 이슈로 생략됐음
+  3. (backlog) Task 2-7 결과 수동 편집, Task 2-8 최적화 이력 목록 페이지, Task 2-9 llms.txt 자동 생성
+  4. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리
+  5. (backlog) `docs/phase2-prerequisites.md` 검증 명령 패턴 수정
 
 > **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소** (단일 출처 원칙).
 > **Session #26 판정**: "Vercel 프로젝트 신규 등록" 항목은 **폐기** — 이미 등록 + 배포 중 확인. Session #24 AI 오판단이 원인.
 > **Session #27 판정**: "Next.js 16.2 middleware → proxy" 이월 항목은 **완료** — 공식 codemod 미사용, 수동 3줄 + 주석 4줄.
 > **Session #28 판정**: "Google Cloud Console OAuth 설정" 이월 항목은 **폐기** — 이미 완료 상태. Session #26 Vercel env 오판단과 **동일 패턴 재발** (2세션 연속). learnings.md 신규 [AI-Pitfall] 항목으로 규칙 강화.
-> **Session #29 판정**: "Phase 2 Prerequisites 검증" **5/6 통과 + 1🟡**. n8n 환경 완비(Elest.io + v8 워크플로우 + Anthropic credential + webhook ping) + 🟡 Anthropic 잔액 $2.88 1건만 남음. Session #28 learnings 적용 **성공 사례** — "검증 먼저" 규칙이 Task 2-3 정공 진입 전에 잔액 부족 이슈 정확히 식별. 별개 교훈 1건 기록(.env grep 따옴표 감쌈 케이스 누락).
+> **Session #29 판정**: "Phase 2 Prerequisites 검증" **5/6 통과 + 1🟡**. n8n 환경 완비 + 🟡 Anthropic 잔액 $2.88 1건만 남음. Session #28 learnings 적용 **성공 사례**.
+> **Session #30 판정**: "Task 2-3 구현" 이월 항목은 **폐기** — 이미 완전 구현 + 리뷰 + 고도화된 성숙 상태. Session #26(외부 Vercel) → #28(외부 Google OAuth) → #30(내부 **코드**)로 **패턴이 코드 영역까지 확장**됐음이 확인됨. learnings 규칙 #2가 "외부 시스템"에만 묶여있던 한계가 드러남 → 코드 영역 커버하도록 강화.
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -35,6 +37,118 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 **원본 상태**: `/Volumes/jayden-ssd/chatsio`는 **그대로 보존**. Jayden이 검증 후 "삭제 OK" 지시 시 제거.
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
+
+## 이번 세션 상태 (Session #30, 2026-04-09) — Task 2-3 Plan → 이미 완료 발견 + 온보딩 UX 2026 트렌드 검증(현상유지) ✅
+
+**목표**: Session #29에서 Anthropic 잔액 충전 완료 대기 후 Phase 2 정공 진입. Task 2-3 "최적화 실행 페이지 (상품 선택 → 플랜 선택 → 실행)" Plan 작성.
+
+### 1. Anthropic 충전 확인
+
+Jayden 세션 시작 직후 "충전 완료" 확인 → Phase 2 진입 조건 100% 해제. Session #29 블로커 해소.
+
+### 2. Task 2-3 Plan 시도 → 이미 구현 완료 발견 (3회 연속 재발)
+
+Plan 작성 전 사전 조사(`ls src/features/optimize/`, `ls src/app/(dashboard)/optimize/`)에서 **Task 2-3 관련 파일 11개 전부 이미 존재** 발견:
+
+- `src/features/optimize/actions.ts` (20KB) — L46 주석에 **"Task 2-3 Plan v3 비동기 패턴"** 명시. `runOptimization` Server Action이 Zod 검증 → 인증/소유권 → 5분 중복 체크 → idempotency_key 생성 → `optimizations` row INSERT → `invokeN8nWebhook()` → 성공/실패 분기까지 풀 구현. H1~M3 과거 이슈 수정 태그 다수 (이미 여러 리뷰 거친 성숙 코드)
+- `src/features/optimize/components/` — 7개 파일: `optimize-form.tsx`, `product-picker.tsx` (검색+카드+radio a11y), `plan-picker.tsx` (Basic/Premium + 예상시간), `optimization-progress.tsx` (4단계 프로그레스 + 경과/남은 시간), `optimization-status.tsx` (Realtime `postgres_changes` 구독 + 5초 폴링 fallback + CompletedView/FailedView 분기), `duplicate-dialog.tsx`, `locked-product-card.tsx`
+- `src/app/(dashboard)/optimize/page.tsx` (실행 페이지) + `[id]/page.tsx` (결과/상태 페이지)
+- migration 005 partial unique index 반영, Task 2-M 파이프라인 로깅 연동 완료
+
+**Session #26(Vercel env), Session #28(Google OAuth)에 이어 3회 연속 동일 패턴 재발**. 이번엔 **외부 시스템이 아닌 코드 자체**까지 패턴이 확장됐다. learnings.md 규칙 #2 ("모든 외부 시스템에 적용")가 **코드 영역까지는 커버 안 됨** 한계 드러남.
+
+### 3. Plan 방향 전환 → "검증 + 갭 분석 + 정정"
+
+Jayden 승인 후 4 Step Plan 실행:
+
+- **Step 1 코드 리뷰**: `features/optimize/**` 8개 파일 전수 Read ✅
+- **Step 2 PRD 갭 매핑**: 아래 표 ✅
+- **Step 3 E2E 스모크**: Playwright persistent context의 **기존 테스트 유저 세션** 발견 → shop/products 없음 → 스모크 시나리오 즉시 불가. 옵션 4가지 제시(온보딩 전체 진행/Jayden 재로그인/스모크 생략/Jayden 본인 브라우저) → Jayden **완전 방향 전환**(아래 6번) → Step 3 **중단** (다음 세션 수동 검증으로 이연)
+- **Step 4 PROGRESS 정정**: 이 섹션 ✅
+
+### 4. PRD Phase 2 갭 매핑표
+
+| Task | 요구사항 | 상태 | 근거 파일 |
+|---|---|---|---|
+| 2-3 | 최적화 실행 페이지 (상품 선택 → 플랜 선택 → 실행) | ✅ **완료** | `optimize/page.tsx` + OptimizeForm + 4 컴포넌트 + LockedProductCard/DuplicateDialog |
+| 2-4 | n8n 웹훅 호출 API Route (`/api/optimize`) | ✅ **완료 (설계 변경)** — API Route 대신 **Server Action** `runOptimization`으로 구현. `invokeN8nWebhook` 직접 호출. 보안/CSRF 동일 | `actions.ts:61-353` |
+| 2-5 | 로딩 UI (단계별 프로그레스 + 예상 시간) | ✅ **완료** — 4단계 + 경과/남은 시간 + Realtime + 5초 폴링 fallback | `optimization-progress.tsx`, `optimization-status.tsx:51-136` |
+| 2-6 | 결과 보기 페이지 (속성 + JSON-LD + 점수) | 🟡 **임시** — CompletedView에 **raw JSON pre 태그**만. 코드에 "Task 2-6 정식 UI 예정" 주석 명시 | `optimization-status.tsx:199-241` (L233 주석) |
+| 2-7 | 결과 수동 편집 (속성 수정 → JSON-LD 재생성) | ❌ **미구현** | — |
+| 2-8 | 최적화 이력 목록 페이지 | ❌ **미구현** (목록 라우트 부재) | — |
+| 2-9 | llms.txt 자동 생성 | ❌ **별도 범위** (n8n 의존 없음) | — |
+
+**결론**: Phase 2의 **실행 파이프라인 코어는 100% 완성**. 남은 건 **결과 UI 후처리(2-6)**, **편집(2-7)**, **이력 목록(2-8)**, **llms.txt(2-9)**.
+
+**추가 관찰**: Realtime+폴링 이중 방어, migration 005 race condition 차단 (23505 catch → DUPLICATE_IN_FLIGHT), rawMessage/userMessage 분리(스키마 누설 차단), pipeline_events 로깅 연동 완료. **코드 품질 매우 성숙**.
+
+### 5. Step 3 스모크 중단 사유
+
+Playwright MCP가 persistent browser context를 사용 → 이전 세션의 **테스트 유저 세션**이 유지되어 `/optimize` 접속 시 `/onboarding`으로 redirect. 해당 유저는 shop/products 전혀 없어 "기존 상품 선택 → 최적화" 시나리오 즉시 불가. 옵션 검토:
+
+- 옵션 A(온보딩 전체 + 더미 상품): 30분+, n8n 결과 가치 낮음 (더미 상품은 의미 없음)
+- 옵션 B(Jayden 메인 계정 재로그인): Google OAuth bot 감지 위험 (Session #28 규칙)
+- 옵션 C(스모크 생략): 안전하지만 검증 없음
+- 옵션 D(Jayden 본인 브라우저 수동): Plan 원래 A안 회귀
+
+→ Jayden이 **방향 완전 전환** 선택. Step 3는 다음 세션 Jayden 본인 브라우저 수동 검증으로 이연.
+
+### 6. 온보딩 UX 검증 (Jayden 요청 → 현상유지 결정)
+
+**Jayden 질문**: "가입 직후 기본정보 입력하는 4단계 강제 wizard가 좋은 UX인가? 아니면 바로 대시보드 진입이 좋은가? 2026 최신 정보 기반으로 검증"
+
+**WebSearch 5건 병렬 리서치** → 2026 트렌드 요약:
+
+1. **강제 wizard = 죽어가는 패턴** ("Forced onboarding creates resentment and abandonment")
+2. **TTV = 60초** 이내 목표 ("In 2026, the bar is under 60 seconds")
+3. **Empty state = 온보딩 surface** (Notion, Stripe 패턴)
+4. **Progressive disclosure = 표준** (AI 기반 **64% activation** vs 전통 **25%** — 156% 개선)
+5. **Skippable checklist → +20~30% completion** (Airtable wizard 개편 사례 activation +20%)
+
+업계 중간값 activation 15-20% vs top-quartile 40%+. 이 격차 대부분이 온보딩 품질로 설명됨.
+
+**Chatsio 도메인 특성 반대 논거**:
+
+- RLS가 `shop_id` 필수 → shop 없이 핵심 기능 작동 불가
+- Aha moment = "내 상품이 AI로 구조화되는 순간" → 최소 3단계(shop → 상품 → 최적화) 불가피
+- 타깃 = 한국 중소몰 사장님 = 한국 SaaS wizard 관례에 익숙
+- 보안 🔴 등급 → Figma식 "가입 없이 체험" 불가
+- 더미 데이터로 value 체험 어려움 ("남의 샘플 상품"은 공감 안 됨)
+
+**3가지 옵션 제시**:
+
+| 옵션 | 접근 | 2026 정합 | 도메인 적합 | 리팩토링 비용 | PRD 영향 |
+|---|---|---|---|---|---|
+| ① **현상유지** (4단계 강제) | 지금 그대로 | ❌ | 🟡 과잉 | 0 | 없음 |
+| ② 하이브리드 (Shop 1단계만 필수 + 대시보드 체크리스트) | Shop 폼 → 대시보드 진입 → 빈 상태 + 체크리스트 위젯 + 샘플 JSON-LD 프리뷰 | ✅ | ✅ | 중 | Task 1-5 + Phase 1 완료 기준 + 신규 체크리스트 Task |
+| ③ Dashboard-first 순수형 | 아무것도 강제 안 함 | ✅ | ❌ (RLS 의존) | 고 | 다수 |
+
+**내 추천은 옵션 ②**였으나 Jayden이 **① 현상유지** 선택.
+
+**Jayden 결정**: ① **현상유지** (2026-04-09)
+
+→ PRD Task 1-5 수정 없음. 코드 리팩토링 없음. 다만 이 결정의 배경(2026 트렌드 vs 도메인 특성 트레이드오프)과 재검토 트리거를 learnings.md 신규 `[Architecture]` 항목으로 기록하여 향후 A/B 테스트 인프라 갖춰진 시점에 재평가 가능하도록 함.
+
+### 7. 파일 변경
+
+- `docs/PROGRESS.md` — 현재 위치 갱신 + Session #30 섹션 추가 + 판정 라인 추가
+- `docs/learnings.md` — 신규 2건: `[AI-Pitfall] 이월 Task 재발 #3 — 코드 영역 확장`, `[Architecture] 온보딩 UX 현상유지 결정`
+- **코드(src/) 변경 0건** / **환경 설정 변경 0건**
+
+### 8. Session #31 진입 조건
+
+- ✅ Phase 2 실행 파이프라인 코어 확정
+- ✅ Anthropic 잔액 충전 완료
+- 🔄 **최우선 Task 2-6** (정식 결과 UI — 속성 목록 + JSON-LD 미리보기 + 점수)
+- 🔄 **병행** Task 2-3 실제 작동 수동 검증 (Jayden 본인 브라우저, Anthropic ~$0.05)
+
+### 9. Status
+
+- ✅ Session #30 Task 완료 — Task 2-3 상태 확정(이미 완료) + 온보딩 UX 결정(현상유지) + PRD 갭 매핑
+- 🟢 Phase 2 실행 파이프라인 100% 완성 상태 공식 확정
+- 차단 요소: **없음**
+
+---
 
 ## 이번 세션 상태 (Session #29, 2026-04-09) — Phase 2 Prerequisites 전수 검증 ✅ (5/6 + 1🟡)
 

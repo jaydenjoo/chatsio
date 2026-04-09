@@ -20,6 +20,63 @@
 
 ---
 
+### 2026-04-09 — [AI-Pitfall] PROGRESS 이월 Task 재발 #3 — "코드도 이미 구현됐을 수 있다"
+- **증상**: Session #30 Task 2-3 Plan 작성 시작 → 사전 조사 중 `ls src/features/optimize/` 1회 실행 → **Task 2-3 관련 파일 11개 전부 이미 존재** 발견. `actions.ts:46` 주석에 "Task 2-3 Plan v3 비동기 패턴" 명시 + migration 005 partial unique index 반영 + H1~H3/M1~M3 과거 이슈 수정 태그 다수 = **이미 여러 세션에 걸쳐 구현+리뷰+고도화된 성숙 코드**. Session #26(Vercel env), #28(Google OAuth)에 이어 **3회 연속 동일 패턴 재발**
+- **원인**:
+  1. **기존 learnings 규칙이 "외부 시스템"에만 묶여 있었음**: Session #28 `[AI-Pitfall] PROGRESS.md 이월 Task 실제 상태 직접 검증` 규칙 #2 ("모든 외부 시스템에 적용")가 Vercel/Google Cloud/Supabase/DNS/Cloudflare/n8n은 커버했지만 **코드 영역(src/)**까지는 명시적으로 포함 안 됨 → 전이 실패
+  2. **PROGRESS.md가 Session #12~#29 기간 동안 Task 2-3~2-9를 "Phase 2 미착수"로 기록** → AI는 이를 "코드 전부 미작성"으로 해석. 실제로는 파생 Task(Task 2-M 파이프라인 모니터링, 2-M-B-1 pipeline_events 로깅, 2-M-B-3-C 쿨다운 cron)를 진행하면서 **Task 2-3 본체도 함께 구현/리뷰/고도화**됐는데 PROGRESS 갱신에서 누락
+  3. **파생 Task ↔ 본체 Task 암묵적 의존**: Task 2-M "모니터링/에러 처리"는 **Task 2-3 본체 없이 존재할 수 없다**. 즉 Task 2-M을 건드린 세션은 사실상 Task 2-3도 같이 만진 것. 이 의존 관계가 PROGRESS에 기록 안 됨 → "작업 흔적의 과소 집계"
+  4. **"Plan 작성 요청 = 코드 탐색 금지" 규칙의 부작용**: `~/.claude/CLAUDE.md` "계획/설계 요청 시 코드베이스 탐색 금지" 원칙은 토큰 절약 목적이지만, 본 케이스처럼 "이미 구현된 코드를 무시하고 새 Plan을 짜는" 역효과 유발 가능
+- **해결**:
+  1. Session #30 즉시 대응: Plan 작성 중단 → 코드 리뷰(8개 파일 Read) → PRD 갭 매핑표 → Task 2-3 "✅ 완료" 판정. 절약: 재구현 세션 2~3회
+  2. learnings 규칙 #2 범위 확장: 외부 시스템 → **외부 시스템 + 코드 영역**
+  3. PROGRESS.md에 **"파생 Task ↔ 본체 Task 매핑표"** 추가 권장 (backlog): Task 2-M-B-1 → Task 2-3 의존
+- **규칙**:
+  1. **코드 영역도 "이월 = 할 일 후보 ≠ 확정" 원칙 적용** — 외부 시스템에만 국한하지 말 것. Plan 작성 전 `ls src/features/<task-관련>/` + `find src -name "*<keyword>*"` 1회 실행이 **Plan 작성의 필수 0단계**. 토큰 절약 원칙보다 우선
+  2. **"PRD 요구사항 → 파일/라인 매핑"이 Plan 작성 1단계** — 요구사항마다 "이게 이미 구현돼있는 파일이 존재할까?"를 `grep`/`find` 1회로 확인. `grep -rn "Task 2-3" src/`, `find src -type d -name "*optimize*"` 같은 초단순 명령이 세션 낭비 차단
+  3. **파생 Task 작업 세션 = 본체 Task 일부 구현 가능성 기본 가정** — Task 2-M(모니터링), Task 2-L(로깅), Task 2-R(복구) 같은 파생 작업을 수행한 세션은 본체 Task도 함께 만졌을 가능성을 디폴트로 가정. PROGRESS 갱신 누락을 기본값으로 두고 **코드 확인이 진실 소스**
+  4. **3회 재발이면 규칙 강화 시점** — 같은 패턴이 3세션 연속 재발하면 learnings 항목 강도 업그레이드. Session #26 → #28 → #30 순으로 learnings가 진화했음. 이후 4회 재발 시 **하드 블록 규칙** 도입(예: "Plan 작성 전 관련 디렉토리 `ls` 없이 계획 금지")
+  5. **"계획 요청 시 코드베이스 탐색 금지" 원칙의 예외** — 탐색 금지는 원칙이지만, 특정 Task가 이미 구현돼있을 가능성이 조금이라도 있으면 `ls` 1회 + 관련 파일 존재 여부 Grep 1회는 항상 허용. 이건 "탐색"이 아니라 "Plan 정확성 검증"
+- **컨텍스트**: Session #30(2026-04-09). Jayden이 Anthropic 충전 완료 후 Phase 2 정공 진입 지시. Plan 작성 직전 `ls -la src/features/` 1회가 모든 걸 밝혀냄. Step 3 E2E 스모크는 Playwright MCP의 persistent browser context가 이전 테스트 유저 세션을 유지한 때문에 별도 이슈로 분리 → 다음 세션 Jayden 본인 브라우저 수동 검증으로 이연. 상호 참조: Session #26 `[AI-Pitfall] Vercel 배포 상태 검증`, Session #28 `[AI-Pitfall] PROGRESS.md 이월 Task 실제 상태 직접 검증`
+
+---
+
+### 2026-04-09 — [Architecture] 온보딩 UX 현상유지 결정 — 2026 트렌드 vs Chatsio 도메인 특성 트레이드오프
+- **결정**: Chatsio의 가입 직후 **4단계 강제 wizard** (welcome → shop → first product → complete) **현상유지**. Dashboard-first 전환 안 함. PRD Task 1-5 / Phase 1 완료 기준 수정 없음. 코드 리팩토링 없음.
+- **배경**: Session #30에서 Jayden이 UX 검증 요청 — "가입 직후 기본정보 입력하는 플로우가 좋은가, 바로 대시보드 진입이 좋은가? 2026 최신 정보 기반으로"
+- **리서치**: WebSearch 5건 병렬 (한/영 혼합). 2026 트렌드 일관된 메시지:
+  1. **Forced onboarding은 죽어가는 패턴** ("creates resentment and abandonment")
+  2. **Time To Value(TTV) 목표 = 60초 이내** ("In 2026, the bar is under 60 seconds")
+  3. **Empty state = 온보딩 surface** (Notion, Stripe, Figma 패턴)
+  4. **Progressive disclosure가 표준** (AI 기반 progressive 온보딩 **64% activation** vs 전통 **25%**, 156% 개선)
+  5. **Skippable checklist → +20~30% completion** (Airtable wizard 개편 사례 activation +20%)
+  6. 업계 중간값 activation 15-20% vs top-quartile 40%+. 격차의 대부분은 온보딩 품질로 설명됨
+- **Chatsio 도메인 특성 반대 논거**:
+  1. **RLS가 `shop_id` 필수** — shop 정보 없이는 핵심 기능 전부 작동 불가. 기술적 제약
+  2. **Aha moment = "내 상품이 AI로 구조화되는 순간"** (PRD 명시) — 최소 3단계(shop → 상품 → 최적화) 불가피. Dummy data로 aha 대체 어려움
+  3. **타깃 = 한국 중소몰 사장님** — 한국 SaaS wizard 관례에 익숙. 글로벌 B2C SaaS 트렌드(Figma 등)와 수용성 다름
+  4. **보안 🔴 등급** (결제 + Cafe24 OAuth 토큰) — Figma식 "가입 없이 체험" 불가
+  5. **더미 데이터로 value 체험 어려움** — "남의 샘플 상품"은 공감 안 됨. "내 진짜 상품"이어야 설득력
+- **3가지 옵션 검토**:
+  - ① **현상유지** (4단계 강제) ← **Jayden 선택**
+  - ② 하이브리드 (Shop 1단계 필수 + 대시보드 체크리스트 위젯 + 샘플 JSON-LD 프리뷰) ← 내 추천이었으나 기각
+  - ③ Dashboard-first 순수형 ← 도메인 부적합
+- **Jayden 판단 근거** (추정): 리팩토링 비용 + PRD 수정 비용 + 한국 사장님 수용성 불확실성 > 기대 activation 상승(+20~30% 추정, 미검증). 즉 측정 없는 리팩토링 회피
+- **규칙**:
+  1. **"2026 베스트 프랙티스"도 도메인 적합성 체크 필수** — 글로벌 SaaS 트렌드(Notion/Figma/Airtable/Stripe 사례)가 모든 도메인에 적용되지 않음. 한국 중소몰 + 데이터 의존 + 보안 🔴 조합은 특수 케이스
+  2. **PLG 교리 맹신 금지** — TTV <60초, dashboard-first 같은 원칙은 **B2C SaaS / 협업 도구 / 개발자 도구**에 최적화된 것. B2B + 데이터 수집 선행 필수 도메인에는 제한적으로 적용. "Figma식 가입 없이 체험"은 Chatsio 같은 쇼핑몰 인프라 SaaS에 직접 적용 불가
+  3. **UX 결정 = 기술 결정 + PRD 결정** — 온보딩 플로우 변경은 단순 UI 개선이 아니라 **PRD Task 1-5 + Phase 1 완료 기준 수정 + 코드 리팩토링 + RLS 설계 재검토** = 스펙 변경 수준. 이 규모를 "UX 개선"으로 과소평가 금지
+  4. **측정 없이 전환 금지** — "2026 트렌드"는 근거지만 내 프로덕트 고유 데이터는 아님. activation 실제 측정 없이 트렌드만으로 리팩토링 결정하지 말 것. **현상유지 → 론칭 후 실제 activation 측정 → 데이터 기반 개선**이 올바른 순서
+  5. **"추천안 기각"도 정상 의사결정** — 내가 옵션 ②를 추천했지만 Jayden이 ① 선택. 내 추천이 무조건 맞는 게 아니고, 리팩토링 비용/타이밍/수용성은 Jayden(비즈니스 오너)의 영역. 추천이 기각될 때는 **왜 기각됐는지 근거를 이 learnings에 기록**해 향후 유사 결정 시 동일 맥락 재구성 가능하게
+- **재검토 트리거**:
+  - 론칭 후 activation <20% 확인 시
+  - 온보딩 이탈 지점 분석 시 shop/product 단계에서 40% 이상 이탈 발견 시
+  - CTO 합류 후 A/B 테스트 인프라 갖춰진 시점 (2026.06 예정)
+  - 한국 외 시장(글로벌/영어권) 타깃 확장 검토 시
+- **컨텍스트**: Session #30(2026-04-09). Jayden이 Playwright 스모크 중단 후 UX 방향 전환 → WebSearch 5건 리서치 → 3가지 옵션 비교 → 현상유지 결정. 파일 변경 없음. 상호 참조: `docs/PRD.md` L366-370 Task 1-5, Phase 1 완료 기준 L372-378. 소스: designrevision/productgrowth.in/rework/userguiding/productled/onething.design/sortlist/saasui.design/userpilot/useronboard/dardesign 등 11건
+
+---
+
 ### 2026-04-09 — [AI-Pitfall] .env.local grep 검증 — 값 따옴표 감싸짐 케이스 누락
 - **증상**: Session #29 Step 1에서 `docs/phase2-prerequisites.md`(Session #12 내가 작성)의 검증 명령 `grep -c '^N8N_WEBHOOK_URL=https' .env.local`를 그대로 실행 → **0** 반환. 동일하게 `ANTHROPIC_API_KEY=sk-ant` = **0**. 키 존재 grep `^N8N_WEBHOOK_URL=` = **1** (키는 있음). Jayden이 `.env.local`을 눈으로 열어 "값이 `https://`/`sk-ant`로 시작" 직접 확인 + Step 2 webhook ping에서 n8n 인증 검증 응답 수신으로 값 유효성까지 최종 확인. 원인: `.env.local`에서 값이 `KEY="https://..."` 형식(따옴표 감쌈). grep 패턴 `=https`는 `="https`와 매칭 안 됨 (`=` 다음이 `h`가 아니라 `"`)
 - **원인**:
