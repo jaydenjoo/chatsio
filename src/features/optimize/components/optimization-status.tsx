@@ -12,7 +12,6 @@ import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   ArrowLeft,
-  CheckCircle2,
   Package,
   RefreshCw,
   Sparkles,
@@ -22,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import type { OptimizationDetail } from "../actions";
 import { PLAN_LABEL } from "../validation";
 import { OptimizationProgress } from "./optimization-progress";
+import { OptimizationResult } from "./optimization-result";
 
 interface OptimizationStatusProps {
   readonly initialOptimization: OptimizationDetail;
@@ -120,17 +120,19 @@ export function OptimizationStatus({
       {/* 상단 — 상품 + Plan 뱃지 */}
       <OptimizationHeader optimization={optimization} />
 
-      {/* 상태별 본문 */}
-      <div className="rounded-3xl bg-[var(--surface-container-lowest)] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.06)] sm:p-8">
-        {optimization.status === "queued" ||
-        optimization.status === "processing" ? (
+      {/* 상태별 본문 — completed는 OptimizationResult가 자체 카드 계층 소유 */}
+      {optimization.status === "queued" ||
+      optimization.status === "processing" ? (
+        <div className="rounded-3xl bg-[var(--surface-container-lowest)] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.06)] sm:p-8">
           <OptimizationProgress optimization={optimization} />
-        ) : optimization.status === "completed" ? (
-          <CompletedView optimization={optimization} />
-        ) : (
+        </div>
+      ) : optimization.status === "completed" ? (
+        <CompletedView optimization={optimization} />
+      ) : (
+        <div className="rounded-3xl bg-[var(--surface-container-lowest)] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.06)] sm:p-8">
           <FailedView optimization={optimization} onRetry={handleRetry} />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -193,7 +195,7 @@ function OptimizationHeader({
 }
 
 // ============================================================
-// Completed view — Task 2-3 에서는 raw JSON (Task 2-6에서 정식 UI)
+// Completed view — Task 2-6 정식 UI: 속성 목록 + JSON-LD + 품질 스코어
 // ============================================================
 
 function CompletedView({
@@ -201,43 +203,7 @@ function CompletedView({
 }: {
   readonly optimization: OptimizationDetail;
 }): ReactElement {
-  const durationLabel = optimization.durationMs
-    ? optimization.durationMs < 60_000
-      ? `${Math.round(optimization.durationMs / 1000)}초`
-      : `${(optimization.durationMs / 60_000).toFixed(1)}분`
-    : "-";
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <div className="flex size-14 items-center justify-center rounded-2xl bg-[var(--success)]/10 text-[var(--success)]">
-          <CheckCircle2 className="size-7" />
-        </div>
-        <p className="text-lg font-bold text-[var(--on-surface)]">
-          최적화가 완료되었습니다
-        </p>
-        <p className="text-sm text-[var(--on-surface-variant)]">
-          소요 시간 {durationLabel}
-          {optimization.score !== null && ` · 점수 ${optimization.score}점`}
-        </p>
-      </div>
-
-      {/* 결과 미리보기 — Task 2-6에서 정식 UI로 교체 */}
-      <div className="rounded-xl border border-[var(--outline-variant)] bg-[var(--surface-container-low)] p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">
-            결과 JSON (개발용 미리보기)
-          </p>
-          <span className="text-[10px] text-[var(--outline)]">
-            Task 2-6에서 정식 UI로 교체 예정
-          </span>
-        </div>
-        <pre className="max-h-96 overflow-auto rounded-lg bg-[var(--surface-container-lowest)] p-3 text-[11px] leading-relaxed text-[var(--on-surface)]">
-          {JSON.stringify(optimization.resultJson, null, 2)}
-        </pre>
-      </div>
-    </div>
-  );
+  return <OptimizationResult optimization={optimization} />;
 }
 
 // ============================================================
