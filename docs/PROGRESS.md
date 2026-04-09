@@ -5,17 +5,18 @@
 
 ## 현재 위치
 - Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Session #27 — Next.js 16.2 middleware → proxy 마이그레이션 완료** ✅ (공식 마이그레이션 경로, 로직 0 변경)
-- 커밋: `caf2aff` (Session #26) → **Session #27 커밋 1개 예정** (rename + 주석 4곳 + PROGRESS.md)
-- 상태: ✅ `src/middleware.ts` → `src/proxy.ts` + `export function middleware` → `proxy` 적용. typecheck/lint/build 전부 PASS. Next.js 16.2 build 산출물이 `ƒ Proxy (Middleware)` 라벨로 자동 인식 (deprecation 경고 0)
+- Task: **Session #28 — Google OAuth 설정 검증 완료** ✅ (외부 콘솔 설정이 이미 100% 완료 상태였음)
+- 커밋: `a55b746` (Session #27) → **Session #28 커밋 1개 예정** (PROGRESS.md + learnings.md + 코드 변경 0)
+- 상태: ✅ Google Cloud Console OAuth Client + Supabase Google Provider + Supabase Redirect URLs 3중 설정 전부 확인. 로컬 로그인 실제 작동 + 프로덕션 OAuth 체인 Playwright 자동 검증 통과 (Google 공식 로그인 페이지까지 도달)
 - 다음:
-  1. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
-  2. (후속) Phase 2 AI 구조화 파이프라인 본격 진입
-  3. (수동 검증 권장) 배포 후 로그인/온보딩/내부 API 1회 스모크 — proxy rename 동작 확인
+  1. (후속) Phase 2 AI 구조화 파이프라인 본격 진입 — **남은 유일한 할 일**
+  2. (선택) 프로덕션 환경 Jayden 수동 최종 검증 1회 (실제 브라우저에서 Google 계정 로그인 → /products 복귀)
+  3. (backlog) Supabase Redirect URLs 중 v1 시절 `electric.app` 잔재 URL 정리 — 기능 영향 없음, 스코프 크리프 방지로 이번 세션 보류
 
 > **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소** (단일 출처 원칙).
 > **Session #26 판정**: "Vercel 프로젝트 신규 등록" 항목은 **폐기** — 이미 등록 + 배포 중 확인. Session #24 AI 오판단이 원인.
 > **Session #27 판정**: "Next.js 16.2 middleware → proxy" 이월 항목은 **완료** — 공식 codemod 미사용, 수동 3줄 + 주석 4줄.
+> **Session #28 판정**: "Google Cloud Console OAuth 설정" 이월 항목은 **폐기** — 이미 완료 상태. Session #26 Vercel env 오판단과 **동일 패턴 재발** (2세션 연속). learnings.md 신규 [AI-Pitfall] 항목으로 규칙 강화.
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -32,6 +33,84 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 **원본 상태**: `/Volumes/jayden-ssd/chatsio`는 **그대로 보존**. Jayden이 검증 후 "삭제 OK" 지시 시 제거.
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
+
+## 이번 세션 상태 (Session #28, 2026-04-09) — Google OAuth 설정 검증 완료 ✅
+
+**목표**: Session #26 말미부터 이월된 "Google Cloud Console OAuth 설정" 할 일 해소. 비개발자 Jayden이 한 Step씩 스크린샷 공유 방식으로 외부 콘솔 3곳(Google Cloud Console / Supabase Auth Providers / Supabase URL Configuration) 설정 상태를 확인하고, 로컬 + 프로덕션 양쪽에서 실제 로그인 동작 검증.
+
+### 1. 사전 조사 (코드)
+
+- `src/features/auth/actions.ts` L139-174 — `signInWithGoogle()` Server Action 완비 (Session #27 이전부터 존재). `supabase.auth.signInWithOAuth({ provider: "google" })` + origin 자동 감지 + 에러 로깅
+- `src/app/auth/callback/route.ts` — `exchangeCodeForSession(code)` + open redirect 방지(`rawNext.startsWith("/") && !rawNext.startsWith("//")`)
+- `src/app/(public)/login/page.tsx` L104-134 — "Google로 계속하기" 버튼 → Server Action 연결
+- chatsio-v1 레포와 비교 확인: v1은 client-side 단순 구현. **현재 chatsio 코드가 v1보다 더 안전/완성도 높음** → v1에서 베낄 것 없음
+
+### 2. 외부 콘솔 4단계 검증 (Jayden 스크린샷 공유 방식)
+
+| Step | 대상 | 결과 | 판정 |
+|---|---|---|---|
+| 1 | Google Cloud Console > 사용자 인증 정보 | OAuth 2.0 Client "Chatsio Web" 존재 (2026-02-04 생성, v1 시절) | ✅ |
+| 2 | "Chatsio Web" 상세 — 승인된 리디렉션 URI | `https://souqwsdwabhqbbvpwfpe.supabase.co/auth/v1/callback` 등록됨 + v1 잔재 `electric.app` URL 1개 (기능 영향 없음) | ✅ |
+| 3 | Supabase Dashboard > Auth Providers > Google | Enabled + Client ID/Secret 양쪽 등록 + Callback URL 일치 | ✅ |
+| 4 | Supabase Dashboard > URL Configuration | Site URL=`findably.kr` (유지) + Redirect URLs에 `http://localhost:3800/auth/callback` + `https://chatsio-topaz.vercel.app/auth/callback` 둘 다 **이미 등록됨** | ✅ |
+
+**핵심 판정**: Google OAuth 작동에 필요한 모든 외부 설정이 Session #28 시작 시점에 **이미 100% 완료된 상태**였음. 추가 수정 0건. Findably 설정은 하나도 건드리지 않음.
+
+### 3. 실행 검증 (2단계)
+
+**3-A. 로컬 로그인 (Jayden 수동, 브라우저)**
+- `http://localhost:3800/login` → "Google로 계속하기" 버튼 클릭
+- Google 계정 선택 → 권한 동의 → `/products` 복귀
+- **결과**: ✅ **로그인 성공**
+
+**3-B. 프로덕션 OAuth 체인 (Claude Playwright 자동)**
+- 사전 조건: Session #27 커밋 `a55b746`의 Vercel 배포 상태 `gh api` 로 확인 → `state: success` (2026-04-09 06:12:15 UTC)
+- Playwright `browser_navigate` → `https://chatsio-topaz.vercel.app/login` → Page Title `Chatsio — 상품 데이터 인프라` 확인
+- `browser_snapshot` → "Google로 계속하기" 버튼 (ref=e37) 렌더링 확인
+- `browser_click` → URL이 `accounts.google.com/v3/signin/identifier?...`로 전환
+- URL 파라미터 디코딩 후 정합성 전수 확인:
+  - `redirect_uri=https://souqwsdwabhqbbvpwfpe.supabase.co/auth/v1/callback` ✅
+  - `opparams` 내 `redirect_to=https://chatsio-topaz.vercel.app/auth/callback` ✅
+  - `response_type=code` / `scope=email profile` / `state=<uuid>` / `app_domain=...supabase.co` ✅
+- `browser_take_screenshot` 증거 캡처: Google 공식 로그인 페이지에 **"souqwsdwabhqbbvpwfpe.supabase.co(으)로 이동"** 문구 확인 → Google이 우리 Supabase 프로젝트를 **공식 등록된 OAuth 앱으로 인식** (Client ID 정합성 flow 자체로 증명)
+- **의도적 중단**: Google 계정 로그인 단계는 Jayden 개인 계정 + bot 감지 위험 때문에 자동화 금지. 로컬에서 이미 성공 검증됨 + 파라미터 정확성 증명됨 → 프로덕션 실패 확률 극히 낮음
+- `browser_close` 브라우저 정리
+
+### 4. 부수 기록 — AI OCR 실수
+
+- 스크린샷 해상도 문제로 Client ID 숫자를 잘못 판독한 사례: 앞서 보고한 `711899469204-...`는 저해상도 OCR 오류. 실제 OAuth flow에서 사용된(=진짜) Client ID는 `711895483524-schcq408e3ka4nvbln3lbbqi8ioct4dj.apps.googleusercontent.com`
+- 스크린샷 해상도 낮을 때 작은 글씨 숫자/해시값은 AI 판독 신뢰도 낮음 → **Playwright flow 검증이 더 권위 있는 근거**
+- 보안 영향 없음 (flow 자체로 값이 정확함이 증명되므로)
+
+### 5. 파일 변경
+
+- `docs/PROGRESS.md` — 현재 위치 갱신 + Session #28 섹션 추가
+- `docs/learnings.md` — 신규 `[AI-Pitfall]` 항목 1건 추가 ("이월 Task 실제 상태 직접 검증 없이 신뢰 금지")
+- `~/.claude/projects/-Users-jayden-projects-chatsio/memory/chatsio_vercel_url.md` (신규) + `MEMORY.md` 인덱스 1줄 추가 — 프로젝트 고정 Vercel URL `chatsio-topaz.vercel.app` 메모리 저장 (globally persistent across sessions)
+- **코드(src/) 변경 0건** / **환경 설정 변경 0건**
+
+### 6. 패턴 재발견 (Session #26 + #28)
+
+Session #26(Vercel 환경변수 3건)와 Session #28(Google OAuth 설정)이 **완전히 같은 패턴**으로 드러남:
+- PROGRESS.md에 "다음 할 일"로 이월 → 실제 실행 시점에 확인해보니 **이미 Jayden이 직접 완료해둔 상태**
+- 원인: AI가 "과거 세션에서 미완료로 기록됨 → 지금도 미완료일 것"이라는 inertia 편향. Session #26 learnings는 "Vercel" 키워드에만 묶여 있어 Google OAuth 같은 다른 외부 시스템에 전이 실패
+- 결과: Session #24→#26(2세션), Session #25→#28(3세션)까지 이월되며 누적 낭비
+- 교정: learnings.md 신규 `[AI-Pitfall]` 항목으로 **"외부 시스템 이월 Task는 실제 상태 직접 검증이 작업 첫 단계"** 규칙 확립. Session #26 항목과 상호 참조
+
+### 7. 다음 할 일 정리
+
+- ✅ **완료**: Google Cloud Console OAuth 설정
+- 🔄 **남은 할 일**: Phase 2 AI 구조화 파이프라인 진입 (유일한 다음 Epic)
+- 🟡 **선택/보류**:
+  - 프로덕션 환경 Jayden 실제 브라우저 최종 스모크 1회 (극히 낮은 실패 확률)
+  - Supabase Redirect URLs 중 `electric.app` 잔재 URL 정리 (기능 영향 없음)
+
+**Status**:
+- ✅ Session #28 Task 완료 — Google OAuth 설정 검증 + 로컬/프로덕션 체인 전수 확인
+- 🟢 Phase 1 외부 의존 해소 완료 — AI 구조화 파이프라인 진입 준비 상태
+- 차단 요소: 없음
+
+---
 
 ## 이번 세션 상태 (Session #27, 2026-04-09) — Next.js 16.2 middleware → proxy 마이그레이션 ✅
 

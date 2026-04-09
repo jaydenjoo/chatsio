@@ -20,6 +20,32 @@
 
 ---
 
+### 2026-04-09 — [AI-Pitfall] PROGRESS.md 이월 Task — 실제 상태 직접 검증 없이 신뢰 금지
+- **증상**: Session #26(Vercel 환경변수 3건)와 Session #28(Google Cloud Console OAuth 설정) — **두 세션 연속** PROGRESS.md "다음 할 일"로 이월되어 있던 외부 시스템 설정 Task가, 실제 실행 시점에 확인해보니 **이미 Jayden이 직접 완료해둔 상태**였음. Session #24→#26(2세션 낭비), Session #25→#28(3세션 낭비). 두 케이스 모두 "외부 콘솔/설정 상태를 AI가 과거 기록으로 추론 → 이월 → 실행 → 이미 완료" 패턴 100% 동일
+- **원인**:
+  1. **Inertia 편향**: AI가 "과거 세션에서 미완료로 기록됨 → 지금도 미완료일 것"이라고 가정. 실제로는 비개발자 Jayden이 세션 밖에서 직접 외부 콘솔(Vercel Dashboard / Google Cloud Console / Supabase Dashboard 등) 작업을 수행할 수 있음
+  2. **기존 교훈 전이 실패**: 2026-04-09 `[AI-Pitfall] Vercel 배포 상태 검증` 교훈은 "Vercel" 키워드에 묶여 있어 Google OAuth 같은 **다른 외부 시스템 영역**으로 자동 전이되지 않았음. 규칙 #2("PROGRESS.md 'XX 미등록' 기록 시 API 근거 병기")가 Vercel 외 영역에 적용 안 됨
+  3. **이월 Task의 "확정 할 일" 취급**: PROGRESS.md의 이월 항목을 "가설(검증 필요)"이 아닌 "확정된 할 일"로 읽음 → Task 시작 즉시 "어떻게 할까" 계획부터 세움 (검증이 아니라)
+  4. **비개발자 Jayden 흐름 미반영**: Jayden은 외부 콘솔(클릭 기반)을 스스로 직접 작업할 수 있음. AI 세션 밖 활동이 존재한다는 전제 없이 PROGRESS를 읽음
+- **해결**:
+  1. 외부 시스템 설정 Task는 **"검증 → 필요시 추가 작업" 순서 강제**. "추가 작업 → 검증" 순서 금지
+  2. 첫 단계는 항상 **"현재 실제 상태 직접 확인"**:
+     - Vercel: `gh api repos/{owner}/{repo}/deployments` / `vercel env ls` 또는 Dashboard 스크린샷
+     - Google Cloud Console: Jayden Dashboard 스크린샷 요청 (OAuth Client 목록 → Client 상세 → Authorized Redirect URIs)
+     - Supabase: MCP `list_projects` + Jayden Dashboard 스크린샷 (Auth Providers + URL Configuration)
+     - DNS/Cloudflare: `dig`/`nslookup` 또는 Dashboard
+     - n8n: webhook endpoint live test 또는 Dashboard workflow 상태
+  3. Supabase 프로젝트가 여러 앱 공유(Chatsio+Findably)일 때는 **기존 설정 절대 수정 금지**, 항목 **추가만** (Site URL은 건드리지 말고 Redirect URLs에 chatsio 항목만 추가)
+- **규칙**:
+  1. **PROGRESS.md 이월 항목 = "할 일 후보" ≠ "확정된 할 일"** — 매 세션 Task 시작 시 실제 상태 재검증 필수. 이월 N세션 된 항목일수록 "이미 해결됐을 가능성" 높음
+  2. **모든 외부 시스템에 적용 (Vercel 한정 아님)** — Google Cloud / Supabase Auth / DNS / Cloudflare / n8n / Slack / AWS / GCP 등 콘솔 설정이 있는 모든 서비스. Session #26 교훈을 Vercel 키워드에 고정시키지 말 것
+  3. **비개발자 Jayden은 세션 밖에서 외부 콘솔을 직접 작업한다** — 계약 조건. 세션 시작 시 PROGRESS 읽고 "Jayden이 이 사이에 뭘 했을 수 있지?" 가정부터 세우기
+  4. **공유 리소스(Chatsio+Findably DB 공유 같은) 수정 시 "추가만, 기존 수정 금지" 원칙** — Site URL / 기존 Redirect URLs / 기존 RLS 정책 / 기존 테이블 등은 손대지 말고, 새 항목만 "추가"
+  5. **검증 코스트 ≤ 작업 코스트** — 사전 검증 5분이 세션 낭비 3세션(90분+)보다 저렴. 항상 검증 먼저
+- **컨텍스트**: Session #28(2026-04-09). Google OAuth 설정 Task 이월 → 실제 확인 결과 Google Cloud Console / Supabase Provider / Supabase Redirect URLs 3중 설정 전부 완료 상태 + 로컬 로그인 실제 작동. 코드도 Session #27 이전부터 완비. 즉 **Session #28 Task 자체가 "검증만" 의미 있었음**. 남은 양성 결과: Playwright 프로덕션 OAuth 체인 자동 검증(Google 로그인 페이지 도달 + redirect_uri/state/scope 파라미터 정합성 100% 증명). 상호 참조: 바로 아래 2026-04-09 `[AI-Pitfall] Vercel 배포 상태 검증` 항목 (동일 패턴의 이전 사례)
+
+---
+
 ### 2026-04-09 — [AI-Pitfall] Vercel 배포 상태 검증 — `vercel` CLI 단독 신뢰 금지
 - **증상**: Session #26 시작 시 "Vercel 자동배포 되고 있어 확인해" 지시 수행 중, `vercel project ls` 가 로그인된 팀(`jaydens-projects-f5e92399`)에서 "No projects found" 반환. 실제로는 **동일 팀 아래 `chatsio` 프로젝트가 존재 + 자동 배포 중**이었음. `gh api repos/.../commits/660477b/statuses` → Vercel bot `state: success` + `gh api .../deployments` → 최근 3커밋(660477b/837bc22/aa92fcb) 전부 Production 성공 확인 → **CLI가 잘못 말함**
 - **원인**:
