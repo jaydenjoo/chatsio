@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
  * 다시 걸려 무한 리다이렉트가 발생한다. 따라서 라우트 그룹을 분리한다.
  *
  * 책임:
- * 1. 인증 검증 (fail-safe — middleware가 1차로 처리하지만 한 번 더)
+ * 1. 인증 검증 (fail-safe — proxy가 1차로 처리하지만 한 번 더)
  * 2. 이미 온보딩 완료 유저(profile.onboarding_completed && shop 존재)는
  *    /products로 리다이렉트 → 재진입 차단
  * 3. DashboardShell을 입히지 않음 → 사이드바 없는 풀화면 온보딩 UX

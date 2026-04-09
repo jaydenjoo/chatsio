@@ -5,18 +5,17 @@
 
 ## 현재 위치
 - Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Session #26 — Task 2-M-B-3-C 쿨다운 여유 패치 완료** ✅ (`'5 minutes'` → `'5 minutes 5 seconds'`, cron jitter 버퍼)
-- 커밋: `660477b` (Session #25) → **Session #26 커밋 1개 예정** (`007_notify_rate_limit_spike.sql` 3줄 + PROGRESS.md)
-- 상태: ✅ 쿨다운 경계 안전장치 적용 완료. cron 정상 작동 + COMMENT 메타데이터까지 복구 (10/10 검증 통과)
-- **Session #26 부수 발견 (중요)**: Session #24에서 "Vercel 미등록" 으로 기록했던 것은 **AI 오판단**. 실제로는 `jaydens-projects-f5e92399/chatsio` 프로젝트 존재 + GitHub Apps 기반 자동 배포 중. 최근 3개 커밋(`660477b`/`837bc22`/`aa92fcb`) 모두 Production 성공. Production URL: `https://chatsio-lla0k4c2e-jaydens-projects-f5e92399.vercel.app`. `vercel` CLI는 "No projects found" 반환하는 이상 징후 있음(별도 이슈, 배포에는 영향 없음)
+- Task: **Session #27 — Next.js 16.2 middleware → proxy 마이그레이션 완료** ✅ (공식 마이그레이션 경로, 로직 0 변경)
+- 커밋: `caf2aff` (Session #26) → **Session #27 커밋 1개 예정** (rename + 주석 4곳 + PROGRESS.md)
+- 상태: ✅ `src/middleware.ts` → `src/proxy.ts` + `export function middleware` → `proxy` 적용. typecheck/lint/build 전부 PASS. Next.js 16.2 build 산출물이 `ƒ Proxy (Middleware)` 라벨로 자동 인식 (deprecation 경고 0)
 - 다음:
-  1. ✅ **완료 (Session #26 말미)**: Vercel 환경 변수 3개 등록 확인 — `INTERNAL_LOG_EVENT_SECRET_PRIMARY` + `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` 3개 모두 **All Environments** (Prod/Preview/Dev) 등록됨. Jayden Dashboard 스크린샷 2장으로 검증 (값 가림 상태). 등록 시점은 14h ago = Session #23 직후(2026-04-09 00:28경), Session #24에서는 이미 등록된 상태였음. Production 엔드포인트 런타임 가동 조건 충족
-  2. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
-  3. (기존) Next.js 16.2 deprecation — `src/middleware.ts` → `src/proxy.ts` 마이그레이션. 참조: https://nextjs.org/docs/messages/middleware-to-proxy
-  4. (후속) Phase 2 AI 구조화 파이프라인 본격 진입
+  1. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+  2. (후속) Phase 2 AI 구조화 파이프라인 본격 진입
+  3. (수동 검증 권장) 배포 후 로그인/온보딩/내부 API 1회 스모크 — proxy rename 동작 확인
 
 > **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소** (단일 출처 원칙).
 > **Session #26 판정**: "Vercel 프로젝트 신규 등록" 항목은 **폐기** — 이미 등록 + 배포 중 확인. Session #24 AI 오판단이 원인.
+> **Session #27 판정**: "Next.js 16.2 middleware → proxy" 이월 항목은 **완료** — 공식 codemod 미사용, 수동 3줄 + 주석 4줄.
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -33,6 +32,70 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 **원본 상태**: `/Volumes/jayden-ssd/chatsio`는 **그대로 보존**. Jayden이 검증 후 "삭제 OK" 지시 시 제거.
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
+
+## 이번 세션 상태 (Session #27, 2026-04-09) — Next.js 16.2 middleware → proxy 마이그레이션 ✅
+
+**목표**: Session #26 말미 "다음 할 일"로 이월된 Next.js 16.2 deprecation 대응. `src/middleware.ts` → `src/proxy.ts` 공식 마이그레이션 경로 적용. 로직 0 변경, 순수 rename + 주석 동기화만.
+
+### 1. 근거 조사 (공식 문서)
+
+WebFetch `https://nextjs.org/docs/messages/middleware-to-proxy` 확인:
+- 파일: `middleware.ts` → `proxy.ts` (rename)
+- 함수: `export function middleware()` → `export function proxy()`
+- `config.matcher`는 그대로 유지
+- `NextRequest`/`NextResponse` import 경로 변경 없음
+- 공식 codemod 존재 (`npx @next/codemod@canary middleware-to-proxy .`) → **사용 안 함**. canary 도구 + 3줄 수정이라 수동이 더 안전/투명
+
+### 2. 영향 범위 (Grep 사전 확인)
+
+| 파일 | 변경 | 이유 |
+|---|---|---|
+| `src/middleware.ts` | **파일명 + 함수명** | Next.js convention file |
+| `src/lib/supabase/middleware.ts` | **변경 없음** | Supabase SSR 헬퍼 (Next.js convention 아님, user-space 유틸) — 건드리면 Supabase 공식 문서와 분기 발생 → 의도적 보존 |
+| `src/lib/supabase/cookie-options.ts` | **주석 3줄** | 문서 정합성 (L6, L11, L12: "middleware(updateSession)" → "proxy(updateSession)") |
+| `src/app/(onboarding)/layout.tsx` | **주석 1줄** | 문서 정합성 (L13) |
+| `src/features/onboarding/actions.ts` | **변경 없음** | import = `@/lib/supabase/cookie-options` (무관) |
+
+### 3. 실행 단계
+
+- Phase 1: `git mv src/middleware.ts src/proxy.ts` → git rename detection 유지 (history 보존)
+- Phase 2: `export async function middleware` → `proxy` 1줄 변경 (config/matcher/import 모두 유지)
+- Phase 3: 주석 4곳 동기화 (cookie-options.ts 3줄 + layout.tsx 1줄)
+- Phase 4: 검증 3종 + 잔재 Grep
+
+### 4. 검증 결과 (9/9)
+
+| 항목 | 기대 | 실제 | 판정 |
+|---|---|---|---|
+| 파일 rename | `R  middleware.ts -> proxy.ts` | git status R flag 확인 | ✅ |
+| 함수명 변경 | `export async function proxy` | proxy.ts L4 | ✅ |
+| `config.matcher` 유지 | 기존 그대로 | diff 0 | ✅ |
+| 잔존 `export function middleware` | 0건 | Grep `src/` 결과 없음 | ✅ |
+| `pnpm typecheck` | PASS | PASS | ✅ |
+| `pnpm lint` | 0 errors | 0 errors (warning 1건은 기존 `product-search-bar.tsx`, 무관) | ✅ |
+| `pnpm build` | PASS + deprecation 경고 없음 | `Compiled successfully in 2.6s` + 경고 0 | ✅ |
+| build 산출물 라벨 | proxy 인식 | `ƒ Proxy (Middleware)` 라벨 자동 출력 | ✅ |
+| diff 최소 | 로직 0 변경 | 3 files, +5/-5 | ✅ |
+
+### 5. 파일 변경
+
+- `src/middleware.ts` → `src/proxy.ts` (git rename) — 함수명 1줄 교체
+- `src/lib/supabase/cookie-options.ts` — 주석 3줄
+- `src/app/(onboarding)/layout.tsx` — 주석 1줄
+- `docs/PROGRESS.md` — 현재 위치 갱신 + 이번 세션 섹션
+- **로직 변경 0건** / **learnings.md 추가 없음** (설계 결정/AI 이탈/반복 에러 없음 — 단순 공식 마이그레이션)
+
+### 6. 부수 발견 (긍정 신호)
+
+Next.js 16.2가 build 산출물에 `ƒ Proxy (Middleware)` 라벨을 자동 표기. Next.js가 proxy.ts를 **proxy convention으로 인식** + Middleware 호환성 유지 표시. 이는 Next.js 팀이 마이그레이션 과도기 동안 두 라벨을 병기하도록 설계했다는 뜻 — proxy.ts로 바꿔도 기존 Middleware 문서/로그/라벨과 매칭 가능.
+
+**Status**:
+- ✅ Session #27 Task 완료 — Next.js 16.2 deprecation 해소
+- 🔄 다음 할 일: (1) Google Cloud Console OAuth 설정, (2) Phase 2 AI 구조화 파이프라인 진입 (별도 세션 권장)
+- 🔴 Jayden 수동 검증 권장: 배포 후 로그인 1회 + `/onboarding` 진입 + `/api/v1/internal/log-event` 호출 1회 (proxy rename 동작 스모크)
+- 차단 요소: 없음
+
+---
 
 ## 이번 세션 상태 (Session #26, 2026-04-09) — Task 2-M-B-3-C 쿨다운 여유 패치 + Vercel 상태 정정 ✅
 
