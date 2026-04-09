@@ -17,8 +17,11 @@
 --   - **DB 내부 완결**: Next.js 서버 / Vercel Cron / Edge Function 미사용.
 --     외부 의존 0 → 알림의 본질("다른 시스템 고장 시 작동")에 부합
 --   - **pg_cron 매 분 실행**: 1분 해상도면 flooding 대응에 충분
---   - **쿨다운 5분**: 같은 급증이 연속 감지되어도 5분에 1회만 알림
---     (스팸 방지). DB 이벤트(alert_fired row) 기반이라 재배포에도 견고
+--   - **쿨다운 5분 5초 (cron jitter 버퍼)**: 같은 급증이 연속 감지되어도
+--     5분 5초에 1회만 알림 (스팸 방지). DB 이벤트(alert_fired row) 기반이라
+--     재배포에도 견고. 쿨다운 interval을 cron 주기(1분) 및 '정확히 5분'과
+--     일치시키면 ms 단위 경계 탈주 시 중복 알림 위험 → Session #25/#26
+--     learnings "cron jitter vs 쿨다운 경계" 참조
 --   - **Vault 통합**: Telegram bot token / chat_id를 `.env`/코드가 아닌
 --     Supabase Vault(암호화 저장)에서 함수 내부에서만 복호화
 --   - **SECURITY DEFINER + search_path 고정**: Vault 접근 권한 확보 +
@@ -56,7 +59,9 @@ AS $$
 DECLARE
   v_count integer;
   v_threshold integer := 50;
-  v_cooldown_interval interval := '5 minutes';
+  -- 쿨다운 5분 5초 — cron jitter(10~130ms) 여유 버퍼. '5 minutes' 정확치는
+  -- 경계 ms 단위 탈주 시 중복 알림 위험. Session #25/#26 learnings 참조
+  v_cooldown_interval interval := '5 minutes 5 seconds';
   v_cooldown_exists boolean;
   v_token text;
   v_chat_id text;
@@ -171,7 +176,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.notify_rate_limit_spike() IS
-  'Task 2-M-B-3-B: rate_limit_exceeded 분당 50건 초과 시 Telegram 알림 발송. pg_cron 매 분 실행. 쿨다운 5분. Session #25 (2026-04-09) 구현.';
+  'Task 2-M-B-3-B/C: rate_limit_exceeded 분당 50건 초과 시 Telegram 알림 발송. pg_cron 매 분 실행. 쿨다운 5분 5초 (cron jitter 버퍼). Session #25 (2026-04-09) 구현, Session #26 쿨다운 여유 패치.';
 
 -- ============================================================
 -- 3. Cron Job 등록 (멱등 — 이미 있으면 제거 후 재등록)

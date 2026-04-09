@@ -5,16 +5,18 @@
 
 ## 현재 위치
 - Epic: **Phase 2 진행 중** (AI 구조화 파이프라인)
-- Task: **Session #25 — Task 2-M-B-3-B Supabase Rate Limit Spike 알림 완료** ✅ (pg_cron + pg_net + Vault + Telegram, 한국어 메시지)
-- 커밋: `837bc22` (Session #24) → **Session #25 커밋 1개 예정** (docs + `supabase/migrations/007_notify_rate_limit_spike.sql`)
-- 상태: ✅ DB 내부 완결 알림 체인 완전 검증 — cron→함수→Vault→pg_net→Telegram 77ms 지연 / 쿨다운 5분 정상 작동 / 한국어 메시지 포맷 OK
+- Task: **Session #26 — Task 2-M-B-3-C 쿨다운 여유 패치 완료** ✅ (`'5 minutes'` → `'5 minutes 5 seconds'`, cron jitter 버퍼)
+- 커밋: `660477b` (Session #25) → **Session #26 커밋 1개 예정** (`007_notify_rate_limit_spike.sql` 3줄 + PROGRESS.md)
+- 상태: ✅ 쿨다운 경계 안전장치 적용 완료. cron 정상 작동 + COMMENT 메타데이터까지 복구 (10/10 검증 통과)
+- **Session #26 부수 발견 (중요)**: Session #24에서 "Vercel 미등록" 으로 기록했던 것은 **AI 오판단**. 실제로는 `jaydens-projects-f5e92399/chatsio` 프로젝트 존재 + GitHub Apps 기반 자동 배포 중. 최근 3개 커밋(`660477b`/`837bc22`/`aa92fcb`) 모두 Production 성공. Production URL: `https://chatsio-lla0k4c2e-jaydens-projects-f5e92399.vercel.app`. `vercel` CLI는 "No projects found" 반환하는 이상 징후 있음(별도 이슈, 배포에는 영향 없음)
 - 다음:
-  1. ⚠️ **Jayden 수동 (배포 전)**: Vercel 프로젝트 신규 등록 (`vercel link`) + Env에 3개 변수 등록 — `INTERNAL_LOG_EVENT_SECRET_PRIMARY` + `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`. 상세 절차: `docs/runbooks/log-event-api.md` "🚀 배포 전 등록 체크리스트". ⚠️ Session #24에서 드러남: **Vercel에 chatsio 프로젝트 자체가 미등록 상태**
-  2. 🆕 **쿨다운 interval 여유 추가** — 현재 함수 `v_cooldown_interval := '5 minutes'`를 `'5 minutes 5 seconds'`로 상향. 근거: Session #25 learnings #3 (cron jitter vs 쿨다운 경계 ms 단위 주의). 운영 배포 전 반영 권장. 5분 소요 SQL 1개
-  3. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
-  4. (기존) Next.js 16.2 deprecation — `src/middleware.ts` → `src/proxy.ts` 마이그레이션. 참조: https://nextjs.org/docs/messages/middleware-to-proxy
+  1. ⚠️ **Jayden 수동 확인 필요**: Vercel 환경 변수 3개 등록 여부 — `INTERNAL_LOG_EVENT_SECRET_PRIMARY` + `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`. Dashboard → Settings → Environment Variables에서 확인. 미등록 시 `/api/v1/internal/log-event`가 500 에러 발생. 상세 절차: `docs/runbooks/log-event-api.md` "🚀 배포 전 등록 체크리스트"
+  2. (기존) Google Cloud Console OAuth 설정 — Phase 1 외부 의존
+  3. (기존) Next.js 16.2 deprecation — `src/middleware.ts` → `src/proxy.ts` 마이그레이션. 참조: https://nextjs.org/docs/messages/middleware-to-proxy
+  4. (후속) Phase 2 AI 구조화 파이프라인 본격 진입
 
 > **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소** (단일 출처 원칙).
+> **Session #26 판정**: "Vercel 프로젝트 신규 등록" 항목은 **폐기** — 이미 등록 + 배포 중 확인. Session #24 AI 오판단이 원인.
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -32,7 +34,76 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
 
-## 이번 세션 상태 (Session #25, 2026-04-09) — Task 2-M-B-3-B Rate Limit Spike 알림 ✅
+## 이번 세션 상태 (Session #26, 2026-04-09) — Task 2-M-B-3-C 쿨다운 여유 패치 + Vercel 상태 정정 ✅
+
+**목표**: Session #25 learnings #3(`[Operational] cron jitter vs 쿨다운 경계 ms 단위 주의`)를 직접 반영. `notify_rate_limit_spike()` 함수의 `v_cooldown_interval`을 `'5 minutes'` → `'5 minutes 5 seconds'`로 상향. 부가 목표: 세션 시작 시 Jayden이 "Vercel 프로젝트 등록됐고 자동배포 되고 있어 확인해" 지적 → Session #24 기록의 "Vercel 미등록" 이 AI 오판단이었음을 검증 + 정정.
+
+### 1. 부수 작업 — Vercel 자동배포 상태 검증 (Session #24 오류 정정)
+
+**흐름**:
+1. `vercel` CLI `project ls` → "No projects found under jaydens-projects-f5e92399" 반환. 얼핏 Jayden 말과 충돌로 보였음
+2. `git remote -v` → `git@github.com:jaydenjoo/chatsio.git` 확인
+3. `gh api repos/.../commits/660477b/statuses` → **Vercel bot이 `state: success` 기록** 발견. target_url이 `jaydens-projects-f5e92399/chatsio` 프로젝트 명시
+4. `gh api repos/.../deployments` → 최근 3개 커밋(660477b/837bc22/aa92fcb) 모두 `environment: "Production"` 자동 배포 기록
+5. `gh api .../deployments/4312844774/statuses` → Production URL 획득: `https://chatsio-lla0k4c2e-jaydens-projects-f5e92399.vercel.app`
+
+**판정**: Vercel 프로젝트 **존재 + 자동배포 정상**. Session #24 기록은 AI 오판단(learnings.md 2026-04-09 AI-Pitfall 항목과 동일 패턴의 재발). Jayden이 지적해줘서 정정 가능. 단, `vercel` CLI가 같은 팀 스코프에서 "No projects found" 반환하는 이상은 별도 이슈(배포에 영향 없음, CLI 인증/캐시 추정).
+
+**교훈 재강화**: 로컬 CLI 출력 ≠ 실제 외부 시스템 상태. GitHub Apps 기반 배포는 classic webhooks(`repos/hooks` 엔드포인트)에도 안 찍힘. 검증은 반드시 **deployment statuses** 또는 **commit statuses** API 사용.
+
+### 2. Task 2-M-B-3-C 계획 (Plan)
+
+- **변경 범위**: `supabase/migrations/007_notify_rate_limit_spike.sql` 3줄 in-place 수정 (008 신규 파일 생성 X)
+  - L19~20 파일 상단 주석 → "쿨다운 5분 5초 (cron jitter 버퍼)" + 근거 문장 추가
+  - L59 `v_cooldown_interval interval := '5 minutes'` → `'5 minutes 5 seconds'` + 2줄 근거 주석
+  - L174 `COMMENT ON FUNCTION` → "쿨다운 5분 5초" + Task 2-M-B-3-B/C + Session #26 기록
+- **접근 선택**: 008 신규 마이그레이션 ❌ vs 007 in-place ✅ — 솔로 프로젝트 + 수동 SQL Editor + `CREATE OR REPLACE FUNCTION` 멱등 구조 → **단일 출처** 우선. 008 분리 시 소스 이원화 + "왜 007/008 값이 다르지?" 혼란.
+- **실행 흐름**: Phase 1 파일 편집 (Claude) → Phase 2 수동 SQL Editor (Jayden) → Phase 3 MCP 자동 검증 → Phase 4 커밋. Burst 재검증은 **안 함** (쿨다운 경계 ms 단위는 실제 재현 불가 + Session #25에서 기본 로직 완전 검증됨).
+
+### 3. Phase 2 실행 & COMMENT 누락 발견 → MCP 복구 (Option X)
+
+- Phase 2: Jayden이 SQL Editor에 `CREATE OR REPLACE FUNCTION` + `COMMENT ON FUNCTION` 두 statement 블록 복붙 실행 → "완료" 보고
+- Phase 3 1차 검증:
+  - ✅ 함수 `pg_get_functiondef` 조회 → `'5 minutes 5 seconds'` 포함 확인
+  - ✅ cron.job_run_details runid 55~59 전부 succeeded (2~102ms early return)
+  - ✅ pipeline_events 최근 10분 alert_* 이벤트 0건 (noise 없음)
+  - ⚠️ `obj_description` / `pg_description` 둘 다 `null` → **COMMENT ON FUNCTION 미적용 확인**
+- **분석**: Session #25 원본 COMMENT도 없었는지 재검증 불가(처음 조회). 가능성 2가지 — (a) Session #25 당시부터 없었음 (b) 이번 SQL Editor 실행에서 두 번째 statement 누락. 어느 쪽이든 로직/권한/데이터 0 영향 (pure metadata).
+- **Option X 선택 (Jayden)**: MCP로 COMMENT 한 줄 직접 적용. 근거: Chatsio 🔴 수동 대상은 vault/RLS/Findably/auth/결제. COMMENT는 해당 없음 → "옵션 B 하이브리드" 자동화 범주.
+- **복구 실행**: MCP `execute_sql` 로 `COMMENT ON FUNCTION ... IS '...';` 실행 → 재조회 결과 `description: "Task 2-M-B-3-B/C: ... Session #26 쿨다운 여유 패치."` 적용 확인
+
+### 4. 검증 결과 (10/10)
+
+| 항목 | 기대 | 실제 | 판정 |
+|---|---|---|---|
+| 함수 interval 교체 | `'5 minutes 5 seconds'` | pg_get_functiondef 포함 | ✅ |
+| COMMENT 최종 적용 | Session #26 문구 | MCP 복구 후 적용 | ✅ |
+| cron 최근 5회 상태 | succeeded | 55~59 전부 succeeded | ✅ |
+| cron duration | 2~3ms early return | 2ms (1회 102ms, jitter 정상 범위) | ✅ |
+| 신규 alert_* noise | 0건 | 0건 (10분 윈도우) | ✅ |
+| rate_limit_exceeded | 0건 | 0건 (1분 윈도우) | ✅ |
+| 로직 변경 | 상수 1줄만 | diff 최소 (3줄 + 주석 5줄) | ✅ |
+| cron 스케줄 | 변경 없음 | `* * * * *` 유지 | ✅ |
+| 함수 권한 | SECURITY DEFINER 유지 | 유지 | ✅ |
+| Vercel 자동배포 확인 | success | 최근 3커밋 전부 Production 성공 | ✅ |
+
+### 5. 파일 변경
+
+- `supabase/migrations/007_notify_rate_limit_spike.sql` — 3줄 수정 + 근거 주석 5줄 추가
+- `docs/PROGRESS.md` — 현재 위치 갱신 + 이번 세션 섹션 추가 + "Vercel 미등록" 폐기 판정 + 다음 할 일에 "Vercel 환경변수 3개 등록 확인" 추가
+- `docs/learnings.md` — **추가 없음** (기존 learnings.md 2026-04-09 `[Operational]` 항목의 "적용 사례"이므로 중복)
+- **코드(src/) 변경 0건**
+
+### 6. Status
+
+- ✅ Task 2-M-B-3-C 완료 — 쿨다운 경계 안전장치 적용
+- ✅ Vercel 자동배포 상태 정정 완료 — 실제 Production 가동 중 확인
+- 🔄 다음 할 일: (1) Vercel 환경변수 3개 등록 확인 (Jayden Dashboard), (2) Phase 2 AI 구조화 파이프라인 진입
+- 차단 요소: 없음
+
+---
+
+## 이전 세션 상태 (Session #25, 2026-04-09) — Task 2-M-B-3-B Rate Limit Spike 알림 ✅
 
 **목표**: `pipeline_events`에 `rate_limit_exceeded` 이벤트가 분당 50건 초과 쌓이면 Telegram으로 자동 알림 발송. Task 2-M-B-3-A(Upstash rate limit) 이후 2차 방어선. Session #24 이후 이월된 "Supabase custom alert 등록" 항목 완료.
 
