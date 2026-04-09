@@ -20,6 +20,80 @@
 
 ---
 
+### 2026-04-09 — [AI-Pitfall] 프로젝트 내 존재하는 자료 파일을 "외부 시스템"으로 착각하여 읽지 않음
+- **증상**: Session #32 초반, Session #31에서 남긴 "n8n Basic 경로 최종 UPDATE 노드 수정" 작업을 이어받았다. 나의 첫 접근: "Jayden에게 n8n workflow 캔버스 스크린샷 2장(Premium/Basic 끝부분) 요청 → 누락 노드 확인 → 수정 가이드 작성". Jayden이 즉시 반박: **"n8n workflow 캔버스 스크린샷을 원하는 이유가 뭐야? `Chatsio V8 - Claude Sonnet + Opus (Basic + Premium).json` 파일은 네가 작성해준거잖아 네가 확인해도 되는거 아닌가?"**. 그제서야 `docs/n8n-workflows/` 폴더에 workflow JSON 전체가 버전 관리되고 있음을 확인. 파일 정적 분석 결과 Session #31의 "노드 누락" 진단이 **완전히 틀림**을 확정.
+- **원인**:
+  1. **"외부 시스템 = 파일 없음" 고정관념** — n8n/Vercel/Cloudflare 같은 이름을 보면 반사적으로 "외부, Jayden만 접근 가능"으로 분류. 하지만 Chatsio는 n8n workflow JSON을 `docs/n8n-workflows/`에 버전 보관 중. 이 파일이 projekt 안에 있다는 기본 사실을 기억 못 함
+  2. **Session #31 learnings #1 "외부 시스템 1차 증거 = 해당 시스템 콘솔 스크린샷" 규칙의 과잉 일반화** — 규칙은 "DB/코드 분석보다 해당 시스템 콘솔 먼저"라는 뜻인데, 나는 이걸 "해당 시스템 콘솔만이 유일한 1차 증거"로 확장 해석. 프로젝트 내부 자료를 건너뜀
+  3. **이전 세션 내 작업 결과물에 대한 망각** — `Chatsio V8` workflow는 내가 이전 세션에서 작성했다. 본인 작업물을 본인이 모르는 상태. "내가 만든 파일이므로 내가 읽을 수 있다"는 당연한 사실 미적용
+  4. **Jayden이 비개발자라 스크린샷이 "일반적인 해결책"처럼 보임** — 비개발자에게 파일 열어보라고 요청하는 것보다 스크린샷이 더 친숙할 것이라는 편향. 하지만 Claude가 직접 읽으면 Jayden은 손 대지 않아도 됨
+- **해결**: Jayden의 한 마디 지적으로 즉시 방향 전환 → workflow JSON 전체 Read + 정적 분석 → Session #31 진단 완전히 철회 → 진짜 원인([Bug] autoMapInputData 구조 결함) 확정 → V9 workflow 빌드. 전환 자체는 빨랐지만 **만약 Jayden이 지적 안 했다면 엉뚱한 스크린샷 보고 또 틀린 진단을 이어갔을** 위험이 컸다
+- **규칙**:
+  1. **"외부 시스템"이라도 프로젝트 내 저장 자료가 있으면 먼저 읽기** — n8n workflow JSON, GitHub Actions YAML, Vercel config, Cloudflare Terraform 등. 경로 패턴: `docs/`, `.github/`, `infra/`, `ops/`, `workflows/`. 세션 시작 시 `ls docs/n8n-workflows/` 같은 탐색 1회로 존재 여부 확인
+  2. **Session 시작 시 "내가 과거에 만든 파일 목록"을 암묵적으로 복기** — git log에 내 커밋이 있는 파일은 내가 작성/수정한 것. 그런 파일의 경로를 기억해두면 "이건 내가 만든거 아니야?" 판단 가능
+  3. **Jayden에게 스크린샷 요청 전에 "해당 내용이 프로젝트 내 파일에 있나?" 자문 1회 필수** — 답이 "아마도 yes"면 파일부터 읽기. 답이 "확실히 no"여도 한 번은 `Glob` 탐색으로 확인
+  4. **Session #31 learnings #1 재해석** — 규칙의 뜻은 "DB만 보고 추정 금지, 해당 시스템의 실제 상태를 확인". "해당 시스템의 실제 상태"에는 **프로젝트 내 해당 시스템 설정 파일**도 포함된다. 외부 UI 스크린샷만이 1차 증거가 아님
+- **컨텍스트**: Session #32(2026-04-09). Jayden의 지적 1회로 방향 완전 전환. 이 교훈이 없었다면 동일 실수를 반복할 가능성 100% (일반적 외부 시스템은 파일이 없지만, 이 프로젝트는 예외). 상호 참조: 이번 세션 [Bug] n8n autoMapInputData 구조 결함, Session #31 [AI-Pitfall] DB 상태만 보고 성급 결론
+
+---
+
+### 2026-04-09 — [Bug] n8n Supabase UPDATE 노드 `autoMapInputData` + 직전 DB UPDATE 노드 구조 결함
+- **증상**: Session #31 실데이터 테스트 중 n8n workflow "Chatsio V8"이 "Succeeded in 23.27s"로 끝나지만 Supabase `optimizations` row는 `status='processing', result_json=null, jsonld=null, score=null, processing_step=3` 그대로. Session #31에서는 "Basic 경로 최종 UPDATE 노드 누락"으로 오진. Session #32 workflow JSON 정적 분석으로 **진짜 원인 확정**: 노드는 전부 존재하지만 `autoMapInputData`가 잘못된 값(직전 DB UPDATE의 row)을 UPDATE에 사용하고 있었음
+- **원인**: n8n workflow의 흐름:
+  ```
+  Basic: B2.최종정리 (result_json 등 계산) → Basic Step3 (DB UPDATE: processing_step=3)
+         → B3. DB 저장 (operation=update, dataToSend=autoMapInputData, filter=idempotency_key eq $json.idempotency_key)
+  ```
+  - `B3. DB 저장`의 `$input.item.json`은 **직전에 연결된 노드**의 output. 직전은 `Basic Step3` (DB UPDATE 노드)
+  - n8n Supabase UPDATE 노드의 output = **UPDATE된 DB row** 자체. 즉 `Basic Step3`의 output = `{ id, product_id, shop_id, plan, status: 'processing', processing_step: 3, result_json: null, jsonld: null, score: null, ... }`
+  - `B3. DB 저장`이 `autoMapInputData`로 이 **DB row를 그대로 다시 UPDATE 대상**으로 사용. SET 절: `product_id=<원본>, shop_id=<원본>, ..., status='processing', processing_step=3, result_json=null, ...`
+  - **B2.최종정리가 만든 `result_json`, `jsonld`, `score`, `duration_ms`는 어디에도 반영 안 됨**
+  - n8n workflow 전체는 에러 없이 끝났으므로 "Succeeded" 표시 → Silent Failure 완성
+  - Premium 경로도 완전히 동일한 구조 결함 (`P7.최종정리 → Premium PStep3 → P8.DB저장(autoMapInputData)`)
+  - 부수 버그: B2는 `var raw = $input.item.json` 방식으로 Claude API 응답을 읽으려 함. 하지만 중간에 Basic Step2(DB UPDATE)가 있어서 `$input` = DB row → Claude 응답도 못 읽음. `result_json`이 빈 값으로 채워짐 (Premium의 P7은 `$('P6. 품질 검수')` 직접 참조라 해당 없음)
+- **해결** (V9 workflow):
+  1. B3/P8 `dataToSend: autoMapInputData` → **`defineBelow`** 명시적 7컬럼 매핑
+  2. WHERE filter 키 `idempotency_key` → **`id`** (PK 기반, workflow 중간 변조 불가능). `$('1. 데이터 정규화').first().json.optimization_id`로 참조
+  3. 컬럼 값 참조 방식: `$json.xxx` → **`$('B2. 최종 정리').item.json.xxx`** (P8은 P7 참조) — 직전 노드가 아닌 **실제 결과 생성 노드**를 명시 참조
+  4. B2 Code의 `var raw = $input.item.json` → `var raw = $('B1. AI 최적화').item.json` (버그 B)
+  5. B2/P7 Code의 `result_json` 내부에서 `processing_step/error_step/failed_at` 제거 (버그 A). 이 컬럼들은 defineBelow에서 직접 세팅
+  6. **Silent Failure 방어선 2개 추가**: `B3 검증` / `P8 검증` IF 노드(`$json.id` notEmpty?) + `Mark Failed` Supabase UPDATE 노드(검증 실패 시 `status=failed, error_step=db_save_verification_failed, error_message=...` 기록)
+  7. 코드측 연동: `payload.ts`에 `optimization_id` 필드 추가, `actions.ts`가 `buildN8nPayload`에 `optimizationId` 전달 → n8n `1. 데이터 정규화` 노드가 이 값을 유지 → B3/P8 filter가 PK로 WHERE 매칭
+- **규칙**:
+  1. **n8n Supabase 노드는 `defineBelow`가 기본**. `autoMapInputData`는 "`$input`이 정확히 UPDATE할 값의 source일 때"만 사용. **직전 노드가 DB UPDATE면 절대 사용 금지** — `$input`이 DB row를 가리킨다
+  2. **값 참조는 `$json` 대신 `$('노드명').item.json` 직접 참조** — 노드 사이에 DB 조회/UPDATE가 끼어들 가능성이 있으면 `$input`/`$json`이 의도와 다른 값을 가리킴. 명시적 참조가 예측 가능성↑
+  3. **WHERE 매칭은 PK 기본**. idempotency_key 같은 비즈니스 키는 DB에 unique지만 workflow 중간에 Code 노드 fallback으로 변조될 수 있음. PK는 workflow 처음부터 끝까지 불변
+  4. **모든 terminal UPDATE 뒤 검증 IF 노드 필수**. n8n Supabase UPDATE는 "0 rows matched"를 에러가 아닌 "성공 + empty output"으로 처리. 따라서 IF 노드로 `$json.id` notEmpty 검증이 필요. 실패 시 공통 `Mark Failed` 노드로 수렴
+  5. **Silent Failure 방어선 패턴** (공통 design): `[Terminal UPDATE] → [Verify IF] → [true: end / false: Mark Failed]`. 이 3 노드 트리오를 workflow 마지막마다 적용
+  6. **Code 노드의 `$input` 사용 시 직전 노드를 명시적으로 확인**. DB UPDATE/조회 노드가 중간에 있으면 `$input`은 DB row를 가리킨다. Claude API 응답처럼 특정 HTTP 노드의 output이 필요하면 `$('HTTP 노드명').item.json` 직접 참조
+- **컨텍스트**: Session #32(2026-04-09). Session #31 증상 재분석 결과. Jayden의 "네가 작성한 workflow 파일을 네가 확인" 지적 덕에 정적 분석 시작. B3/P8은 V8에서 `autoMapInputData`로 돌고 있었고 원인 불명으로 오판정을 불렀음. V9 workflow JSON에서 전체 수정 완료 (30 nodes, 29 connections). **확신도 90%** — 나머지 10%는 V9 방어선(IF 검증 + Mark Failed)이 원인이 다르더라도 실패를 명시적으로 드러내도록 보장. 상호 참조: 이번 세션 [AI-Pitfall] 프로젝트 내 자료를 외부로 착각, [AI-Pitfall] 대형 JSON은 Python script로
+
+---
+
+### 2026-04-09 — [AI-Pitfall] 대형 JSON 파일의 긴 string 수정은 Edit 도구보다 Python script가 안전
+- **증상**: Session #32 V9 workflow JSON 빌드 중, 처음에 Edit 도구로 B2. 최종 정리 `jsCode` 전체(100+ 줄)를 한 번에 교체하려고 시도 → **new_string에 실수로 literal newline이 한 군데 섞임** → `json.load()` 파싱 에러. 파일 깨짐. V8에서 복사 리셋 후 재시도. 두 번째 시도도 복잡해서 Python script 방식으로 전환
+- **원인**:
+  1. **JSON 파일 내 string 값의 escape 복잡도** — n8n workflow JSON은 `jsCode` 필드에 JavaScript 코드 전체가 **한 줄 문자열**로 들어있음 (`\n`이 literal 2 chars, `\"`, `\\`, 정규식 `\\s` 등 중첩 escape). 한글 포함 시 UTF-8 처리도 추가 고려
+  2. **Edit 도구의 old_string/new_string은 "파일 bytes" 기준** — JSON 파서 기준이 아님. 내가 JSON literal로 작성한 것과 파일 bytes가 달라지는 순간 Edit 실패 또는 파일 깨짐
+  3. **긴 old_string 복사 시 실수 여지** — 수백~수천 chars의 old_string을 하나라도 다르면 match 실패. new_string에 literal newline 한 개만 섞여도 JSON 깨짐
+  4. **Edit 도구의 한계 인지 실패** — 내가 "Edit 도구면 뭐든 다 된다"고 과신했음. 실제로는 짧은 ASCII 라인 변경에 적합한 도구
+- **해결**:
+  1. V8 → V9 `cp` 리셋
+  2. `/tmp/build_chatsio_v9.py` Python script 작성 (300+ 줄)
+  3. 수정된 jsCode는 **Python raw string(`r"""..."""`)**으로 직접 작성 → escape 불필요
+  4. `json.load() → dict 수정 → json.dump(ensure_ascii=False, indent=2)` 방식
+  5. Python `json` 라이브러리가 모든 escape(backslash, quotes, unicode)를 자동 처리
+  6. Bash로 script 실행 → 결과 파일 `json.load()` 재검증 → 30 nodes, 29 connections 카운트 확인 → 통과
+- **규칙**:
+  1. **JSON/YAML 파일에 **긴 string 값** 수정 필요 시 Python script 사용 규칙화** — 특히 embedded code(jsCode, shell, SQL), 정규식, 한글/유니코드 포함 시 반드시 Python. 기준: old_string이 5줄 이상이거나 `\n`/`\\`/`"` 10회 이상 포함되면 Python으로 전환
+  2. **Python script는 `/tmp/`에 일회성 작성, 결과만 파일로 저장** — 커밋 대상 아님. 결과 파일만 커밋. 스크립트는 참조용으로 남겨도 OK
+  3. **Edit 도구 사용 조건**: (a) 변경 대상이 단일 라인 또는 ~5줄 이하, (b) ASCII 중심, (c) 백슬래시/따옴표 escape 적은 경우. 이외는 Python
+  4. **매 수정 후 JSON validation 필수**: `python3 -c "import json; json.load(open('...')); print('OK')"` 1회. 깨졌으면 즉시 rollback
+  5. **대형 JSON 수정 시 "in-place 반복 수정" 금지. "cp 리셋 후 1회 수정"이 안전** — Python script로 여러 변경을 **한 번에** 적용. 중간 상태에서 멈추면 파일 일관성 보장 어려움
+- **컨텍스트**: Session #32(2026-04-09) V9 workflow JSON 빌드. 1051줄 → 1280줄, 77KB, 30 nodes 수정. Edit 도구 1회 실패 후 Python script로 성공. 작업 시간 절반이 "Python script 설계"에 소요. 다음에는 처음부터 Python 사용 예상. 상호 참조: 이번 세션 [Bug] autoMapInputData 구조 결함
+
+---
+
 ### 2026-04-09 — [AI-Pitfall] DB 상태만 보고 외부 시스템 원인 성급 결론 금지
 - **증상**: Session #31에서 Task 2-3 실데이터 수동 검증 중 Jayden이 "n8n 에러 확인해줘, UI 계속 로딩 중"이라고 보고. 내가 Supabase 조회 결과 `status=processing`, `processing_step=3`, `error_*=null`, `updated_at=created_at`, `pipeline_events`에 n8n 서비스 이벤트 0건을 보고 **즉시 "n8n이 에러났는데 UPDATE 누락으로 Silent Failure"라고 확신**하고 상세 보고. 이후 Jayden이 n8n Executions 스크린샷 공유 → workflow가 "Succeeded in 23.27s"로 **성공** 표시 → 내 진단이 **완전히 틀림** 확인 → 재진단 → "Basic 경로 최종 UPDATE 노드 누락" 확정. 즉 **3번째 진단에서야 정답 도달**
 - **원인**:

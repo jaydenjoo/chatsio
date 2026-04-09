@@ -4,17 +4,19 @@
 > **프로젝트 경로**: `/Users/jayden/projects/chatsio/` (Session #10에서 `/Volumes/jayden-ssd/chatsio`에서 이동 — 아래 "프로젝트 이동" 섹션 참조)
 
 ## 현재 위치
-- Epic: **Phase 2 AI 구조화 파이프라인 — Task 2-6 정식 결과 UI 구현 완료 + n8n workflow Basic 경로 결함 발견**
-- Task: **Session #31 — Task 2-6 UI 코드 완성 + Task 2-3 실데이터 검증 중 n8n Basic 경로 최종 UPDATE 누락 진단**
-- 커밋: `f1a2bd2` (Session #31 Task 2-6 코드) → **Session #31 save 커밋 1개 예정** (PROGRESS.md + learnings.md)
-- 상태: ✅ Task 2-6 정식 UI 4개 컴포넌트 + 가이드 문서 구현/검증/커밋 완료 + FailedView 실데이터 렌더링 회귀 없음 확인 + 🔴 **n8n workflow "Chatsio V8" Basic 경로의 최종 UPDATE 노드 누락/끊김** 발견 (workflow는 "Succeeded" 표시되지만 Supabase optimizations에 `result_json`/`jsonld`/`score`/`status=completed` UPDATE 없음, `processing_step=3`에서 멈춤) + 추가로 `optimizations` 테이블 `updated_at` 자동 갱신 트리거 부재 발견 (폴링 fallback 취약점)
+- Epic: **Phase 2 AI 구조화 파이프라인 — n8n Workflow V9 "Silent Failure Fix" 빌드 완료 + 재임포트 대기**
+- Task: **Session #32 — Session #31 진단 철회 + 진짜 원인 확정 + V9 workflow JSON 생성 + 코드 연동**
+- 커밋: `7428b08` (Session #31 save) → **Session #32 save 커밋 1개 예정** (PROGRESS.md + learnings.md + 가이드 md). 코드 변경(actions.ts, payload.ts)은 Jayden V9 검증 후 별도 커밋
+- 상태: ✅ **Session #31 "Basic 경로 최종 노드 누락" 진단 완전히 틀림 확정**. workflow JSON 정적 분석으로 **진짜 원인 발견**: `autoMapInputData` + 직전 DB UPDATE 노드 → `$input`이 직전 DB row를 가리켜 P7/B2 결과가 덮여버림 → 항상 null로 "Succeeded" ✅ 개선안 A 전체 적용한 **V9 workflow JSON 생성** (30 nodes, 29 connections, 77KB, JSON 유효성 + typecheck 통과) ✅ payload.ts + actions.ts에 `optimization_id` PK 전달 추가 ✅ 재임포트 가이드 md 9개 Part 작성 ⏳ **V9 재임포트 + 실데이터 재테스트는 Jayden 수동 대기**
 - 다음:
-  1. (다음 세션 **최우선**) **n8n workflow Basic 경로 최종 UPDATE 노드 수정** — Jayden이 n8n 에디터에서 `Basic Step 3` 다음 노드 확인 → 누락 시 Supabase UPDATE 노드 추가 (`status='completed'`, `result_json`, `jsonld`, `score`, `duration_ms` 기록). Claude는 가이드만 작성, 실제 수정은 Jayden 수동 (n8n = AI 분석 파이프라인 범위)
-  2. (수정 후) **Task 2-3 + Task 2-6 CompletedView 실데이터 재검증** — 같은 테스트 상품으로 Basic 재실행 → 실제 `status=completed` 도달 → CompletedView 4개 신규 컴포넌트(QualityScoreRing / AttributeList / JsonldPreview / OptimizationResult) 렌더링 + 한글 라벨 매핑 정확도 확인
-  3. (근본) **`optimizations` 테이블 `updated_at` 자동 갱신 트리거 추가** — migration 파일 작성 (폴링 fallback의 row 변경 감지 정확도 개선). Task 2-M 후속
-  4. (backlog) Task 2-7 결과 수동 편집, Task 2-8 최적화 이력 목록 페이지, Task 2-9 llms.txt 자동 생성
-  5. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리
-  6. (backlog) `docs/phase2-prerequisites.md` 검증 명령 패턴 수정 (`"?` 포함)
+  1. (다음 세션 **최우선**) **V9 재임포트**: `docs/n8n-workflow-v9-reimport-guide.md` Part 4 따라 Jayden이 직접 수행 — V8 비활성화 → V9 임포트 → credential 재연결 → webhook URL 확인 → V9 활성화 → Vercel 최신 배포 반영
+  2. (재임포트 후) **Basic 실데이터 재테스트** + **Task 2-6 CompletedView 실데이터 검증** (QualityScoreRing / AttributeList / JsonldPreview / OptimizationResult 한글 라벨 정확도) — 가이드 Part 5 체크리스트
+  3. (재테스트 후) **코드 변경 커밋**: `src/lib/n8n/payload.ts` + `src/features/optimize/actions.ts` (Jayden 승인 후)
+  4. (재테스트 후, Premium 1회 선택) Premium 플랜도 동일 검증
+  5. (근본) **`optimizations` 테이블 `updated_at` 자동 갱신 트리거 추가** — migration 파일 작성. Task 2-M 후속
+  6. (backlog) Task 2-7 결과 수동 편집, Task 2-8 최적화 이력 목록 페이지, Task 2-9 llms.txt 자동 생성
+  7. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리
+  8. (backlog) `docs/phase2-prerequisites.md` 검증 명령 패턴 수정 (`"?` 포함)
 
 > **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소** (단일 출처 원칙).
 > **Session #26 판정**: "Vercel 프로젝트 신규 등록" 항목은 **폐기** — 이미 등록 + 배포 중 확인. Session #24 AI 오판단이 원인.
@@ -23,6 +25,7 @@
 > **Session #29 판정**: "Phase 2 Prerequisites 검증" **5/6 통과 + 1🟡**. n8n 환경 완비 + 🟡 Anthropic 잔액 $2.88 1건만 남음. Session #28 learnings 적용 **성공 사례**.
 > **Session #30 판정**: "Task 2-3 구현" 이월 항목은 **폐기** — 이미 완전 구현 + 리뷰 + 고도화된 성숙 상태. Session #26(외부 Vercel) → #28(외부 Google OAuth) → #30(내부 **코드**)로 **패턴이 코드 영역까지 확장**됐음이 확인됨. learnings 규칙 #2가 "외부 시스템"에만 묶여있던 한계가 드러남 → 코드 영역 커버하도록 강화.
 > **Session #31 판정**: "Task 2-6 정식 결과 UI" **구현 완료** — 속성 목록 + JSON-LD + 품질 스코어 4개 신규 컴포넌트 + 탭 분리. FailedView 실데이터 회귀 없음 검증. Task 2-3 실데이터 수동 검증 중 **n8n workflow Basic 경로 최종 UPDATE 노드 누락** 발견 — Session #31 주요 성과는 "코드 완성"보다 "**숨겨진 파이프라인 결함 발견**". 다음 세션 최우선은 n8n workflow 수정.
+> **Session #32 판정**: **Session #31의 "Basic 경로 최종 노드 누락/끊김" 진단이 완전히 틀림**. Session #31은 Jayden 구두 확인을 확정 근거로 써서 오진. Session #32에서 Jayden이 "네가 작성해준 workflow JSON을 네가 확인해도 되는거 아닌가?" 지적 → Claude가 `docs/n8n-workflows/Chatsio V8*.json` 파일 정적 분석 → `B3. DB 저장` 노드와 `Basic Step3 → B3. DB 저장` 연결 모두 **완벽히 존재**함을 확인. 진짜 원인은 `autoMapInputData` + 직전 노드가 DB UPDATE 노드라는 구조적 결함 — `$input`이 P7/B2 결과가 아닌 DB row를 가리켜서 P8/B3이 "DB row를 그대로 다시 UPDATE"하고 있었음. 개선안 A 전체 적용한 **V9 workflow JSON 생성** (30 nodes, 버그 A/B 수정 + defineBelow + id 기반 매칭 + UPDATE 검증 IF + Mark Failed 방어선). 재임포트는 Jayden 수동. learnings 3건 기록 (AI-Pitfall + Bug + AI-Pitfall).
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
@@ -39,6 +42,132 @@ Session #10에서 Turbopack × exFAT 비호환 이슈로 프로젝트 **전체�
 **원본 상태**: `/Volumes/jayden-ssd/chatsio`는 **그대로 보존**. Jayden이 검증 후 "삭제 OK" 지시 시 제거.
 
 **이후 작업 방법**: 새 Claude Code 세션을 `cd /Users/jayden/projects/chatsio` 후 `claude`로 시작하면 새 경로 기준으로 CLAUDE.md / 메모리 / PROGRESS.md 자동 로드.
+
+## 이번 세션 상태 (Session #32, 2026-04-09) — Session #31 진단 철회 + 진짜 원인 확정 + V9 workflow 빌드 ✅
+
+**목표**: Session #31에서 남긴 "n8n Basic 경로 최종 UPDATE 노드 수정 가이드 작성"을 수행 → **중도에 Session #31 진단 자체가 틀렸음을 발견** → 진짜 원인 찾기 → V9 workflow 전면 재설계.
+
+### 1. 초기 방향: 개선안 A 기반 가이드 + Jayden 스크린샷 요청 (잠시 진행)
+
+Claude의 첫 접근은 "Jayden에게 n8n workflow 캔버스 스크린샷 2장 요청 → 누락 노드 확인 → 수정 가이드 작성"이었다. Jayden의 한 마디에 방향 전환:
+
+> "n8n workflow 캔버스 스크린샷을 원하는 이유가 뭐야? Chatsio V8 - Claude Sonnet + Opus (Basic + Premium).json 파일은 네가 작성해준거잖아 네가 확인해도 되는거 아닌가?"
+
+**Claude의 실수**: `docs/n8n-workflows/`에 workflow JSON이 이미 존재한다는 걸 기억 못 하고 외부 시스템 취급.
+
+### 2. Workflow JSON 정적 분석 → Session #31 진단 완전히 철회
+
+파일 읽기 결과 (1051줄):
+
+- ✅ `B3. DB 저장` 노드 **존재** (156-187줄, Supabase UPDATE 타입, idempotency_key eq, autoMapInputData)
+- ✅ `Basic Step3 → B3. DB 저장` 연결 **존재** (999-1008줄)
+- ❌ "Basic 경로 최종 UPDATE 노드 누락" = **완전히 틀린 진단**
+- 구조적으로 Premium 경로(`Premium PStep3 → P8. DB 저장`)와 완전히 동일
+
+**Session #31 판정 "n8n Basic 경로 Step 4 노드 누락/끊김"은 폐기**. Jayden의 구두 확인을 확정 근거로 썼던 것이 오판의 직접 원인.
+
+### 3. 진짜 원인 확정 — `autoMapInputData` + 직전 DB UPDATE 노드 구조 결함
+
+정적 분석으로 **확정 가능**한 결함 발견:
+
+```
+Basic: … B2.최종정리 (결과물 생성) → Basic Step3 (DB UPDATE: processing_step=3)
+       → B3. DB 저장 (autoMapInputData) ← $input이 Basic Step3 output = DB row
+       → DB row를 그대로 다시 UPDATE → B2 결과는 어디에도 반영 안 됨
+Premium: 동일 구조 (P7.최종정리 → Premium PStep3 → P8.DB저장)
+```
+
+즉 **B3/P8이 "방금 UPDATE된 DB row를 다시 DB에 덮어쓰고" 있었다**. n8n은 workflow 전체가 에러 없이 끝났으므로 "Succeeded" 표시. Session #31 증상(`status=processing, result_json=null, score=null, processing_step=3`)과 100% 일치.
+
+### 4. 추가로 발견된 버그 2개
+
+- **버그 A**: B2/P7 Code에서 `processing_step: 4`, `error_step: null`, `failed_at: null`이 `result_json` JSONB 내부로 잘못 들여쓰기되어 포함. 테이블 컬럼 반영 안 됨.
+- **버그 B**: B2가 `$input.item.json`으로 Claude 응답을 읽으려 함. 하지만 중간에 Basic Step2(DB UPDATE)가 있어서 `$input` = DB row. **B2는 Claude 응답을 읽지 못하고 빈 resultJson을 만들어 왔음**. Premium의 P7은 `$('P6. 품질 검수')` 직접 참조라 영향 없음.
+
+### 5. 딥리서치 + 최상위 엔지니어 재설계
+
+웹 검색(n8n 2.0 breaking changes, Supabase common issues, PR #12429 등) + RLS policy 확인 + optimizations 테이블 실제 컬럼 조회(Supabase MCP) 병행:
+
+- **n8n 2.x 실존 확인**: elest.io "2.16.0"은 실제 n8n core 버전 (`docs.n8n.io/2-0-breaking-changes/` 공식 존재)
+- **RLS silent block 가설 기각**: Basic Step1/2/3가 정상 통과했으므로 credential은 이미 service_role (anon이면 Step1부터 막힘)
+- **optimizations 실제 컬럼 17개 확인**: `completed_at` 컬럼 **없음** (내가 초기 개선안에 넣었던 건 오류) → V9에서 제거
+- **필터 버그 #11998**: get rows 작업만 영향, 1.74.0에서 수정, 우리 무관
+- **`payload.ts`가 `optimization_id` 안 보냄**: PK 기반 WHERE 매칭 불가능한 상태 → 변경 6번으로 해결
+
+### 6. 개선안 A 전체 적용 — V9 workflow JSON 빌드
+
+**결정**: 개선안 A 6가지 변경 전체 적용. `Chatsio V9 - Silent Failure Fix` 신규 workflow로 임포트할 수 있는 완전한 JSON 생성. Edit 도구로 직접 수정은 jsCode escape 복잡도 때문에 한 번 실패(literal newline 혼입) → V8에서 리셋 후 **Python script로 json.load() → 수정 → json.dump() 방식** 채택 (escape 자동 처리).
+
+**`/tmp/build_chatsio_v9.py`**: 300+ 줄 Python 스크립트 (일회성, 결과만 파일로 저장). 수정 내역:
+
+| # | 변경 | 대상 | 상태 |
+|---|---|---|---|
+| 1 | workflow name | `"name"` 필드 | ✅ `Chatsio V9 - Silent Failure Fix (Basic + Premium)` |
+| 2 | `optimization_id` 필드 + 검증 throw | `1. 데이터 정규화` | ✅ |
+| 3 | `$input` → `$('B1. AI 최적화')` + throw | `B2. 최종 정리` | ✅ 버그 B 수정 |
+| 4 | `processing_step` 등을 result_json 밖으로 | `B2` / `P7` | ✅ 버그 A 수정 |
+| 5 | `autoMapInputData` → `defineBelow` | `B3` / `P8. DB 저장` | ✅ `id` 매칭 + `$('B2/P7')` 직접 참조 + 7컬럼 명시 |
+| 6 | 신규 `B3 검증` / `P8 검증` IF 노드 | 2개 추가 | ✅ `$json.id` notEmpty 검증 |
+| 7 | 신규 `Mark Failed` Supabase UPDATE 노드 | 1개 추가 | ✅ 검증 실패 시 `status=failed, error_step=db_save_verification_failed` 기록 |
+
+**빌드 결과**: 30 nodes (기존 27 + 신규 3), 29 connections, 77KB. Python `json.load()` 재검증 통과. `pnpm typecheck` 통과.
+
+### 7. 코드 변경 — optimization_id PK 전달
+
+**`src/lib/n8n/payload.ts`**: `N8nOptimizationPayload`에 `optimization_id: string` 필드 + `BuildN8nPayloadInput`에 `optimizationId: string` + `buildN8nPayload`가 payload 맨 위에 매핑.
+
+**`src/features/optimize/actions.ts`**: `invokeN8nWebhook` 호출 시 `buildN8nPayload`에 `optimizationId` 전달. 값은 `const optimizationId = inserted.id;`.
+
+typecheck 통과 확인. 이 두 파일 변경은 **Jayden V9 검증 후 별도 커밋** 예정 (/save 스킬은 문서만 커밋).
+
+### 8. 재임포트 가이드 문서 작성
+
+**`docs/n8n-workflow-v9-reimport-guide.md`** (320줄, 9 Part):
+- Part 1: 진짜 원인 설명 (autoMapInputData + DB UPDATE 구조 결함)
+- Part 2: V8 → V9 7가지 변경
+- Part 3: 코드베이스 변경 요약
+- Part 4: **Jayden 재임포트 절차 7단계** (V8 비활성화 → V9 임포트 → credential 재연결 → URL 확인 → V9 활성화 → dry run → 실테스트)
+- Part 5: 재테스트 체크리스트 + 검증 SQL
+- Part 6: 실패 시 디버깅 4 시나리오 (A~D)
+- Part 7: 롤백 절차
+- Part 8: 의도적 미포함 (Error Trigger 포괄 핸들링 등)
+- Part 9: 진짜 원인 확신도 (90%, 나머지 10%는 V9 방어선이 커버)
+
+### 9. 파일 변경
+
+**수정**:
+- `src/lib/n8n/payload.ts` (+7 lines, optimization_id)
+- `src/features/optimize/actions.ts` (+1 line)
+- `docs/PROGRESS.md` (이 섹션 추가)
+- `docs/learnings.md` (3건 교훈 추가)
+
+**신규**:
+- `docs/n8n-workflows/Chatsio V9 - Claude Sonnet + Opus (Basic + Premium).json` (77KB, **gitignored** — 로컬만 유지)
+- `docs/n8n-workflow-v9-reimport-guide.md` (320줄)
+
+**참고**: `docs/n8n-workflows/` 폴더 전체는 `.gitignore`에 포함. V8도 로컬만 있음. V9 같은 물리 경로이므로 마찬가지. 재임포트 가이드 md는 `docs/` 루트라 커밋 가능.
+
+### 10. 커밋 계획
+
+**이번 save 커밋 (문서만)**:
+- `docs/PROGRESS.md`
+- `docs/learnings.md`
+- `docs/n8n-workflow-v9-reimport-guide.md`
+
+**Jayden 검증 후 별도 커밋 (코드)**:
+- `src/lib/n8n/payload.ts`
+- `src/features/optimize/actions.ts`
+
+**영구 로컬 (gitignored)**:
+- `docs/n8n-workflows/Chatsio V9 - Claude Sonnet + Opus (Basic + Premium).json`
+
+### 11. 블로커 / 리스크
+
+- **Branch는 origin/main보다 2 commits ahead 상태**: 이전 세션 push 안 됨. 이번 세션 save 후 3 commits ahead 예상. push는 Jayden 명시 요청 후만.
+- **진짜 원인 확신도 90%**: 나머지 10%는 V9의 B3 검증 / P8 검증 / Mark Failed 방어선이 커버 (원인이 다르더라도 실패 시 명시적 failed 기록 → 다음 세션에서 드러남).
+- **Jayden이 V9 재임포트 수행해야 검증 가능**: Claude는 여기서 대기. 재임포트 후 실데이터 재테스트 결과에 따라 다음 세션 방향 결정.
+
+---
 
 ## 이번 세션 상태 (Session #31, 2026-04-09) — Task 2-6 정식 결과 UI 구현 완료 + n8n Basic 경로 결함 발견 🔴
 
