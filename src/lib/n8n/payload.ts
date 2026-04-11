@@ -9,6 +9,10 @@
  */
 
 export interface N8nOptimizationPayload {
+  // optimizations 테이블 PK. n8n workflow V9의 최종 UPDATE 노드가
+  // `id eq {{ optimization_id }}`로 WHERE 매칭에 사용한다.
+  // idempotency_key보다 안전 (PK는 항상 유일하고 절대 변하지 않음).
+  readonly optimization_id: string;
   readonly order_id: string;
   readonly idempotency_key: string;
   readonly product_id: string;
@@ -26,6 +30,7 @@ export interface N8nOptimizationPayload {
 }
 
 export interface BuildN8nPayloadInput {
+  readonly optimizationId: string;
   readonly idempotencyKey: string;
   readonly plan: "basic" | "premium";
   readonly product: {
@@ -45,6 +50,7 @@ export function buildN8nPayload(
   input: BuildN8nPayloadInput,
 ): N8nOptimizationPayload {
   return {
+    optimization_id: input.optimizationId,
     // order_id는 n8n 정규화 노드가 idempotency_key로 fallback 소스로 사용.
     // 명시적으로 동일 값을 보낸다 → 양쪽 경로 모두 정확.
     order_id: input.idempotencyKey,

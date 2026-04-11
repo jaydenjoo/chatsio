@@ -300,6 +300,7 @@ export async function runOptimization(
   try {
     await invokeN8nWebhook(
       buildN8nPayload({
+        optimizationId,
         idempotencyKey,
         plan,
         product: {
