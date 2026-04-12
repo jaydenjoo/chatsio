@@ -4,26 +4,27 @@
 > **프로젝트 경로**: `/Users/jayden/projects/chatsio/` (Session #10에서 `/Volumes/jayden-ssd/chatsio`에서 이동 — 아래 "프로젝트 이동" 섹션 참조)
 
 ## 현재 위치
-- Epic: **Phase 2 AI 구조화 파이프라인 — V10 + Firecrawl 크롤링 통합 완료, Google Rich Results 초록 통과**
-- Task: **Session #33 — V9 재임포트 + Webhook URL 통일 + V10 JSON-LD 품질 개선 + Firecrawl 크롤링 통합**
-- 커밋: `e52fee2` (Session #32 save) → Session #33 커밋 6개 (`e92a5ee` ~ `52dff07`)
+- Epic: **Phase 4 어드민 대시보드 — Task 4-2~4-5 완료, 4-6~4-9 남음**
+- Task: **Session #35 — Phase 3 완료 (랜딩+배포) + Phase 4 진입 (사이드바+KPI+고객+최적화)**
+- 커밋: `976e0fe` (Session #34) → Session #35 커밋 7개 (`df98ada` ~ `ff2e58c`)
 - 상태:
-  - ✅ **Webhook URL 통일** — `.env.local` + Vercel 환경변수 모두 `https://chagtsio-n8n-u65111.vm.elestio.app/webhook/chatsio-optimize`로 수정. Elestio가 프로젝트명을 `chagtsio`로 생성한 것이 원천.
-  - ✅ **V9 재임포트 + 검증** — Jayden이 n8n에 V9 임포트, credential 재연결, webhook 테스트 완료. Production URL dry run `{"message":"Workflow was started"}` 확인.
-  - ✅ **optimization_id PK 전달 커밋 + 배포** — `e92a5ee`. V9 `1. 데이터 정규화` 노드의 `optimization_id is required` 에러 해결.
-  - ✅ **V10 JSON-LD 품질 개선** — Python script로 V9→V10 빌드 (30 nodes). B2/P7에서 image/price/brand/category 빈 값 처리 개선. Jayden이 n8n에 V10 임포트.
-  - ✅ **Firecrawl 크롤링 통합** — `scrape-product.ts` 신규 생성. actions.ts에서 n8n 호출 전 best-effort 크롤링. metadata 객체 우선 추출 + HTML regex fallback.
-  - ✅ **Google Rich Results Test 초록 통과** — image, price, category 모두 정상 반영. 최종 결과: `3458865a` (image 1개, price 29900, category 채워짐).
-  - ✅ **payload.ts 필드명 불일치 근본 버그 수정** — `image_urls` vs `images`, `original_price`/`discount_price` vs `product_price` 매핑 수정.
+  - ✅ **Task 3-3 랜딩 페이지** — 9개 섹션 풀 랜딩 (Hero/Pain-Solution/How-It-Works/Features/Pricing/FAQ/CTA/Footer). 디자인 레퍼런스 정밀 대조 완료.
+  - ✅ **Task 3-5 Vercel 배포** — `chatsio-topaz.vercel.app` 프로덕션 확인. 도메인 연결은 스킵.
+  - ✅ **다크모드 대비 수정 3건** — Pain 다크 섹션 (`bg-[#1a1e24]` + `text-white/60`), JSON-LD 벤토 카드 (`bg-[#1e2430]`), 전체 CTA 그라데이션 하드코딩 (`#006195`).
+  - ✅ **디자인 레퍼런스 정밀 대조 4건** — 브라우저 바 URL, AI 인용 도넛 차트, FAQ 기본 열림, Footer 소셜 아이콘.
+  - ✅ **Task 4-2 어드민 사이드바** — 260px 고정, 서비스 4 + 관리 3 메뉴, usePathname 활성 상태.
+  - ✅ **Task 4-3 어드민 홈 KPI** — 총 고객/총 최적화/성공률/시스템 상태 4개 카드 + 바 차트 + 빠른 링크.
+  - ✅ **Task 4-4 고객 관리** — 쇼핑몰 목록 + 이름 검색 + relational query (products/optimizations count).
+  - ✅ **Task 4-5 최적화 모니터링** — 실행 로그 테이블 + 상태 필터 + 페이지네이션.
 - 다음:
-  1. (다음 세션) **디버그 로그 제거** — `actions.ts`의 `console.warn("[runOptimization]")` 진단 로그 4줄 제거 후 커밋
-  2. (다음 세션) **Premium 플랜 실데이터 검증** — Premium 경로도 V10 P7 JSON-LD 동작 확인
-  3. (다음 세션) **Task 2-6 CompletedView 실데이터 검증** — QualityScoreRing, AttributeList, JsonldPreview 한글 라벨 확인
-  4. (근본) **`optimizations` 테이블 `updated_at` 자동 갱신 트리거 추가** — migration 파일 작성
-  5. (backlog) Task 2-7 결과 수동 편집
-  6. (backlog) Task 2-8 최적화 이력 목록 페이지 — Jayden이 테스트 결과 리스트 없다고 지적
-  7. (backlog) Task 2-9 llms.txt 자동 생성
-  8. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리
+  1. (세션 C) **Task 4-6 프롬프트 관리** — `prompt_versions` 마이그레이션 + 업종별 목록 + 편집기 + 버전 히스토리/롤백
+  2. (세션 C) **Task 4-7 프롬프트 테스트** — 샘플 상품 → n8n 호출 → 결과 표시
+  3. (세션 D) **Task 4-8 AI 비용 모니터링** — `api_usage_logs` 마이그레이션 + 차트
+  4. (세션 D) **Task 4-9 CSV 다운로드** — 공통 유틸 + 각 페이지 적용
+  5. (backlog) Task 4-4 고객 메모 — `admin_notes` 마이그레이션 필요
+  6. (backlog) Task 4-5 재실행 버튼 — Task 4-7과 함께
+  7. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리
+  8. (backlog) Pricing 수량: Starter 50회, Growth 120회 (이번 세션 반영됨)
 
 > **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소** (단일 출처 원칙).
 > **Session #26 판정**: "Vercel 프로젝트 신규 등록" 항목은 **폐기** — 이미 등록 + 배포 중 확인. Session #24 AI 오판단이 원인.

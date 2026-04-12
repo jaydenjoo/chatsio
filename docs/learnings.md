@@ -20,6 +20,17 @@
 
 ---
 
+### 2026-04-12 — [Architecture] 랜딩 페이지에서 theme 토큰 대신 브랜드 색상 하드코딩 필수
+- **증상**: 다크모드에서 CTA 그라데이션(`from-primary to-primary-container`)이 밝은 파란색으로 반전, Hero 뱃지 텍스트 안 보임, JSON-LD 벤토 카드 배경이 밝아져 텍스트 대비 실패. 동일 유형 수정 3회 반복.
+- **원인**: Material 3 토큰은 다크모드에서 의도적으로 색상을 반전시킴(`inverse-surface` → 밝은 색, `primary` → 밝은 파란). 대시보드/앱 UI에서는 맞지만, **랜딩 페이지 그라데이션/CTA는 브랜드 고정색이 필요**한데 theme 토큰을 그대로 사용.
+- **해결**: 3가지 패턴 적용:
+  1. CTA 그라데이션: `from-primary` → `from-[#006195]` 하드코딩 (양쪽 모드 동일)
+  2. 다크 배경 섹션: `bg-inverse-surface` → `bg-[#1a1e24]` 하드코딩 (반전 방지)
+  3. 다크 배경 위 텍스트: `text-outline-variant` → `text-white/60` (명시적 대비)
+- **규칙**: **랜딩 페이지의 그라데이션/CTA/다크 섹션은 항상 브랜드 hex 하드코딩**. theme 토큰은 대시보드/앱 UI에만 사용. 다크모드 검증 시 `document.documentElement.classList.add('dark')`로 반드시 양쪽 확인.
+
+---
+
 ### 2026-04-12 — [Bug] n8n payload 필드명 불일치로 image/price가 항상 빈 값
 - **증상**: V10 workflow에서 JSON-LD의 image와 price가 항상 null. Google Rich Results Test에서 `image` 필수 에러 + `price` 필수 에러 발생. category는 AI `product_type` fallback으로 채워졌지만 image/price는 빈 값.
 - **원인**: Next.js payload.ts가 보내는 필드명과 n8n `1. 데이터 정규화` 코드가 읽는 필드명이 불일치:
