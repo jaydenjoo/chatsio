@@ -8,9 +8,12 @@ import { N8nConfigError, N8nInvocationError } from "@/lib/n8n/errors";
 import { logEvent } from "@/lib/monitoring/log-event";
 import { getFirecrawlEnv } from "@/lib/env";
 import { scrapeProductMeta } from "@/lib/firecrawl/scrape-product";
+import { buildJsonLd } from "@/lib/jsonld/build-jsonld";
+import { buildLlmsTxt } from "@/lib/llms-txt/build-llms-txt";
 import {
   DUPLICATE_CHECK_WINDOW_MS,
   runOptimizationSchema,
+  updateResultSchema,
   type OptimizationPlan as OptimizationPlanType,
   type RunOptimizationInput,
 } from "./validation";
@@ -308,26 +311,16 @@ export async function runOptimization(
   } | null = null;
 
   const firecrawlEnv = getFirecrawlEnv();
-  console.warn("[runOptimization] Firecrawl env:", firecrawlEnv ? "key found" : "NO KEY");
-  console.warn("[runOptimization] product.url:", product.url ?? "null");
 
   if (firecrawlEnv && product.url) {
     try {
       crawled = await scrapeProductMeta(product.url, firecrawlEnv.apiKey);
-      console.warn("[runOptimization] Firecrawl result:", {
-        hasImages: crawled?.images?.length ?? 0,
-        price: crawled?.price,
-        brand: crawled?.brand || "(empty)",
-        category: crawled?.category || "(empty)",
-      });
     } catch (err) {
       console.error("[runOptimization] Firecrawl failed, proceeding without crawled data", {
         productId,
         message: err instanceof Error ? err.message : String(err),
       });
     }
-  } else {
-    console.warn("[runOptimization] Firecrawl skipped — no key or no URL");
   }
 
   // ---- 6. n8n webhook 호출 ----
@@ -726,5 +719,311 @@ export async function getOptimization(
   };
 
   return { success: true, error: null, optimization };
+}
+
+// ============================================================
+// Server Action — updateOptimizationResult (Task 2-7 수동 편집)
+// ============================================================
+
+export interface UpdateResultResponse {
+  readonly success: boolean;
+  readonly error?: string;
+}
+
+export async function updateOptimizationResult(
+  input: unknown,
+): Promise<UpdateResultResponse> {
+  // 1. Zod 검증
+  const parsed = updateResultSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: "입력값이 올바르지 않습니다." };
+  }
+  const { optimizationId, resultJson } = parsed.data;
+
+  // 2. 인증
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "로그인이 필요합니다." };
+  }
+
+  // 3. 기존 최적화 row + product 조회 (소유권 + 메타 데이터)
+  const { data: row, error: fetchError } = await supabase
+    .from("optimizations")
+    .select("id, shop_id, plan, status, products(url, image_urls)")
+    .eq("id", optimizationId)
+    .single();
+
+  if (fetchError || !row) {
+    return { success: false, error: "최적화 결과를 찾을 수 없습니다." };
+  }
+
+  if (row.status !== "completed") {
+    return { success: false, error: "완료된 최적화만 편집할 수 있습니다." };
+  }
+
+  // 4. 소유권 검증 (shop → user)
+  const { data: shop } = await supabase
+    .from("shops")
+    .select("user_id")
+    .eq("id", row.shop_id)
+    .single();
+
+  if (!shop || shop.user_id !== user.id) {
+    return { success: false, error: "접근 권한이 없습니다." };
+  }
+
+  // 5. JSON-LD 재생성
+  const product = Array.isArray(row.products) ? row.products[0] : row.products;
+  const plan = row.plan as OptimizationPlan;
+
+  const jsonld = buildJsonLd({
+    resultJson: resultJson as Record<string, unknown>,
+    plan,
+    meta: {
+      productUrl: product?.url ?? "",
+      images: product?.image_urls ?? [],
+      brand: (resultJson as Record<string, unknown>).brand as string ?? "",
+      category: (resultJson as Record<string, unknown>).category as string ?? "",
+      price: (resultJson as Record<string, unknown>).product_price as number ?? 0,
+    },
+  });
+
+  // 6. DB 업데이트
+  const { error: updateError } = await supabase
+    .from("optimizations")
+    .update({
+      result_json: resultJson,
+      jsonld,
+    })
+    .eq("id", optimizationId);
+
+  if (updateError) {
+    return { success: false, error: "저장에 실패했습니다. 다시 시도해주세요." };
+  }
+
+  revalidatePath(`/optimize/${optimizationId}`);
+  return { success: true };
+}
+
+// ============================================================
+// Server Action — getOptimizationHistory (Task 2-8 이력 목록)
+// ============================================================
+
+export interface OptimizationHistoryItem {
+  readonly id: string;
+  readonly plan: OptimizationPlan;
+  readonly status: "queued" | "processing" | "completed" | "failed";
+  readonly score: number | null;
+  readonly durationMs: number | null;
+  readonly createdAt: string;
+  readonly productName: string;
+}
+
+export interface GetOptimizationHistoryResult {
+  readonly success: boolean;
+  readonly error: string | null;
+  readonly items: OptimizationHistoryItem[];
+}
+
+const HISTORY_LIMIT = 50;
+
+export async function getOptimizationHistory(): Promise<GetOptimizationHistoryResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "인증이 필요합니다.", items: [] };
+  }
+
+  // 사용자 소유 shop 조회
+  const { data: shops, error: shopError } = await supabase
+    .from("shops")
+    .select("id")
+    .eq("user_id", user.id);
+
+  if (shopError || !shops || shops.length === 0) {
+    return { success: true, error: null, items: [] };
+  }
+
+  const shopIds = shops.map((s: { id: string }) => s.id);
+
+  const { data: rows, error: fetchError } = await supabase
+    .from("optimizations")
+    .select("id, plan, status, score, duration_ms, created_at, products(name)")
+    .in("shop_id", shopIds)
+    .order("created_at", { ascending: false })
+    .limit(HISTORY_LIMIT);
+
+  if (fetchError) {
+    return {
+      success: false,
+      error: "이력을 불러오지 못했습니다.",
+      items: [],
+    };
+  }
+
+  const items: OptimizationHistoryItem[] = (rows ?? []).map((row: Record<string, unknown>) => {
+    const product = Array.isArray(row.products)
+      ? row.products[0]
+      : row.products;
+    return {
+      id: row.id,
+      plan: row.plan as OptimizationPlan,
+      status: row.status as OptimizationHistoryItem["status"],
+      score: row.score,
+      durationMs: row.duration_ms,
+      createdAt: row.created_at,
+      productName: product?.name ?? "(삭제된 상품)",
+    };
+  });
+
+  return { success: true, error: null, items };
+}
+
+// ============================================================
+// Server Action — generateLlmsTxt (Task 2-9)
+// ============================================================
+
+export interface GenerateLlmsTxtResult {
+  readonly success: boolean;
+  readonly error?: string;
+  readonly text?: string;
+  readonly shopName?: string;
+}
+
+export async function generateLlmsTxt(): Promise<GenerateLlmsTxtResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "로그인이 필요합니다." };
+  }
+
+  // 1. 사용자 shop 조회
+  const { data: shop, error: shopError } = await supabase
+    .from("shops")
+    .select("id, name, url, industry")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (shopError || !shop) {
+    return { success: false, error: "쇼핑몰 정보를 찾을 수 없습니다." };
+  }
+
+  // 2. 완료된 최적화 결과 조회
+  const { data: rows, error: fetchError } = await supabase
+    .from("optimizations")
+    .select("plan, score, result_json, products(name, url)")
+    .eq("shop_id", shop.id)
+    .eq("status", "completed")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (fetchError) {
+    return { success: false, error: "최적화 결과를 불러오지 못했습니다." };
+  }
+
+  const products = (rows ?? []).map((row: Record<string, unknown>) => {
+    const product = Array.isArray(row.products)
+      ? row.products[0]
+      : row.products;
+    return {
+      productName: (product as Record<string, unknown>)?.name as string ?? "(삭제된 상품)",
+      productUrl: (product as Record<string, unknown>)?.url as string | null ?? null,
+      plan: row.plan as string,
+      score: row.score as number | null,
+      resultJson: row.result_json as Record<string, unknown> | null,
+    };
+  });
+
+  const text = buildLlmsTxt({
+    shop: {
+      name: shop.name,
+      url: shop.url,
+      industry: shop.industry,
+    },
+    products,
+  });
+
+  return { success: true, text, shopName: shop.name };
+}
+
+// ============================================================
+// Server Action — getDeployData (Task 3-1 배포 관리)
+// ============================================================
+
+export interface DeployProduct {
+  readonly optimizationId: string;
+  readonly productName: string;
+  readonly productUrl: string | null;
+  readonly jsonld: Record<string, unknown> | null;
+  readonly plan: string;
+  readonly score: number | null;
+}
+
+export interface GetDeployDataResult {
+  readonly success: boolean;
+  readonly error?: string;
+  readonly shopId?: string;
+  readonly shopUrl?: string;
+  readonly products: DeployProduct[];
+}
+
+export async function getDeployData(): Promise<GetDeployDataResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "로그인이 필요합니다.", products: [] };
+  }
+
+  const { data: shop } = await supabase
+    .from("shops")
+    .select("id, url")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!shop) {
+    return { success: false, error: "쇼핑몰 정보를 찾을 수 없습니다.", products: [] };
+  }
+
+  const { data: rows, error: fetchError } = await supabase
+    .from("optimizations")
+    .select("id, plan, score, jsonld, products(name, url)")
+    .eq("shop_id", shop.id)
+    .eq("status", "completed")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (fetchError) {
+    return { success: false, error: "데이터를 불러오지 못했습니다.", products: [] };
+  }
+
+  const products: DeployProduct[] = (rows ?? []).map((row: Record<string, unknown>) => {
+    const product = Array.isArray(row.products)
+      ? row.products[0]
+      : row.products;
+    return {
+      optimizationId: row.id as string,
+      productName: (product as Record<string, unknown>)?.name as string ?? "(삭제된 상품)",
+      productUrl: (product as Record<string, unknown>)?.url as string | null ?? null,
+      jsonld: row.jsonld as Record<string, unknown> | null,
+      plan: row.plan as string,
+      score: row.score as number | null,
+    };
+  });
+
+  return { success: true, shopId: shop.id, shopUrl: shop.url, products };
 }
 

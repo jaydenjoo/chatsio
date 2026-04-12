@@ -1,10 +1,51 @@
 "use client";
 
-import type { ReactElement } from "react";
-import { FileQuestion } from "lucide-react";
+import { useState, useCallback, type ReactElement } from "react";
+import { FileQuestion, Pencil, X, Save, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+// ============================================================
+// 편집 가능한 필드 목록 — 사용자가 수정할 수 있는 필드만 허용
+// ============================================================
+
+const EDITABLE_STRING_FIELDS = new Set([
+  "optimized_title",
+  "optimized_description",
+  "product_type",
+  "target_audience",
+]);
+
+const EDITABLE_STRING_ARRAY_FIELDS = new Set([
+  "keywords",
+]);
+
+/** 편집 불가 필드 — 시스템 생성 값이라 사용자 수정 의미 없음 */
+const READ_ONLY_FIELDS = new Set([
+  "eeat_score",
+  "optimization_score",
+  "optimized_at",
+]);
+
+function isEditableField(key: string): boolean {
+  return (
+    EDITABLE_STRING_FIELDS.has(key) ||
+    EDITABLE_STRING_ARRAY_FIELDS.has(key)
+  );
+}
+
+// ============================================================
+// Props
+// ============================================================
 
 interface AttributeListProps {
   readonly resultJson: Record<string, unknown> | null;
+  readonly isEditing?: boolean;
+  readonly editData?: Record<string, unknown>;
+  readonly onEditChange?: (key: string, value: unknown) => void;
+  readonly onSave?: () => void;
+  readonly onCancel?: () => void;
+  readonly onStartEdit?: () => void;
+  readonly isSaving?: boolean;
 }
 
 // 알려진 필드의 한글 라벨. 매칭 안 되면 원본 키를 그대로 표시.
@@ -43,18 +84,47 @@ const ATTRIBUTE_LABELS: Record<string, string> = {
   careInstructions: "관리 방법",
   keywords: "키워드",
   tags: "태그",
+  optimized_title: "최적화 제목",
+  optimized_description: "최적화 설명",
+  product_type: "상품 유형",
+  target_audience: "타겟 고객",
+  core_features: "핵심 특장점",
+  key_benefits: "주요 혜택",
+  use_cases: "활용 사례",
+  faqs: "FAQ",
+  related_queries: "관련 검색어",
+  pros_cons: "장단점",
+  comparison_data: "비교 데이터",
+  buying_guide: "구매 가이드",
+  eeat_score: "E-E-A-T 점수",
+  optimization_score: "최적화 점수",
+  optimized_at: "최적화 일시",
 };
 
 function formatLabel(key: string): string {
   return ATTRIBUTE_LABELS[key] ?? key;
 }
 
-export function AttributeList({ resultJson }: AttributeListProps): ReactElement {
+// ============================================================
+// AttributeList
+// ============================================================
+
+export function AttributeList({
+  resultJson,
+  isEditing = false,
+  editData,
+  onEditChange,
+  onSave,
+  onCancel,
+  onStartEdit,
+  isSaving = false,
+}: AttributeListProps): ReactElement {
   if (resultJson === null || Object.keys(resultJson).length === 0) {
     return <EmptyState />;
   }
 
-  const entries = Object.entries(resultJson);
+  const displayData = isEditing && editData ? editData : resultJson;
+  const entries = Object.entries(displayData);
 
   return (
     <div className="rounded-3xl bg-[var(--surface-container-lowest)] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.06)] sm:p-8">
@@ -65,36 +135,243 @@ export function AttributeList({ resultJson }: AttributeListProps): ReactElement 
         >
           추출된 속성
         </h3>
-        <span className="rounded-full bg-[var(--surface-container)] px-3 py-1 text-xs font-semibold text-[var(--on-surface-variant)]">
-          {entries.length}개 속성
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-[var(--surface-container)] px-3 py-1 text-xs font-semibold text-[var(--on-surface-variant)]">
+            {entries.length}개 속성
+          </span>
+          {isEditing ? (
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onCancel}
+                disabled={isSaving}
+                className="gap-1.5 text-[var(--on-surface-variant)]"
+              >
+                <X className="size-3.5" />
+                취소
+              </Button>
+              <Button
+                size="sm"
+                onClick={onSave}
+                disabled={isSaving}
+                className="gap-1.5 bg-gradient-to-br from-[var(--primary)] to-[var(--primary-container)] text-[var(--on-primary)] shadow-md"
+              >
+                {isSaving ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Save className="size-3.5" />
+                )}
+                {isSaving ? "저장 중..." : "저장"}
+              </Button>
+            </>
+          ) : onStartEdit ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onStartEdit}
+              className="gap-1.5 text-[var(--primary)]"
+            >
+              <Pencil className="size-3.5" />
+              편집
+            </Button>
+          ) : null}
+        </div>
       </div>
       <div className="space-y-1">
         {entries.map(([key, value]) => (
-          <AttributeRow key={key} label={formatLabel(key)} value={value} />
+          <AttributeRow
+            key={key}
+            fieldKey={key}
+            label={formatLabel(key)}
+            value={value}
+            isEditing={isEditing && isEditableField(key)}
+            onEditChange={onEditChange}
+          />
         ))}
       </div>
     </div>
   );
 }
 
+// ============================================================
+// AttributeRow (읽기 + 편집 모드)
+// ============================================================
+
 interface AttributeRowProps {
+  readonly fieldKey: string;
   readonly label: string;
   readonly value: unknown;
+  readonly isEditing?: boolean;
+  readonly onEditChange?: (key: string, value: unknown) => void;
 }
 
-function AttributeRow({ label, value }: AttributeRowProps): ReactElement {
+function AttributeRow({
+  fieldKey,
+  label,
+  value,
+  isEditing = false,
+  onEditChange,
+}: AttributeRowProps): ReactElement {
   return (
     <div className="flex items-start justify-between gap-4 rounded-2xl p-4 transition-colors hover:bg-[var(--surface-container-low)]">
       <div className="w-1/3 shrink-0 text-sm font-semibold text-[var(--on-surface-variant)]">
         {label}
+        {isEditing && (
+          <span className="ml-1.5 text-[10px] text-[var(--primary)]">편집 가능</span>
+        )}
       </div>
       <div className="flex-1 text-sm text-[var(--on-surface)]">
-        <AttributeValue value={value} />
+        {isEditing ? (
+          <EditableValue
+            fieldKey={fieldKey}
+            value={value}
+            onEditChange={onEditChange}
+          />
+        ) : (
+          <AttributeValue value={value} />
+        )}
       </div>
     </div>
   );
 }
+
+// ============================================================
+// EditableValue — 필드 타입별 편집 UI
+// ============================================================
+
+function EditableValue({
+  fieldKey,
+  value,
+  onEditChange,
+}: {
+  readonly fieldKey: string;
+  readonly value: unknown;
+  readonly onEditChange?: (key: string, value: unknown) => void;
+}): ReactElement {
+  const handleChange = useCallback(
+    (newValue: unknown) => {
+      onEditChange?.(fieldKey, newValue);
+    },
+    [fieldKey, onEditChange],
+  );
+
+  // string 필드
+  if (EDITABLE_STRING_FIELDS.has(fieldKey) && typeof value === "string") {
+    const isLong = fieldKey === "optimized_description";
+    return isLong ? (
+      <textarea
+        value={value}
+        onChange={(e) => handleChange(e.target.value)}
+        rows={6}
+        className="w-full rounded-xl border border-[var(--outline-variant)] bg-[var(--surface-container-low)] p-3 text-sm text-[var(--on-surface)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
+      />
+    ) : (
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => handleChange(e.target.value)}
+        className="w-full rounded-xl border border-[var(--outline-variant)] bg-[var(--surface-container-low)] px-3 py-2 text-sm text-[var(--on-surface)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
+      />
+    );
+  }
+
+  // string[] 필드 (keywords) — 태그 편집
+  if (EDITABLE_STRING_ARRAY_FIELDS.has(fieldKey) && Array.isArray(value)) {
+    return (
+      <TagEditor
+        tags={value as string[]}
+        onChange={(tags) => handleChange(tags)}
+      />
+    );
+  }
+
+  // 기타 — 읽기 전용 fallback
+  return <AttributeValue value={value} />;
+}
+
+// ============================================================
+// TagEditor — 키워드 태그 편집
+// ============================================================
+
+function TagEditor({
+  tags,
+  onChange,
+}: {
+  readonly tags: readonly string[];
+  readonly onChange: (tags: string[]) => void;
+}): ReactElement {
+  const [inputValue, setInputValue] = useState("");
+
+  const handleAdd = useCallback(() => {
+    const trimmed = inputValue.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      onChange([...tags, trimmed]);
+      setInputValue("");
+    }
+  }, [inputValue, tags, onChange]);
+
+  const handleRemove = useCallback(
+    (idx: number) => {
+      onChange(tags.filter((_, i) => i !== idx));
+    },
+    [tags, onChange],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleAdd();
+      }
+    },
+    [handleAdd],
+  );
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {tags.map((tag, idx) => (
+          <span
+            key={idx}
+            className="inline-flex items-center gap-1 rounded-full bg-[var(--primary-fixed)]/40 px-2.5 py-0.5 text-xs font-semibold text-[var(--primary)]"
+          >
+            {tag}
+            <button
+              type="button"
+              onClick={() => handleRemove(idx)}
+              className="ml-0.5 rounded-full p-0.5 hover:bg-[var(--primary)]/20"
+            >
+              <X className="size-2.5" />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="키워드 입력 후 Enter"
+          className="flex-1 rounded-xl border border-[var(--outline-variant)] bg-[var(--surface-container-low)] px-3 py-1.5 text-xs text-[var(--on-surface)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
+        />
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleAdd}
+          className="text-xs text-[var(--primary)]"
+        >
+          추가
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// 읽기 전용 렌더러 (기존 코드)
+// ============================================================
 
 function AttributeValue({ value }: { readonly value: unknown }): ReactElement {
   if (value === null || value === undefined) {

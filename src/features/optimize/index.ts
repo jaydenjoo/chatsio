@@ -2,6 +2,8 @@ export {
   runOptimization,
   getOptimizationProducts,
   getOptimization,
+  getOptimizationHistory,
+  generateLlmsTxt,
 } from "./actions";
 export type {
   RunOptimizationResult,
@@ -10,6 +12,9 @@ export type {
   GetOptimizationProductsResult,
   OptimizationDetail,
   GetOptimizationResult,
+  OptimizationHistoryItem,
+  GetOptimizationHistoryResult,
+  GenerateLlmsTxtResult,
 } from "./actions";
 
 export {

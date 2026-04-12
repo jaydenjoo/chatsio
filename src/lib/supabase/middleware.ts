@@ -47,6 +47,8 @@ export async function updateSession(
   const isPublicRoute =
     publicRoutes.includes(pathname) ||
     pathname.startsWith("/auth/") ||
+    pathname.startsWith("/api/v1/loader/") ||
+    pathname.startsWith("/api/v1/jsonld/") ||
     publicApiPaths.includes(pathname);
 
   // 미인증 사용자 → 보호 라우트 접근 차단

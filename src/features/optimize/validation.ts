@@ -27,6 +27,11 @@ export const runOptimizationSchema = z.object({
 
 export type RunOptimizationInput = z.infer<typeof runOptimizationSchema>;
 
+export const updateResultSchema = z.object({
+  optimizationId: z.string().uuid("올바른 최적화 ID가 아닙니다"),
+  resultJson: z.record(z.string(), z.unknown()),
+});
+
 /**
  * 5분 윈도우 — 같은 (product, plan) 조합에 대해 진행 중인 최적화가
  * 있으면 새 실행을 차단하고 기존 결과로 안내.

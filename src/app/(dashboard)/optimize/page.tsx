@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Package, Sparkles } from "lucide-react";
+import { Clock, Package, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { getOptimizationProducts } from "@/features/optimize";
@@ -31,10 +31,21 @@ export default async function OptimizePage({
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        title="AI 최적화 실행"
-        description="상품과 플랜을 선택하면 AI가 검색 최적화 데이터를 생성합니다."
-      />
+      <div className="flex items-center justify-between">
+        <PageHeader
+          title="AI 최적화 실행"
+          description="상품과 플랜을 선택하면 AI가 검색 최적화 데이터를 생성합니다."
+        />
+        <Link href="/optimize/history">
+          <Button
+            variant="ghost"
+            className="gap-2 text-[var(--primary)]"
+          >
+            <Clock className="size-4" />
+            이력 보기
+          </Button>
+        </Link>
+      </div>
 
       <div className="rounded-3xl bg-[var(--surface-container-lowest)] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.06)] sm:p-8">
         <OptimizeForm

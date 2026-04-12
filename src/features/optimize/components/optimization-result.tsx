@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useState, useCallback, useTransition, type ReactElement } from "react";
 import { CheckCircle2, LayoutList, Code2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { updateOptimizationResult } from "../actions";
 import type { OptimizationDetail } from "../actions";
 import { AttributeList } from "./attribute-list";
 import { JsonldPreview } from "./jsonld-preview";
@@ -37,8 +38,46 @@ export function OptimizationResult({
   optimization,
 }: OptimizationResultProps): ReactElement {
   const [activeTab, setActiveTab] = useState<ActiveTab>("attributes");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<Record<string, unknown>>({});
+  const [isPending, startTransition] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const durationLabel = formatDuration(optimization.durationMs);
+
+  const handleStartEdit = useCallback(() => {
+    if (optimization.resultJson) {
+      setEditData({ ...optimization.resultJson });
+      setIsEditing(true);
+      setSaveError(null);
+    }
+  }, [optimization.resultJson]);
+
+  const handleCancel = useCallback(() => {
+    setIsEditing(false);
+    setEditData({});
+    setSaveError(null);
+  }, []);
+
+  const handleEditChange = useCallback((key: string, value: unknown) => {
+    setEditData((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const handleSave = useCallback(() => {
+    startTransition(async () => {
+      setSaveError(null);
+      const result = await updateOptimizationResult({
+        optimizationId: optimization.id,
+        resultJson: editData,
+      });
+      if (result.success) {
+        setIsEditing(false);
+        setEditData({});
+      } else {
+        setSaveError(result.error ?? "저장에 실패했습니다.");
+      }
+    });
+  }, [optimization.id, editData]);
 
   return (
     <div className="space-y-6">
@@ -68,6 +107,13 @@ export function OptimizationResult({
         </div>
       </div>
 
+      {/* 에러 메시지 */}
+      {saveError && (
+        <div className="rounded-2xl border border-[var(--error)]/30 bg-[var(--error-container)] px-4 py-3 text-sm text-[var(--on-error-container)]">
+          {saveError}
+        </div>
+      )}
+
       {/* 탭 바 */}
       <div className="flex w-fit items-center gap-1 rounded-2xl bg-[var(--surface-container-low)] p-1.5">
         {TABS.map((tab) => {
@@ -78,11 +124,13 @@ export function OptimizationResult({
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
+              disabled={isEditing && tab.id === "jsonld"}
               className={cn(
                 "flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all",
                 isActive
                   ? "bg-[var(--surface-container-lowest)] text-[var(--primary)] shadow-sm"
                   : "text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-lowest)]/50",
+                isEditing && tab.id === "jsonld" && "cursor-not-allowed opacity-50",
               )}
               aria-selected={isActive}
               role="tab"
@@ -97,7 +145,16 @@ export function OptimizationResult({
       {/* 탭 콘텐츠 */}
       <div role="tabpanel">
         {activeTab === "attributes" ? (
-          <AttributeList resultJson={optimization.resultJson} />
+          <AttributeList
+            resultJson={optimization.resultJson}
+            isEditing={isEditing}
+            editData={editData}
+            onEditChange={handleEditChange}
+            onSave={handleSave}
+            onCancel={handleCancel}
+            onStartEdit={handleStartEdit}
+            isSaving={isPending}
+          />
         ) : (
           <JsonldPreview jsonld={optimization.jsonld} />
         )}
