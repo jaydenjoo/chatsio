@@ -88,7 +88,7 @@ export default function LandingPage(): ReactElement {
       />
 
       {/* ── Nav ─────────────────────────────────────────────────── */}
-      <nav className="fixed top-0 z-50 w-full bg-white/80 shadow-sm backdrop-blur-xl dark:bg-[var(--surface)]/80">
+      <nav className="fixed top-0 z-50 w-full bg-white/80 shadow-sm backdrop-blur-xl dark:bg-[#0e1419]/80">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2.5">
@@ -109,7 +109,7 @@ export default function LandingPage(): ReactElement {
             </Link>
             <Link
               href="/signup"
-              className="rounded-full bg-linear-to-br from-primary to-primary-container px-6 py-2.5 text-sm font-bold text-on-primary shadow-[var(--shadow-md)] transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="rounded-full bg-linear-to-br from-[#006195] to-[#007aba] px-6 py-2.5 text-sm font-bold text-white shadow-[var(--shadow-md)] transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               무료로 시작하기
             </Link>
@@ -123,7 +123,7 @@ export default function LandingPage(): ReactElement {
           <div className="grid items-center gap-12 md:grid-cols-12">
             {/* 좌: 헤드라인 */}
             <div className="md:col-span-7">
-              <span className="animate-fade-up mb-6 inline-flex items-center gap-2 rounded-full bg-secondary-container px-4 py-1.5 text-sm font-bold text-on-secondary-fixed-variant">
+              <span className="animate-fade-up mb-6 inline-flex items-center gap-2 rounded-full bg-secondary-container px-4 py-1.5 text-sm font-bold text-on-secondary-fixed-variant dark:bg-white/10 dark:text-emerald-400">
                 <Sparkles className="h-4 w-4" />
                 AI 검색 시대, 상품 데이터가 경쟁력입니다
               </span>
@@ -142,7 +142,7 @@ export default function LandingPage(): ReactElement {
               <div className="animate-fade-up mt-10 flex flex-wrap items-center gap-4 [animation-delay:0.3s]">
                 <Link
                   href="/signup"
-                  className="group flex items-center gap-2 rounded-2xl bg-linear-to-br from-primary to-primary-container px-8 py-4 text-lg font-bold text-on-primary shadow-[var(--shadow-lg)] transition-transform hover:-translate-y-0.5"
+                  className="group flex items-center gap-2 rounded-2xl bg-linear-to-br from-[#006195] to-[#007aba] px-8 py-4 text-lg font-bold text-white shadow-[var(--shadow-lg)] transition-transform hover:-translate-y-0.5"
                 >
                   무료로 시작하기
                   <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
@@ -199,8 +199,8 @@ export default function LandingPage(): ReactElement {
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="h-8 rounded-lg border border-outline-variant/20 bg-white/50" />
-                    <div className="h-8 rounded-lg border border-outline-variant/20 bg-white/50" />
+                    <div className="h-8 rounded-lg border border-outline-variant/20 bg-surface-container-low" />
+                    <div className="h-8 rounded-lg border border-outline-variant/20 bg-surface-container-low" />
                   </div>
                 </div>
               </div>
@@ -389,8 +389,8 @@ export default function LandingPage(): ReactElement {
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="h-8 rounded-lg border border-outline-variant/20 bg-white/50" />
-                    <div className="h-8 rounded-lg border border-outline-variant/20 bg-white/50" />
+                    <div className="h-8 rounded-lg border border-outline-variant/20 bg-surface-container-low" />
+                    <div className="h-8 rounded-lg border border-outline-variant/20 bg-surface-container-low" />
                   </div>
                 </div>
               </div>
@@ -489,7 +489,7 @@ export default function LandingPage(): ReactElement {
 
         {/* ── Bottom CTA ────────────────────────────────────────── */}
         <section className="mx-auto max-w-7xl px-6 py-24">
-          <div className="relative overflow-hidden rounded-[3rem] bg-linear-to-br from-primary to-primary-container p-12 text-center shadow-[var(--shadow-xl)] md:p-20">
+          <div className="relative overflow-hidden rounded-[3rem] bg-linear-to-br from-[#006195] to-[#004b74] p-12 text-center shadow-[var(--shadow-xl)] md:p-20">
             {/* 데코 SVG */}
             <svg
               aria-hidden

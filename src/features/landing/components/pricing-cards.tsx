@@ -73,7 +73,7 @@ function TierCard({ tier }: { tier: PricingTier }): ReactElement {
         href={tier.href}
         className={`block w-full rounded-2xl py-4 text-center font-bold transition-all ${
           tier.recommended
-            ? "bg-linear-to-br from-primary to-primary-container text-on-primary shadow-[var(--shadow-lg)] hover:-translate-y-0.5"
+            ? "bg-linear-to-br from-[#006195] to-[#007aba] text-white shadow-[var(--shadow-lg)] hover:-translate-y-0.5"
             : "bg-surface-container-high text-on-surface hover:bg-surface-container-highest"
         }`}
       >
@@ -84,8 +84,8 @@ function TierCard({ tier }: { tier: PricingTier }): ReactElement {
 
   if (tier.recommended) {
     return (
-      <div className="relative rounded-[2.5rem] bg-primary p-1 shadow-[var(--shadow-xl)] md:scale-105">
-        <span className="absolute -top-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-secondary px-4 py-1.5 text-xs font-bold text-on-secondary">
+      <div className="relative rounded-[2.5rem] bg-[#006195] p-1 shadow-[var(--shadow-xl)] md:scale-105">
+        <span className="absolute -top-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-[#006c4d] px-4 py-1.5 text-xs font-bold text-white">
           Recommended
         </span>
         {card}
