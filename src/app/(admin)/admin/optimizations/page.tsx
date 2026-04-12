@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Activity } from "lucide-react";
 import type { ReactElement } from "react";
-import { StatusBadge } from "@/components/shared";
+import { CSVExport, StatusBadge } from "@/components/shared";
 import { createClient } from "@/lib/supabase/server";
 import type { BadgeStatus } from "@/types/components";
 
@@ -80,13 +80,28 @@ export default async function AdminOptimizationsPage(props: {
 
   return (
     <div className="mx-auto max-w-[1200px]">
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-extrabold tracking-tight text-on-surface">
-          최적화 모니터링
-        </h1>
-        <p className="mt-1 text-on-surface-variant">
-          전체 최적화 실행 로그와 상태를 확인합니다.
-        </p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-on-surface">
+            최적화 모니터링
+          </h1>
+          <p className="mt-1 text-on-surface-variant">
+            전체 최적화 실행 로그와 상태를 확인합니다.
+          </p>
+        </div>
+        <CSVExport
+          filename="최적화이력"
+          headers={["시간", "쇼핑몰", "상품", "플랜", "상태", "소요시간"]}
+          rows={rows.map((opt) => [
+            formatDateTime(opt.created_at),
+            opt.shops?.name ?? "—",
+            opt.products?.name ?? "—",
+            opt.plan,
+            STATUS_MAP[opt.status]?.label ?? opt.status,
+            formatDuration(opt.duration_ms),
+          ])}
+          label={`CSV (현재 페이지 ${rows.length}건)`}
+        />
       </div>
 
       {/* 필터 */}

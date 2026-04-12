@@ -1,6 +1,6 @@
 import { Search, Users } from "lucide-react";
 import type { ReactElement } from "react";
-import { StatusBadge } from "@/components/shared";
+import { CSVExport, StatusBadge } from "@/components/shared";
 import { createClient } from "@/lib/supabase/server";
 
 const INDUSTRY_LABEL: Record<string, string> = {
@@ -73,9 +73,24 @@ export default async function AdminCustomersPage(props: {
             등록된 쇼핑몰과 고객 정보를 관리합니다.
           </p>
         </div>
-        <span className="rounded-full bg-[#006195]/10 px-3 py-1 text-sm font-bold text-[#006195]">
-          {rows.length}개 쇼핑몰
-        </span>
+        <div className="flex items-center gap-3">
+          <CSVExport
+            filename="고객목록"
+            headers={["쇼핑몰", "URL", "업종", "플랫폼", "상품수", "최적화수", "가입일"]}
+            rows={rows.map((s) => [
+              s.name,
+              s.url,
+              INDUSTRY_LABEL[s.industry] ?? s.industry,
+              PLATFORM_LABEL[s.platform] ?? s.platform,
+              String(s.products?.[0]?.count ?? 0),
+              String(s.optimizations?.[0]?.count ?? 0),
+              formatDate(s.created_at),
+            ])}
+          />
+          <span className="rounded-full bg-[#006195]/10 px-3 py-1 text-sm font-bold text-[#006195]">
+            {rows.length}개 쇼핑몰
+          </span>
+        </div>
       </div>
 
       {/* 검색 */}

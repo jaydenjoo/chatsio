@@ -1,6 +1,6 @@
 import { BarChart3, DollarSign, TrendingUp, CheckCircle } from "lucide-react";
 import type { ReactElement } from "react";
-import { KPICard } from "@/components/shared";
+import { CSVExport, KPICard } from "@/components/shared";
 import {
   getCostKpi,
   getDailyStats,
@@ -40,13 +40,27 @@ export default async function AdminCostsPage(): Promise<ReactElement> {
   return (
     <div className="mx-auto max-w-[1200px]">
       {/* 헤더 */}
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-extrabold tracking-tight text-on-surface">
-          AI 비용 모니터링
-        </h1>
-        <p className="mt-1 text-on-surface-variant">
-          이번 달 API 호출 수와 추정 비용을 확인합니다.
-        </p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-on-surface">
+            AI 비용 모니터링
+          </h1>
+          <p className="mt-1 text-on-surface-variant">
+            이번 달 API 호출 수와 추정 비용을 확인합니다.
+          </p>
+        </div>
+        <CSVExport
+          filename="AI비용"
+          headers={["쇼핑몰", "Basic", "Premium", "총 호출", "추정 비용(원)", "마지막 사용"]}
+          rows={customers.map((c) => [
+            c.shopName,
+            String(c.basicCount),
+            String(c.premiumCount),
+            String(c.totalCalls),
+            String(c.estimatedCost),
+            formatDate(c.lastUsed),
+          ])}
+        />
       </div>
 
       {/* 에러 알림 */}
