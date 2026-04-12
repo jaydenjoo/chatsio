@@ -6,6 +6,8 @@ import { invokeN8nWebhook } from "@/lib/n8n/client";
 import { buildN8nPayload } from "@/lib/n8n/payload";
 import { N8nConfigError, N8nInvocationError } from "@/lib/n8n/errors";
 import { logEvent } from "@/lib/monitoring/log-event";
+import { getFirecrawlEnv } from "@/lib/env";
+import { scrapeProductMeta } from "@/lib/firecrawl/scrape-product";
 import {
   DUPLICATE_CHECK_WINDOW_MS,
   runOptimizationSchema,
@@ -296,6 +298,27 @@ export async function runOptimization(
 
   const optimizationId = inserted.id;
 
+  // ---- 5.5 상품 페이지 크롤링 (best-effort) ----
+  // Firecrawl로 image/price/brand/category 추출. 실패해도 최적화는 계속 진행.
+  let crawled: {
+    images: string[];
+    price: number | null;
+    brand: string;
+    category: string;
+  } | null = null;
+
+  const firecrawlEnv = getFirecrawlEnv();
+  if (firecrawlEnv && product.url) {
+    try {
+      crawled = await scrapeProductMeta(product.url, firecrawlEnv.apiKey);
+    } catch (err) {
+      console.error("[runOptimization] Firecrawl failed, proceeding without crawled data", {
+        productId,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   // ---- 6. n8n webhook 호출 ----
   try {
     await invokeN8nWebhook(
@@ -311,6 +334,7 @@ export async function runOptimization(
           source: product.source,
         },
         shop: { id: shop.id, industry: shop.industry },
+        crawled,
       }),
     );
   } catch (err) {

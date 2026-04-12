@@ -137,6 +137,18 @@ export function getInternalLogEventEnv(): z.infer<typeof internalLogEventEnvSche
 }
 
 /**
+ * Firecrawl 환경변수 — 상품 페이지 크롤링 (메타태그 추출) 전용.
+ *
+ * 옵셔널 — 키가 없으면 null 반환. 크롤링 없이도 최적화는 동작하지만
+ * JSON-LD에 image/price/brand가 빠질 수 있다.
+ */
+export function getFirecrawlEnv(): { apiKey: string } | null {
+  const apiKey = process.env.FIRECRAWL_API_KEY;
+  if (!apiKey) return null;
+  return { apiKey };
+}
+
+/**
  * Upstash Redis 환경변수 — log-event API rate limiter 전용.
  *
  * **옵셔널 설계**: 두 값 모두 부재면 `{ url: undefined, token: undefined }`을

@@ -44,6 +44,13 @@ export interface BuildN8nPayloadInput {
     readonly id: string;
     readonly industry: string;
   };
+  /** Firecrawl 크롤링 결과 — null이면 DB/기본값 사용 */
+  readonly crawled?: {
+    readonly images: string[];
+    readonly price: number | null;
+    readonly brand: string;
+    readonly category: string;
+  } | null;
 }
 
 export function buildN8nPayload(
@@ -60,13 +67,16 @@ export function buildN8nPayload(
     plan: input.plan,
     product_name: input.product.name,
     product_url: input.product.url ?? "",
-    image_urls: input.product.imageUrls ?? [],
+    // 이미지: DB 값 우선, 없으면 크롤링 값 사용
+    image_urls: input.product.imageUrls?.length
+      ? input.product.imageUrls
+      : (input.crawled?.images ?? []),
     source: input.product.source,
     industry: input.shop.industry,
-    // 현재 products 테이블에 없는 필드 — Phase 6 Cafe24 연동 시 채움
-    brand: "",
-    category: "",
-    original_price: null,
+    // 크롤링 데이터로 보강 — Firecrawl이 상품 페이지 메타태그에서 추출
+    brand: input.crawled?.brand || "",
+    category: input.crawled?.category || "",
+    original_price: input.crawled?.price ?? null,
     discount_price: null,
   };
 }
