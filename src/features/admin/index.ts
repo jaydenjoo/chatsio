@@ -1,1 +1,1 @@
-// admin 모듈 진입점
+export { AdminSidebar } from "./components/admin-sidebar";
