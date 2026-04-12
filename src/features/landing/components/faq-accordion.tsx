@@ -28,7 +28,7 @@ const FAQ_ITEMS: readonly FaqItem[] = [
 ];
 
 export function FaqAccordion(): ReactElement {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   function toggle(index: number): void {
     setOpenIndex(openIndex === index ? null : index);

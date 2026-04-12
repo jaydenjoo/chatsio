@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import {
   ArrowRight,
+  AtSign,
   BadgeCheck,
   Ban,
   BarChart3,
@@ -13,8 +14,8 @@ import {
   FileCode,
   FileText,
   Link2,
+  Share2,
   Sparkles,
-  Target,
   Timer,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
@@ -165,7 +166,7 @@ export default function LandingPage(): ReactElement {
                   <div className="h-3 w-3 rounded-full bg-amber-400" />
                   <div className="h-3 w-3 rounded-full bg-emerald-400" />
                   <div className="ml-4 flex h-6 flex-1 items-center rounded-lg bg-surface-container-low px-3 text-[10px] text-outline">
-                    schema.org/Product
+                    chatsio.io/v1/product/extraction
                   </div>
                 </div>
                 {/* JSON-LD 코드 */}
@@ -443,18 +444,39 @@ export default function LandingPage(): ReactElement {
                 </div>
               </div>
 
-              {/* 카드 4: AI 인용 추적 (1×1 soon) */}
+              {/* 카드 4: AI 인용 추적 (1×1 soon) — 도넛 차트 */}
               <div className="relative flex flex-col justify-between overflow-hidden rounded-[2rem] bg-surface-container-high p-8 shadow-[var(--shadow-sm)]">
                 <div className="flex items-start justify-between">
                   <h3 className="font-display text-lg font-bold">
                     AI 인용 추적
                   </h3>
-                  <span className="rounded-full bg-on-surface px-2 py-0.5 text-[10px] font-bold text-white">
+                  <span className="rounded-full bg-on-surface px-2 py-0.5 text-[10px] font-bold text-white dark:bg-white dark:text-on-surface">
                     Soon
                   </span>
                 </div>
                 <div className="mt-4">
-                  <Target className="mx-auto h-12 w-12 text-primary/60" />
+                  <div className="relative mx-auto h-16 w-16">
+                    <svg className="h-full w-full -rotate-90" viewBox="0 0 64 64">
+                      <circle
+                        cx="32" cy="32" r="28" fill="transparent"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        className="text-surface-container-highest"
+                      />
+                      <circle
+                        cx="32" cy="32" r="28" fill="transparent"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        strokeDasharray="175"
+                        strokeDashoffset="140"
+                        strokeLinecap="round"
+                        className="text-[#006195]"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold">
+                      20%
+                    </div>
+                  </div>
                 </div>
                 <p className="mt-2 text-center text-[10px] text-on-surface-variant">
                   ChatGPT 인용 횟수 분석
@@ -540,6 +562,22 @@ export default function LandingPage(): ReactElement {
                 모든 쇼핑몰의 정보를 AI가 이해할 수 있는 언어로 변환합니다.
                 차세대 AI 커머스 데이터 솔루션.
               </p>
+              <div className="flex gap-3">
+                <a
+                  href="mailto:contact@chatsio.io"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant transition-colors hover:bg-[#006195] hover:text-white"
+                  aria-label="이메일"
+                >
+                  <AtSign className="h-4 w-4" />
+                </a>
+                <a
+                  href="#"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant transition-colors hover:bg-[#006195] hover:text-white"
+                  aria-label="공유"
+                >
+                  <Share2 className="h-4 w-4" />
+                </a>
+              </div>
             </div>
             <div>
               <h4 className="mb-6 font-bold text-on-surface">제품</h4>
