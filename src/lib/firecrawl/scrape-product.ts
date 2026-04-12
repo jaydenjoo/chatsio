@@ -1,8 +1,9 @@
 /**
  * Firecrawl 상품 페이지 크롤링 + 메타데이터 추출.
  *
- * 상품 URL에서 HTML을 가져와 og:image, product:price:amount 등
- * 메타태그를 파싱하여 팩트 데이터를 반환한다.
+ * 2단계 추출:
+ *  1차: Firecrawl metadata 객체 (Firecrawl이 이미 파싱한 메타태그)
+ *  2차: raw HTML regex (1차에서 못 찾은 경우 fallback)
  *
  * API 실패 시 null 반환 (graceful degradation) — 최적화 플로우를 차단하지 않는다.
  */
@@ -70,12 +71,14 @@ export async function scrapeProductMeta(
       ? ((data as Record<string, unknown>).html as string)
       : "";
 
-    if (!html) {
-      console.error("[Firecrawl] empty HTML returned");
-      return null;
-    }
+    // Firecrawl이 이미 파싱한 metadata 객체 — 1차 추출 소스
+    const rawMetadata = (data as Record<string, unknown>).metadata;
+    const metadata: Record<string, unknown> =
+      typeof rawMetadata === "object" && rawMetadata !== null
+        ? (rawMetadata as Record<string, unknown>)
+        : {};
 
-    return extractProductMeta(html);
+    return extractProductMeta(metadata, html);
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
       console.error(`[Firecrawl] timeout (${FIRECRAWL_TIMEOUT_MS}ms)`);
@@ -89,38 +92,57 @@ export async function scrapeProductMeta(
   }
 }
 
-// ── HTML 메타태그 추출 ──────────────────────────────────────
+// ── 2단계 추출: metadata 우선 → HTML fallback ───────────────
 
-function extractProductMeta(html: string): CrawledProductMeta {
+function extractProductMeta(
+  metadata: Record<string, unknown>,
+  html: string,
+): CrawledProductMeta {
   return {
-    images: extractImages(html),
-    price: extractPrice(html),
-    currency: extractMetaContent(html, "product:price:currency") || "KRW",
-    brand: extractMetaContent(html, "product:brand")
-      || extractMetaContent(html, "og:brand")
+    images: extractImages(metadata, html),
+    price: extractPrice(metadata, html),
+    currency: metaStr(metadata, "product:price:currency")
+      || extractHtmlMetaContent(html, "product:price:currency")
+      || "KRW",
+    brand: metaStr(metadata, "product:brand")
+      || metaStr(metadata, "og:brand")
+      || extractHtmlMetaContent(html, "product:brand")
       || "",
-    category: extractCategory(html),
+    category: extractCategory(metadata, html),
   };
 }
 
-/** og:image + product:image 메타태그에서 이미지 URL 추출 */
-function extractImages(html: string): string[] {
+/** 이미지 추출 — metadata.ogImage 우선, HTML fallback */
+function extractImages(
+  metadata: Record<string, unknown>,
+  html: string,
+): string[] {
   const images: string[] = [];
   const seen = new Set<string>();
 
-  // og:image (가장 보편적)
-  for (const url of matchMetaContents(html, "og:image")) {
-    if (url && !seen.has(url)) {
-      seen.add(url);
-      images.push(url);
+  function addImage(url: string): void {
+    const trimmed = url.trim();
+    if (trimmed && !seen.has(trimmed)) {
+      seen.add(trimmed);
+      images.push(trimmed);
     }
   }
 
-  // product:image (일부 플랫폼)
-  for (const url of matchMetaContents(html, "product:image")) {
-    if (url && !seen.has(url)) {
-      seen.add(url);
-      images.push(url);
+  // 1차: Firecrawl metadata
+  const ogImage = metaStr(metadata, "ogImage");
+  if (ogImage) addImage(ogImage);
+
+  // metadata의 og:image (일부 버전에서 키 이름이 다를 수 있음)
+  const ogImage2 = metaStr(metadata, "og:image");
+  if (ogImage2) addImage(ogImage2);
+
+  // 2차: HTML fallback (metadata에서 못 찾은 경우)
+  if (images.length === 0) {
+    for (const url of matchHtmlMetaContents(html, "og:image")) {
+      addImage(url);
+    }
+    for (const url of matchHtmlMetaContents(html, "product:image")) {
+      addImage(url);
     }
   }
 
@@ -129,39 +151,57 @@ function extractImages(html: string): string[] {
 
 /**
  * 가격 추출 — 우선순위:
- * 1. product:price:amount 메타태그
- * 2. product:sale_price:amount 메타태그
- * 3. 페이지 내 기존 JSON-LD의 offers.price
+ * 1. metadata product:sale_price:amount (할인가 우선)
+ * 2. metadata product:price:amount (정가)
+ * 3. HTML meta tag fallback
+ * 4. 페이지 내 기존 JSON-LD의 offers.price
  */
-function extractPrice(html: string): number | null {
-  // 1. product:price:amount
-  const priceStr = extractMetaContent(html, "product:price:amount");
+function extractPrice(
+  metadata: Record<string, unknown>,
+  html: string,
+): number | null {
+  // 1. metadata 할인가 (실제 판매가)
+  const salePriceStr = metaStr(metadata, "product:sale_price:amount");
+  if (salePriceStr) {
+    const parsed = parseKoreanPrice(salePriceStr);
+    if (parsed !== null) return parsed;
+  }
+
+  // 2. metadata 정가
+  const priceStr = metaStr(metadata, "product:price:amount");
   if (priceStr) {
     const parsed = parseKoreanPrice(priceStr);
     if (parsed !== null) return parsed;
   }
 
-  // 2. product:sale_price:amount (할인가 우선)
-  const saleStr = extractMetaContent(html, "product:sale_price:amount");
-  if (saleStr) {
-    const parsed = parseKoreanPrice(saleStr);
+  // 3. HTML fallback
+  const htmlPrice = extractHtmlMetaContent(html, "product:sale_price:amount")
+    || extractHtmlMetaContent(html, "product:price:amount");
+  if (htmlPrice) {
+    const parsed = parseKoreanPrice(htmlPrice);
     if (parsed !== null) return parsed;
   }
 
-  // 3. JSON-LD offers.price
-  const jsonLdPrice = extractJsonLdPrice(html);
-  if (jsonLdPrice !== null) return jsonLdPrice;
-
-  return null;
+  // 4. JSON-LD fallback
+  return extractJsonLdPrice(html);
 }
 
-/** 카테고리 추출 — product:category 메타태그 또는 BreadcrumbList JSON-LD */
-function extractCategory(html: string): string {
-  // 1. product:category 메타태그
-  const meta = extractMetaContent(html, "product:category");
-  if (meta) return meta.trim();
+/** 카테고리 추출 — metadata → HTML meta → BreadcrumbList JSON-LD */
+function extractCategory(
+  metadata: Record<string, unknown>,
+  html: string,
+): string {
+  // 1. metadata
+  const metaCat = metaStr(metadata, "product:category");
+  if (metaCat) return metaCat;
 
-  // 2. BreadcrumbList JSON-LD
+  // 2. HTML meta tag
+  const htmlCat = extractHtmlMetaContent(html, "product:category");
+  if (htmlCat) return htmlCat;
+
+  // 3. BreadcrumbList JSON-LD
+  if (!html) return "";
+
   const scripts = html.matchAll(
     /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
   );
@@ -192,41 +232,66 @@ function extractCategory(html: string): string {
   return "";
 }
 
-// ── 유틸 ────────────────────────────────────────────────────
+// ── Firecrawl metadata 헬퍼 ─────────────────────────────────
 
-/** 특정 property의 메타태그 content 값 1개 반환 */
-function extractMetaContent(html: string, property: string): string {
-  // <meta property="X" content="Y"> 또는 <meta content="Y" property="X">
-  const pattern1 = new RegExp(
-    `<meta[^>]+property=["']${escapeRegex(property)}["'][^>]+content=["']([^"']+)["']`,
-    "i",
-  );
-  const pattern2 = new RegExp(
-    `<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${escapeRegex(property)}["']`,
-    "i",
-  );
+/** metadata 객체에서 문자열 값 추출 (다양한 키 형식 대응) */
+function metaStr(metadata: Record<string, unknown>, key: string): string {
+  // 정확한 키 매칭
+  const val = metadata[key];
+  if (typeof val === "string" && val.trim()) return val.trim();
 
-  const m = html.match(pattern1) ?? html.match(pattern2);
-  return m?.[1]?.trim() ?? "";
+  // Firecrawl은 "product:price:amount" → "product:price:amount" 그대로 넣기도 하고
+  // camelCase("productPriceAmount")로 넣기도 함. 둘 다 시도.
+  const camelKey = key.replace(/[:\-](\w)/g, (_, c: string) => c.toUpperCase());
+  const val2 = metadata[camelKey];
+  if (typeof val2 === "string" && val2.trim()) return val2.trim();
+
+  // 숫자인 경우 문자열로 변환
+  if (typeof val === "number") return String(val);
+  if (typeof val2 === "number") return String(val2);
+
+  return "";
 }
 
-/** 특정 property의 메타태그 content 값 여러 개 반환 */
-function matchMetaContents(html: string, property: string): string[] {
-  const results: string[] = [];
-  const pattern = new RegExp(
-    `<meta[^>]+property=["']${escapeRegex(property)}["'][^>]+content=["']([^"']+)["']`,
-    "gi",
-  );
-  const pattern2 = new RegExp(
-    `<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${escapeRegex(property)}["']`,
-    "gi",
-  );
+// ── HTML regex fallback ─────────────────────────────────────
 
-  for (const m of html.matchAll(pattern)) {
-    if (m[1]) results.push(m[1].trim());
+/** HTML에서 특정 property의 메타태그 content 값 1개 반환 */
+function extractHtmlMetaContent(html: string, property: string): string {
+  if (!html) return "";
+
+  // <meta property="X" content="Y"> 또는 <meta content="Y" property="X">
+  // name="X"도 시도 (일부 쇼핑몰은 property 대신 name 사용)
+  const escaped = escapeRegex(property);
+  const patterns = [
+    new RegExp(`<meta[^>]+property=["']${escaped}["'][^>]+content=["']([^"']+)["']`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${escaped}["']`, "i"),
+    new RegExp(`<meta[^>]+name=["']${escaped}["'][^>]+content=["']([^"']+)["']`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+name=["']${escaped}["']`, "i"),
+  ];
+
+  for (const pattern of patterns) {
+    const m = html.match(pattern);
+    if (m?.[1]?.trim()) return m[1].trim();
   }
-  for (const m of html.matchAll(pattern2)) {
-    if (m[1] && !results.includes(m[1].trim())) results.push(m[1].trim());
+
+  return "";
+}
+
+/** HTML에서 특정 property의 메타태그 content 값 여러 개 반환 */
+function matchHtmlMetaContents(html: string, property: string): string[] {
+  if (!html) return [];
+
+  const results: string[] = [];
+  const escaped = escapeRegex(property);
+  const patterns = [
+    new RegExp(`<meta[^>]+property=["']${escaped}["'][^>]+content=["']([^"']+)["']`, "gi"),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${escaped}["']`, "gi"),
+  ];
+
+  for (const pattern of patterns) {
+    for (const m of html.matchAll(pattern)) {
+      if (m[1] && !results.includes(m[1].trim())) results.push(m[1].trim());
+    }
   }
 
   return results;
@@ -234,6 +299,8 @@ function matchMetaContents(html: string, property: string): string[] {
 
 /** JSON-LD에서 offers.price 추출 */
 function extractJsonLdPrice(html: string): number | null {
+  if (!html) return null;
+
   const scripts = html.matchAll(
     /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
   );
@@ -245,7 +312,6 @@ function extractJsonLdPrice(html: string): number | null {
       if (typeof ld !== "object" || ld === null) continue;
 
       const obj = ld as Record<string, unknown>;
-      // Product type with offers
       if (obj["@type"] === "Product" && typeof obj.offers === "object" && obj.offers !== null) {
         const offers = obj.offers as Record<string, unknown>;
         const priceVal = offers.price ?? offers.lowPrice;
@@ -262,6 +328,8 @@ function extractJsonLdPrice(html: string): number | null {
 
   return null;
 }
+
+// ── 공통 유틸 ───────────────────────────────────────────────
 
 /** 한국 가격 문자열 파싱 — "39,000", "39000", "₩39,000" 등 */
 function parseKoreanPrice(raw: string): number | null {
