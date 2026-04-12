@@ -77,16 +77,7 @@ const STEPS = [
 export default function LandingPage(): ReactElement {
   return (
     <div className="relative min-h-screen bg-background font-sans text-on-surface">
-      {/* 배경 도트 패턴 */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10 opacity-60"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle, var(--outline-variant) 0.5px, transparent 0.5px)",
-          backgroundSize: "22px 22px",
-        }}
-      />
+      {/* 배경 도트 패턴 — globals.css body::before에서 처리 */}
 
       {/* ── Nav ─────────────────────────────────────────────────── */}
       <nav className="fixed top-0 z-50 w-full bg-white/80 shadow-sm backdrop-blur-xl dark:bg-[#0e1419]/80">
@@ -208,8 +199,7 @@ export default function LandingPage(): ReactElement {
               {/* 데코 블롭 */}
               <div
                 aria-hidden
-                className="absolute -bottom-6 -right-6 -z-10 h-32 w-32 rounded-full bg-secondary-container blur-3xl"
-                style={{ opacity: 0.4 }}
+                className="absolute -bottom-6 -right-6 -z-10 h-32 w-32 rounded-full bg-secondary-container opacity-40 blur-3xl"
               />
             </div>
           </div>
@@ -318,8 +308,7 @@ export default function LandingPage(): ReactElement {
             {/* 연결선 (md 이상) */}
             <div
               aria-hidden
-              className="absolute left-0 top-12 -z-10 hidden h-0.5 w-full md:block"
-              style={{ background: "var(--surface-container-highest)" }}
+              className="absolute left-0 top-12 -z-10 hidden h-0.5 w-full bg-surface-container-highest md:block"
             >
               <div className="h-full w-1/2 rounded-full bg-primary" />
             </div>

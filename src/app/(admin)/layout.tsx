@@ -24,11 +24,7 @@ export default async function AdminLayout({
     error: authError,
   } = await supabase.auth.getUser();
 
-  if (authError) {
-    console.error("[AdminLayout] auth.getUser failed:", authError.message);
-  }
-
-  if (!user) {
+  if (authError || !user) {
     redirect("/login");
   }
 
@@ -39,14 +35,7 @@ export default async function AdminLayout({
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profileError) {
-    console.error(
-      "[AdminLayout] user_profiles query failed:",
-      profileError.message,
-    );
-  }
-
-  if (!profile || profile.role !== "admin") {
+  if (profileError || !profile || profile.role !== "admin") {
     redirect("/");
   }
 

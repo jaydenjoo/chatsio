@@ -12,7 +12,8 @@ const STATUS_MAP: Record<string, { label: string; badge: BadgeStatus }> = {
   failed: { label: "실패", badge: "error" },
 };
 
-const STATUS_OPTIONS = ["all", "queued", "processing", "completed", "failed"];
+const VALID_STATUSES = ["queued", "processing", "completed", "failed"] as const;
+const STATUS_OPTIONS = ["all", ...VALID_STATUSES];
 
 function formatDateTime(dateStr: string): string {
   return new Date(dateStr).toLocaleString("ko-KR", {
@@ -59,8 +60,13 @@ export default async function AdminOptimizationsPage(props: {
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
-  if (filterStatus && filterStatus !== "all") {
-    query = query.eq("status", filterStatus);
+  const safeStatus =
+    filterStatus && VALID_STATUSES.includes(filterStatus as (typeof VALID_STATUSES)[number])
+      ? filterStatus
+      : undefined;
+
+  if (safeStatus) {
+    query = query.eq("status", safeStatus);
   }
 
   const { data: optimizations, count, error } = await query;

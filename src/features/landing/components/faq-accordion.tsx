@@ -44,6 +44,8 @@ export function FaqAccordion(): ReactElement {
           <button
             type="button"
             onClick={() => toggle(index)}
+            aria-expanded={openIndex === index}
+            aria-controls={`faq-answer-${index}`}
             className="group flex w-full items-center justify-between px-8 py-6 text-left"
           >
             <span className="font-bold text-on-surface">{item.question}</span>
@@ -54,6 +56,8 @@ export function FaqAccordion(): ReactElement {
             />
           </button>
           <div
+            id={`faq-answer-${index}`}
+            role="region"
             className={`grid transition-all duration-300 ease-in-out ${
               openIndex === index
                 ? "grid-rows-[1fr] opacity-100"
