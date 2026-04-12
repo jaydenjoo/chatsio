@@ -20,6 +20,33 @@
 
 ---
 
+### 2026-04-12 — [Bug] n8n payload 필드명 불일치로 image/price가 항상 빈 값
+- **증상**: V10 workflow에서 JSON-LD의 image와 price가 항상 null. Google Rich Results Test에서 `image` 필수 에러 + `price` 필수 에러 발생. category는 AI `product_type` fallback으로 채워졌지만 image/price는 빈 값.
+- **원인**: Next.js payload.ts가 보내는 필드명과 n8n `1. 데이터 정규화` 코드가 읽는 필드명이 불일치:
+  - payload: `image_urls` → normalization: `input.images` (매칭 안 됨 → 빈 배열)
+  - payload: `original_price`/`discount_price` → normalization: `input.product_price`/`input.price` (매칭 안 됨 → 0)
+  - 이 불일치는 V8부터 존재했지만, V8은 `autoMapInputData` 버그로 어차피 결과가 덮여서 발견되지 않았음. V9/V10에서 `defineBelow`로 전환하면서 비로소 드러남.
+- **해결**: n8n `1. 데이터 정규화`에 fallback 추가: `images: input.images || input.image_urls || []`, `product_price: ... || input.discount_price || input.original_price || 0`
+- **규칙**: **payload 필드명과 n8n 노드 필드명이 정확히 일치하는지 양쪽을 반드시 대조 검증**. 특히 snake_case(payload) vs camelCase(코드) 혼용 시 불일치 발생 확률 높음.
+
+---
+
+### 2026-04-12 — [Architecture] Firecrawl 크롤링은 Next.js(코드)에서 실행, n8n은 AI 처리만
+- **증상**: JSON-LD에 image/price/brand가 누락되는 근본 원인은 "상품 페이지에서 팩트 데이터를 수집하지 않는 구조". API 연동(Cafe24) 없이도 메타태그에서 추출 가능.
+- **결정**: Firecrawl 크롤링을 n8n(A안)이 아닌 Next.js actions.ts(B안)에서 실행.
+  - 이유: 버전 관리(git), 테스트 가능, 에러 처리, n8n 단순화, 역할 분리(코드=데이터수집, n8n=AI처리)
+  - CEO 리뷰 원칙 "n8n은 AI 추출 파이프라인에만 사용"과 일치
+- **구현**: `src/lib/firecrawl/scrape-product.ts` — Firecrawl metadata 객체 1차 + HTML regex 2차. 실패 시 graceful degradation(null 반환, 최적화 계속 진행). payload.ts에서 crawled 데이터로 기존 필드(image_urls, original_price, brand, category) 보강.
+- **규칙**: **외부 데이터 수집(크롤링/API)은 코드에서, AI 처리는 n8n에서**. n8n에 HTTP Request 노드를 추가하면 workflow 복잡도 증가 + 디버깅 어려움 + 버전 관리 불가.
+
+---
+
+### 2026-04-12 — [AI-Pitfall] Firecrawl metadata 객체를 무시하고 HTML regex만으로 추출 시도
+- **증상**: Firecrawl API가 정상 응답하고 metadata 객체에 `ogImage`, `product:price:amount` 등이 이미 파싱돼 있는데, 코드가 raw HTML에서 regex로만 추출 → 한국 쇼핑몰 HTML 형식 불일치로 매칭 실패 → image/price 추출 0건.
+- **원인**: Firecrawl 응답 구조를 충분히 학습하지 않고 "HTML 파싱이면 충분하다"고 가정. Firecrawl은 `data.metadata` 객체에 이미 파싱된 메타태그를 제공하는데 이를 무시.
+- **해결**: 2단계 추출로 변경 — 1차: Firecrawl `metadata` 객체 (이미 파싱됨), 2차: HTML regex fallback.
+- **규칙**: **외부 API 사용 시 응답 구조를 먼저 실제 호출로 확인한 후 코드 작성**. 문서만 보고 코딩하면 실제 응답 형식과 다를 수 있음. `curl`로 실제 응답을 한 번 찍어보는 게 30분 디버깅보다 효율적.
+
 ### 2026-04-09 — [AI-Pitfall] 프로젝트 내 존재하는 자료 파일을 "외부 시스템"으로 착각하여 읽지 않음
 - **증상**: Session #32 초반, Session #31에서 남긴 "n8n Basic 경로 최종 UPDATE 노드 수정" 작업을 이어받았다. 나의 첫 접근: "Jayden에게 n8n workflow 캔버스 스크린샷 2장(Premium/Basic 끝부분) 요청 → 누락 노드 확인 → 수정 가이드 작성". Jayden이 즉시 반박: **"n8n workflow 캔버스 스크린샷을 원하는 이유가 뭐야? `Chatsio V8 - Claude Sonnet + Opus (Basic + Premium).json` 파일은 네가 작성해준거잖아 네가 확인해도 되는거 아닌가?"**. 그제서야 `docs/n8n-workflows/` 폴더에 workflow JSON 전체가 버전 관리되고 있음을 확인. 파일 정적 분석 결과 Session #31의 "노드 누락" 진단이 **완전히 틀림**을 확정.
 - **원인**:

@@ -4,19 +4,26 @@
 > **프로젝트 경로**: `/Users/jayden/projects/chatsio/` (Session #10에서 `/Volumes/jayden-ssd/chatsio`에서 이동 — 아래 "프로젝트 이동" 섹션 참조)
 
 ## 현재 위치
-- Epic: **Phase 2 AI 구조화 파이프라인 — n8n Workflow V9 "Silent Failure Fix" 빌드 완료 + 재임포트 대기**
-- Task: **Session #32 — Session #31 진단 철회 + 진짜 원인 확정 + V9 workflow JSON 생성 + 코드 연동**
-- 커밋: `7428b08` (Session #31 save) → **Session #32 save 커밋 1개 예정** (PROGRESS.md + learnings.md + 가이드 md). 코드 변경(actions.ts, payload.ts)은 Jayden V9 검증 후 별도 커밋
-- 상태: ✅ **Session #31 "Basic 경로 최종 노드 누락" 진단 완전히 틀림 확정**. workflow JSON 정적 분석으로 **진짜 원인 발견**: `autoMapInputData` + 직전 DB UPDATE 노드 → `$input`이 직전 DB row를 가리켜 P7/B2 결과가 덮여버림 → 항상 null로 "Succeeded" ✅ 개선안 A 전체 적용한 **V9 workflow JSON 생성** (30 nodes, 29 connections, 77KB, JSON 유효성 + typecheck 통과) ✅ payload.ts + actions.ts에 `optimization_id` PK 전달 추가 ✅ 재임포트 가이드 md 9개 Part 작성 ⏳ **V9 재임포트 + 실데이터 재테스트는 Jayden 수동 대기**
+- Epic: **Phase 2 AI 구조화 파이프라인 — V10 + Firecrawl 크롤링 통합 완료, Google Rich Results 초록 통과**
+- Task: **Session #33 — V9 재임포트 + Webhook URL 통일 + V10 JSON-LD 품질 개선 + Firecrawl 크롤링 통합**
+- 커밋: `e52fee2` (Session #32 save) → Session #33 커밋 6개 (`e92a5ee` ~ `52dff07`)
+- 상태:
+  - ✅ **Webhook URL 통일** — `.env.local` + Vercel 환경변수 모두 `https://chagtsio-n8n-u65111.vm.elestio.app/webhook/chatsio-optimize`로 수정. Elestio가 프로젝트명을 `chagtsio`로 생성한 것이 원천.
+  - ✅ **V9 재임포트 + 검증** — Jayden이 n8n에 V9 임포트, credential 재연결, webhook 테스트 완료. Production URL dry run `{"message":"Workflow was started"}` 확인.
+  - ✅ **optimization_id PK 전달 커밋 + 배포** — `e92a5ee`. V9 `1. 데이터 정규화` 노드의 `optimization_id is required` 에러 해결.
+  - ✅ **V10 JSON-LD 품질 개선** — Python script로 V9→V10 빌드 (30 nodes). B2/P7에서 image/price/brand/category 빈 값 처리 개선. Jayden이 n8n에 V10 임포트.
+  - ✅ **Firecrawl 크롤링 통합** — `scrape-product.ts` 신규 생성. actions.ts에서 n8n 호출 전 best-effort 크롤링. metadata 객체 우선 추출 + HTML regex fallback.
+  - ✅ **Google Rich Results Test 초록 통과** — image, price, category 모두 정상 반영. 최종 결과: `3458865a` (image 1개, price 29900, category 채워짐).
+  - ✅ **payload.ts 필드명 불일치 근본 버그 수정** — `image_urls` vs `images`, `original_price`/`discount_price` vs `product_price` 매핑 수정.
 - 다음:
-  1. (다음 세션 **최우선**) **V9 재임포트**: `docs/n8n-workflow-v9-reimport-guide.md` Part 4 따라 Jayden이 직접 수행 — V8 비활성화 → V9 임포트 → credential 재연결 → webhook URL 확인 → V9 활성화 → Vercel 최신 배포 반영
-  2. (재임포트 후) **Basic 실데이터 재테스트** + **Task 2-6 CompletedView 실데이터 검증** (QualityScoreRing / AttributeList / JsonldPreview / OptimizationResult 한글 라벨 정확도) — 가이드 Part 5 체크리스트
-  3. (재테스트 후) **코드 변경 커밋**: `src/lib/n8n/payload.ts` + `src/features/optimize/actions.ts` (Jayden 승인 후)
-  4. (재테스트 후, Premium 1회 선택) Premium 플랜도 동일 검증
-  5. (근본) **`optimizations` 테이블 `updated_at` 자동 갱신 트리거 추가** — migration 파일 작성. Task 2-M 후속
-  6. (backlog) Task 2-7 결과 수동 편집, Task 2-8 최적화 이력 목록 페이지, Task 2-9 llms.txt 자동 생성
-  7. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리
-  8. (backlog) `docs/phase2-prerequisites.md` 검증 명령 패턴 수정 (`"?` 포함)
+  1. (다음 세션) **디버그 로그 제거** — `actions.ts`의 `console.warn("[runOptimization]")` 진단 로그 4줄 제거 후 커밋
+  2. (다음 세션) **Premium 플랜 실데이터 검증** — Premium 경로도 V10 P7 JSON-LD 동작 확인
+  3. (다음 세션) **Task 2-6 CompletedView 실데이터 검증** — QualityScoreRing, AttributeList, JsonldPreview 한글 라벨 확인
+  4. (근본) **`optimizations` 테이블 `updated_at` 자동 갱신 트리거 추가** — migration 파일 작성
+  5. (backlog) Task 2-7 결과 수동 편집
+  6. (backlog) Task 2-8 최적화 이력 목록 페이지 — Jayden이 테스트 결과 리스트 없다고 지적
+  7. (backlog) Task 2-9 llms.txt 자동 생성
+  8. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리
 
 > **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소** (단일 출처 원칙).
 > **Session #26 판정**: "Vercel 프로젝트 신규 등록" 항목은 **폐기** — 이미 등록 + 배포 중 확인. Session #24 AI 오판단이 원인.
@@ -26,6 +33,8 @@
 > **Session #30 판정**: "Task 2-3 구현" 이월 항목은 **폐기** — 이미 완전 구현 + 리뷰 + 고도화된 성숙 상태. Session #26(외부 Vercel) → #28(외부 Google OAuth) → #30(내부 **코드**)로 **패턴이 코드 영역까지 확장**됐음이 확인됨. learnings 규칙 #2가 "외부 시스템"에만 묶여있던 한계가 드러남 → 코드 영역 커버하도록 강화.
 > **Session #31 판정**: "Task 2-6 정식 결과 UI" **구현 완료** — 속성 목록 + JSON-LD + 품질 스코어 4개 신규 컴포넌트 + 탭 분리. FailedView 실데이터 회귀 없음 검증. Task 2-3 실데이터 수동 검증 중 **n8n workflow Basic 경로 최종 UPDATE 노드 누락** 발견 — Session #31 주요 성과는 "코드 완성"보다 "**숨겨진 파이프라인 결함 발견**". 다음 세션 최우선은 n8n workflow 수정.
 > **Session #32 판정**: **Session #31의 "Basic 경로 최종 노드 누락/끊김" 진단이 완전히 틀림**. Session #31은 Jayden 구두 확인을 확정 근거로 써서 오진. Session #32에서 Jayden이 "네가 작성해준 workflow JSON을 네가 확인해도 되는거 아닌가?" 지적 → Claude가 `docs/n8n-workflows/Chatsio V8*.json` 파일 정적 분석 → `B3. DB 저장` 노드와 `Basic Step3 → B3. DB 저장` 연결 모두 **완벽히 존재**함을 확인. 진짜 원인은 `autoMapInputData` + 직전 노드가 DB UPDATE 노드라는 구조적 결함 — `$input`이 P7/B2 결과가 아닌 DB row를 가리켜서 P8/B3이 "DB row를 그대로 다시 UPDATE"하고 있었음. 개선안 A 전체 적용한 **V9 workflow JSON 생성** (30 nodes, 버그 A/B 수정 + defineBelow + id 기반 매칭 + UPDATE 검증 IF + Mark Failed 방어선). 재임포트는 Jayden 수동. learnings 3건 기록 (AI-Pitfall + Bug + AI-Pitfall).
+
+> **Session #33 판정**: Session #32에서 남긴 V9 재임포트 + 실데이터 테스트를 **완수**. (1) Webhook URL 통일 — Elestio가 `chagtsio`로 생성한 도메인이 원천, `.env.local`+Vercel 모두 수정. (2) V9 재임포트 성공, webhook dry run 통과. (3) `optimization_id` PK 전달 코드 커밋+배포로 V9 `1. 데이터 정규화` 에러 해결. (4) Google Rich Results Test에서 image/price/brand 누락 발견 → V10 JSON-LD 품질 개선 (빈 값 생략, category fallback). (5) **근본 원인**: payload 필드명 불일치(`image_urls` vs `images`, `original_price` vs `product_price`) — V8 `autoMapInputData` 버그에 가려져 있다가 V9 `defineBelow` 전환 후 드러남. (6) Firecrawl 크롤링 통합 — Next.js에서 best-effort 크롤링, metadata 객체 1차+HTML regex 2차. (7) **Google Rich Results Test 초록 통과** — image, price, category 모두 정상 반영. learnings 3건 (Bug 1 + Architecture 1 + AI-Pitfall 1).
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
