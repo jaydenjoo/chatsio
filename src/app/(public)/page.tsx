@@ -395,20 +395,20 @@ export default function LandingPage(): ReactElement {
                 </div>
               </div>
 
-              {/* 카드 2: JSON-LD (2×1 dark) */}
-              <div className="flex flex-col justify-between rounded-[2rem] bg-inverse-surface p-8 shadow-[var(--shadow-md)] md:col-span-2">
+              {/* 카드 2: JSON-LD (2×1 dark) — 하드코딩 다크 배경 (다크모드 inverse 방지) */}
+              <div className="flex flex-col justify-between rounded-[2rem] bg-[#1e2430] p-8 shadow-[var(--shadow-md)] md:col-span-2">
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="font-display text-xl font-bold text-white">
                       JSON-LD 자동 생성
                     </h3>
-                    <p className="mt-2 text-sm text-outline-variant">
+                    <p className="mt-2 text-sm text-white/60">
                       Schema.org 표준을 준수하는 최적의 스키마 자동 빌드.
                     </p>
                   </div>
-                  <FileCode className="h-6 w-6 shrink-0 text-secondary" />
+                  <FileCode className="h-6 w-6 shrink-0 text-emerald-400" />
                 </div>
-                <div className="mt-6 rounded-xl border border-white/5 bg-slate-900/50 p-4 font-mono text-[10px]">
+                <div className="mt-6 rounded-xl border border-white/[0.06] bg-black/30 p-4 font-mono text-[10px]">
                   <span className="text-pink-400">&quot;brand&quot;</span>
                   {": { "}
                   <span className="text-emerald-400">&quot;@type&quot;</span>
