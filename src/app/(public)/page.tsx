@@ -215,21 +215,25 @@ export default function LandingPage(): ReactElement {
         </section>
 
         {/* ── Pain → Solution (다크 섹션) ───────────────────────── */}
-        <section className="bg-inverse-surface py-24">
+        <section className="bg-[#1a1e24] py-24">
           <div className="mx-auto grid max-w-7xl items-center gap-16 px-6 md:grid-cols-12">
             {/* Pain */}
-            <div className="text-white md:col-span-5">
-              <h2 className="mb-10 flex items-center gap-3 text-3xl font-bold tracking-[-0.02em]">
+            <div className="md:col-span-5">
+              <h2 className="mb-10 flex items-center gap-3 text-3xl font-bold tracking-[-0.02em] text-white">
                 <span className="h-1 w-8 rounded-full bg-secondary" />
                 지금 중소 쇼핑몰의 현실
               </h2>
-              <ul className="space-y-6">
+              <ul className="space-y-8">
                 {PAIN_POINTS.map((p) => (
                   <li key={p.title} className="flex items-start gap-4">
-                    <p.icon className="mt-1 h-5 w-5 shrink-0 text-error-container" />
+                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-500/15">
+                      <p.icon className="h-4 w-4 text-red-400" />
+                    </div>
                     <div>
-                      <h4 className="text-lg font-bold">{p.title}</h4>
-                      <p className="mt-1 text-sm text-outline-variant">
+                      <h4 className="text-lg font-bold text-white">
+                        {p.title}
+                      </h4>
+                      <p className="mt-1.5 text-sm leading-relaxed text-white/60">
                         {p.desc}
                       </p>
                     </div>
@@ -240,56 +244,56 @@ export default function LandingPage(): ReactElement {
 
             {/* Solution */}
             <div className="md:col-span-7">
-              <div className="relative rounded-[2.5rem] border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+              <div className="relative rounded-[2.5rem] border border-white/[0.08] bg-white/[0.06] p-8">
                 <div className="mb-6 flex items-center justify-between">
                   <h3 className="font-display text-2xl font-bold text-white">
                     Chatsio가 해결합니다
                   </h3>
-                  <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-on-secondary">
+                  <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-white">
                     SOLVED
                   </span>
                 </div>
                 <div className="grid gap-6 md:grid-cols-2">
                   {/* Before */}
-                  <div className="relative overflow-hidden rounded-2xl bg-surface-container-high/10 p-6">
-                    <span className="mb-4 block text-[10px] font-bold uppercase tracking-widest text-outline-variant">
+                  <div className="relative overflow-hidden rounded-2xl bg-white/[0.04] p-6">
+                    <span className="mb-4 block text-[10px] font-bold uppercase tracking-widest text-white/40">
                       BEFORE
                     </span>
-                    <div className="flex h-40 items-center justify-center rounded-lg bg-white/5">
+                    <div className="flex h-40 items-center justify-center rounded-lg bg-white/[0.03]">
                       <div className="text-center">
-                        <div className="mx-auto mb-3 h-16 w-24 rounded-lg bg-white/10" />
-                        <div className="mx-auto h-2 w-20 rounded bg-white/10" />
-                        <div className="mx-auto mt-2 h-2 w-14 rounded bg-white/10" />
+                        <div className="mx-auto mb-3 h-16 w-24 rounded-lg bg-white/[0.08]" />
+                        <div className="mx-auto h-2 w-20 rounded bg-white/[0.08]" />
+                        <div className="mx-auto mt-2 h-2 w-14 rounded bg-white/[0.08]" />
                       </div>
                     </div>
-                    <p className="mt-4 text-xs text-outline-variant">
+                    <p className="mt-4 text-xs text-white/50">
                       검색 로봇: &quot;정보를 찾을 수 없음&quot;
                     </p>
                   </div>
                   {/* After */}
-                  <div className="relative overflow-hidden rounded-2xl bg-surface-container-lowest p-6 shadow-[var(--shadow-xl)]">
-                    <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-secondary-fixed/30 blur-2xl" />
-                    <span className="relative mb-4 block text-[10px] font-bold uppercase tracking-widest text-secondary">
+                  <div className="relative overflow-hidden rounded-2xl bg-[#0f1318] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+                    <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-secondary/20 blur-2xl" />
+                    <span className="relative mb-4 block text-[10px] font-bold uppercase tracking-widest text-emerald-400">
                       AFTER
                     </span>
                     <div className="relative z-10 space-y-3">
-                      <div className="flex h-2 items-center rounded bg-secondary/10 px-2">
-                        <div className="h-1 w-1/2 rounded bg-secondary" />
+                      <div className="flex h-2 items-center rounded bg-emerald-500/15 px-2">
+                        <div className="h-1 w-1/2 rounded bg-emerald-400" />
                       </div>
-                      <div className="flex h-2 items-center rounded bg-secondary/10 px-2">
-                        <div className="h-1 w-2/3 rounded bg-secondary" />
+                      <div className="flex h-2 items-center rounded bg-emerald-500/15 px-2">
+                        <div className="h-1 w-2/3 rounded bg-emerald-400" />
                       </div>
-                      <div className="flex h-2 items-center rounded bg-secondary/10 px-2">
-                        <div className="h-1 w-1/3 rounded bg-secondary" />
+                      <div className="flex h-2 items-center rounded bg-emerald-500/15 px-2">
+                        <div className="h-1 w-1/3 rounded bg-emerald-400" />
                       </div>
                       <div className="mt-4 flex items-center gap-2">
-                        <Check className="h-4 w-4 text-secondary" />
-                        <span className="text-[10px] font-bold text-on-surface">
+                        <Check className="h-4 w-4 text-emerald-400" />
+                        <span className="text-[10px] font-bold text-white/90">
                           LLM 최적화 완료
                         </span>
                       </div>
                     </div>
-                    <p className="mt-4 text-xs font-bold text-primary">
+                    <p className="mt-4 text-xs font-bold text-emerald-300">
                       ChatGPT: &quot;최고의 재킷 추천&quot;
                     </p>
                   </div>
