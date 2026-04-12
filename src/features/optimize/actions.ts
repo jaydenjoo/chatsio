@@ -308,15 +308,26 @@ export async function runOptimization(
   } | null = null;
 
   const firecrawlEnv = getFirecrawlEnv();
+  console.info("[runOptimization] Firecrawl env:", firecrawlEnv ? "key found" : "NO KEY");
+  console.info("[runOptimization] product.url:", product.url ?? "null");
+
   if (firecrawlEnv && product.url) {
     try {
       crawled = await scrapeProductMeta(product.url, firecrawlEnv.apiKey);
+      console.info("[runOptimization] Firecrawl result:", {
+        hasImages: crawled?.images?.length ?? 0,
+        price: crawled?.price,
+        brand: crawled?.brand || "(empty)",
+        category: crawled?.category || "(empty)",
+      });
     } catch (err) {
       console.error("[runOptimization] Firecrawl failed, proceeding without crawled data", {
         productId,
         message: err instanceof Error ? err.message : String(err),
       });
     }
+  } else {
+    console.info("[runOptimization] Firecrawl skipped — no key or no URL");
   }
 
   // ---- 6. n8n webhook 호출 ----
