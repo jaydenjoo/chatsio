@@ -3,6 +3,7 @@ import { getDeployData } from "@/features/optimize/actions";
 import { DeployJsonLd } from "@/features/optimize/components/deploy-jsonld";
 import { DeployLoader } from "@/features/optimize/components/deploy-loader";
 import { LlmsTxtPreview } from "@/features/optimize/components/llms-txt-preview";
+import { Cafe24Guide } from "@/features/optimize/components/cafe24-guide";
 
 export default async function DeployPage(): Promise<React.ReactElement> {
   const result = await getDeployData();
@@ -24,7 +25,12 @@ export default async function DeployPage(): Promise<React.ReactElement> {
         <DeployLoader shopId={result.shopId} />
       </div>
 
-      {/* 3. llms.txt */}
+      {/* 3. Cafe24 설치 가이드 */}
+      <div className="rounded-3xl bg-[var(--surface-container-lowest)] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.06)] sm:p-8">
+        <Cafe24Guide />
+      </div>
+
+      {/* 4. llms.txt */}
       <div className="rounded-3xl bg-[var(--surface-container-lowest)] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.06)] sm:p-8">
         <LlmsTxtPreview />
       </div>
