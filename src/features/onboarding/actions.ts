@@ -63,6 +63,18 @@ export async function createShop(input: ShopInfoInput): Promise<ActionResult> {
     return { success: false, error: "인증이 필요합니다" };
   }
 
+  // 이미 같은 URL로 등록된 자신의 shop이 있으면 재사용 (온보딩 재진입 대응)
+  const { data: existing } = await supabase
+    .from("shops")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("url", parsed.data.url)
+    .maybeSingle();
+
+  if (existing) {
+    return { success: true, error: null, shopId: existing.id };
+  }
+
   const { data, error } = await supabase
     .from("shops")
     .insert({
@@ -77,15 +89,16 @@ export async function createShop(input: ShopInfoInput): Promise<ActionResult> {
 
   if (error) {
     if (error.code === "23505") {
+      // 다른 유저가 이미 등록한 URL — user_id 기반으로 자신의 shop은 위에서 처리됨
       void logEvent({
         service: "next-app",
         level: "warn",
         step: "shop_create_duplicate_url",
         contextType: "onboarding",
-        message: "createShop 실패 — 중복 쇼핑몰 URL (unique violation 23505)",
+        message: "createShop 실패 — 다른 유저의 중복 쇼핑몰 URL (unique violation 23505)",
         userId: user.id,
       });
-      return { success: false, error: "이미 등록된 쇼핑몰 URL입니다" };
+      return { success: false, error: "이미 다른 계정에 등록된 쇼핑몰 URL입니다" };
     }
     void logEvent({
       service: "next-app",

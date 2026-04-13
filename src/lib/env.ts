@@ -136,6 +136,32 @@ export function getInternalLogEventEnv(): z.infer<typeof internalLogEventEnvSche
   return parsed.data;
 }
 
+// AI 인용 추적 PoC (Phase 5) — Claude 질문 생성 + ChatGPT 질의 전용.
+// citation-actions.ts에서만 호출. 다른 페이지에 영향 없도록 분리.
+const citationEnvSchema = z.object({
+  ANTHROPIC_API_KEY: z.string().min(1),
+  OPENAI_API_KEY: z.string().min(1),
+});
+
+/**
+ * AI 인용 추적 환경변수 — Phase 5 citation-actions에서만 호출.
+ * ANTHROPIC_API_KEY (Claude 질문 생성) + OPENAI_API_KEY (ChatGPT 질의).
+ */
+export function getCitationEnv(): z.infer<typeof citationEnvSchema> {
+  const parsed = citationEnvSchema.safeParse({
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+  });
+
+  if (!parsed.success) {
+    throw new Error(
+      `인용 추적 환경변수 누락: ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}. .env.local에 ANTHROPIC_API_KEY + OPENAI_API_KEY를 설정하세요.`
+    );
+  }
+
+  return parsed.data;
+}
+
 /**
  * Firecrawl 환경변수 — 상품 페이지 크롤링 (메타태그 추출) 전용.
  *
