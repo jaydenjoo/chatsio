@@ -4,29 +4,32 @@
 > **프로젝트 경로**: `/Users/jayden/projects/chatsio/` (Session #10에서 `/Volumes/jayden-ssd/chatsio`에서 이동 — 아래 "프로젝트 이동" 섹션 참조)
 
 ## 현재 위치
-- Epic: **Phase 5 AI 인용 추적 PoC — 구현 완료 + 프로덕션 테스트 통과**
-- Task: **Session #37 — Phase 5 구현 + 온보딩 버그 3건 수정 + 프로덕션 검증**
-- 커밋: `01526a2` (Session #36) → Session #37 커밋 4개 (`cee21ba` ~ `fd1c9c5`)
+- Epic: **Phase 5 완료 + 파일럿 준비 + SEO/GEO 최적화 완료**
+- Task: **Session #37 — Phase 5 + 파일럿 기능 + SEO/GEO Phase A+B**
+- 커밋: `01526a2` (Session #36) → Session #37 커밋 10개 (`cee21ba` ~ `960636f`)
 - 상태:
-  - ✅ **Phase 5 AI 인용 추적 PoC** — 10개 파일 (신규 8 + 수정 2), 1,428줄
-    - `citation_questions` + `citation_tracking` 테이블 (Migration 010)
-    - Claude Haiku 4.5 질문 생성 + ChatGPT gpt-4o-mini 질의 + 응답 파싱
-    - Citation Score (0~100) 계산: URL+이름=100, URL만=80, 이름만=60
-    - 어드민 `/admin/citations` 페이지 (KPI + 실행 패널 + 이력 테이블)
-    - n8n 대신 Next.js 직접 fetch() — CEO 리뷰 "n8n은 추출에만"
-  - ✅ **온보딩 버그 수정 3건**
-    - createShop 중복 URL: 같은 유저의 기존 shop 재사용 + URL 업데이트
-    - completeOnboarding: UPDATE → UPSERT (user_profiles 미존재 방어)
-    - user_profiles 백필: 트리거 이전 가입자 9명 프로필 생성
-  - ✅ **Jayden 계정 설정**: admin 권한 + shop 이전 + 온보딩 완료
-  - ✅ **Claude 모델 ID 수정**: `claude-3-5-haiku-20241022` → `claude-haiku-4-5-20251001` (구 모델 404)
-  - ✅ **프로덕션 테스트 통과**: 질문 생성 + 인용 체크 정상 동작 확인
+  - ✅ **Phase 5 AI 인용 추적 PoC** — 구현 + 프로덕션 테스트 통과
+  - ✅ **온보딩 버그 수정 3건** — UPSERT, shop 재사용, DB 백필
+  - ✅ **Claude 모델 ID 수정** — `claude-haiku-4-5-20251001`
+  - ✅ **파일럿용 기능 3개**
+    - 고객용 `/citations` 인용 리포트 (Before/After + 상품별 Score)
+    - `/deploy` Cafe24 설치 5단계 가이드
+    - 고객용 Server Actions (RLS 기반)
+  - ✅ **SEO/GEO Phase A** — CRITICAL 6개 해결
+    - robots.txt, sitemap.xml, OG/Twitter Card, metadataBase
+    - 자체 JSON-LD (Organization + SoftwareApplication + FAQPage 11항목)
+    - llms.txt, 404 페이지, heading 수정, noindex
+  - ✅ **SEO/GEO Phase B** — GEO 강화
+    - FAQ 3개 → 11개 확장 + JSON-LD 동기화
+    - `/about` 서비스 소개 + `/features` 기능 상세 페이지
+    - sitemap 5개 URL
 - 다음:
-  1. **Phase 5 PoC 검증** — 의류 10건 실행 + 수동 대조 (파싱 정확도 80%+ 목표)
-  2. (backlog) Task 4-7 프롬프트 테스트 — n8n 프롬프트 구조 결정 후 재논의
-  3. (backlog) Task 4-4 고객 메모 — `admin_notes` 마이그레이션 필요
-  4. (backlog) Task 4-5 재실행 버튼 — Task 4-7과 함께
-  5. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리
+  1. **파일럿 고객 모집** — 화이트글러브 서비스 시작 가능
+  2. (선택) **S8 AI Readiness Score** — 무료 진단 도구 (고객 모집 퍼널)
+  3. (backlog) Phase 5 PoC 검증 — 파일럿 업체 확보 후 의류 10건 실행
+  4. (backlog) Phase 6 — Cafe24 OAuth (CTO 합류 후)
+  5. (backlog) Task 4-7 프롬프트 테스트 — n8n 프롬프트 구조 결정 후
+  6. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리
 
 > **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소** (단일 출처 원칙).
 > **Session #26 판정**: "Vercel 프로젝트 신규 등록" 항목은 **폐기** — 이미 등록 + 배포 중 확인. Session #24 AI 오판단이 원인.
