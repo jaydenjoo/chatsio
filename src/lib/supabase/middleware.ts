@@ -42,7 +42,7 @@ export async function updateSession(
   const pathname = request.nextUrl.pathname;
 
   // 공개 라우트 — 인증 불필요
-  const publicRoutes = ["/", "/login", "/signup", "/about", "/features"];
+  const publicRoutes = ["/", "/login", "/signup", "/about", "/features", "/privacy", "/terms"];
   const publicApiPaths = ["/api/health"];
   // Next.js 컨벤션 파일 (icon, opengraph-image, manifest 등)
   const isNextConventionFile =

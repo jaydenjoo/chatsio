@@ -749,6 +749,10 @@ export default function LandingPage(): ReactElement {
             <p className="text-xs text-on-surface-variant">
               © 2026 Chatsio. All rights reserved.
             </p>
+            <div className="flex gap-4 text-xs text-on-surface-variant">
+              <Link href="/privacy" className="transition-colors hover:text-primary">개인정보처리방침</Link>
+              <Link href="/terms" className="transition-colors hover:text-primary">이용약관</Link>
+            </div>
           </div>
         </div>
       </footer>

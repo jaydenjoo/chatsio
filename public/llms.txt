@@ -39,6 +39,8 @@ Next.js, TypeScript, Supabase, Drizzle ORM, n8n, Claude AI, Tailwind CSS
 - [전체 기능 및 FAQ 상세](https://chatsio-topaz.vercel.app/llms-full.txt)
 - [기능 소개](https://chatsio-topaz.vercel.app/features)
 - [서비스 소개](https://chatsio-topaz.vercel.app/about)
+- [개인정보처리방침](https://chatsio-topaz.vercel.app/privacy)
+- [이용약관](https://chatsio-topaz.vercel.app/terms)
 
 ## URL
 
