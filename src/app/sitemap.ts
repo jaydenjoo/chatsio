@@ -22,6 +22,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
+      url: `${SITE_URL}/pricing`,
+      lastModified: new Date("2026-04-13"),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
       url: `${SITE_URL}/privacy`,
       lastModified: new Date("2026-04-13"),
       changeFrequency: "yearly",

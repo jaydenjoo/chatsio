@@ -245,8 +245,8 @@ export default function LandingPage(): ReactElement {
               </span>
             </Link>
             <div className="hidden items-center gap-6 md:flex">
-              <a href="#features" className="text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary">기능</a>
-              <a href="#pricing" className="text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary">요금</a>
+              <Link href="/features" className="text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary">기능</Link>
+              <Link href="/pricing" className="text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary">요금</Link>
               <a href="#faq" className="text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary">FAQ</a>
             </div>
           </div>
@@ -726,16 +726,16 @@ export default function LandingPage(): ReactElement {
             <div>
               <p className="mb-6 font-bold text-on-surface">제품</p>
               <ul className="space-y-4 text-sm text-on-surface-variant">
-                <li><a href="#features" className="transition-colors hover:text-primary">AI 속성 추출</a></li>
-                <li><a href="#features" className="transition-colors hover:text-primary">JSON-LD 빌더</a></li>
-                <li><a href="#features" className="transition-colors hover:text-primary">llms.txt 생성</a></li>
+                <li><Link href="/features" className="transition-colors hover:text-primary">AI 속성 추출</Link></li>
+                <li><Link href="/features" className="transition-colors hover:text-primary">JSON-LD 빌더</Link></li>
+                <li><Link href="/features" className="transition-colors hover:text-primary">llms.txt 생성</Link></li>
               </ul>
             </div>
             <div>
               <p className="mb-6 font-bold text-on-surface">리소스</p>
               <ul className="space-y-4 text-sm text-on-surface-variant">
-                <li><a href="#faq" className="transition-colors hover:text-primary">자주 묻는 질문</a></li>
-                <li><a href="#pricing" className="transition-colors hover:text-primary">요금 안내</a></li>
+                <li><Link href="/pricing" className="transition-colors hover:text-primary">요금 안내</Link></li>
+                <li><Link href="/about" className="transition-colors hover:text-primary">서비스 소개</Link></li>
               </ul>
             </div>
             <div>
