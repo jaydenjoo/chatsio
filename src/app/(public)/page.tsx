@@ -25,6 +25,34 @@ export const metadata: Metadata = {
   title: "Chatsio — 쇼핑몰 상품 데이터 인프라",
   description:
     "URL만 연결하면 JSON-LD + llms.txt를 자동 생성하고 AI 검색엔진이 당신의 상품을 추천하는지 추적합니다.",
+  keywords: [
+    "상품 데이터 구조화",
+    "JSON-LD 자동 생성",
+    "llms.txt",
+    "AI 검색 최적화",
+    "GEO",
+    "쇼핑몰 SEO",
+    "네이버 EP",
+    "AI 인용 추적",
+    "Cafe24 SEO",
+    "상품 구조화 데이터",
+  ],
+  alternates: {
+    canonical: "https://chatsio-topaz.vercel.app",
+  },
+  openGraph: {
+    title: "Chatsio — 쇼핑몰 상품 데이터 인프라",
+    description:
+      "URL만 연결하면 JSON-LD + llms.txt를 자동 생성하고 AI 검색엔진이 당신의 상품을 추천하는지 추적합니다.",
+    url: "https://chatsio-topaz.vercel.app",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Chatsio — 쇼핑몰 상품 데이터 인프라",
+    description:
+      "URL만 연결하면 JSON-LD + llms.txt를 자동 생성. AI 검색엔진 인용 추적.",
+  },
 };
 
 /* ------------------------------------------------------------------ */
@@ -74,9 +102,85 @@ const STEPS = [
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 
+/* ── JSON-LD 구조화 데이터 ────────────────────────────────── */
+
+const SITE_URL = "https://chatsio-topaz.vercel.app";
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Chatsio",
+  url: SITE_URL,
+  description: "AI가 상품정보를 자동 구조화하는 상품 데이터 인프라 SaaS",
+  foundingDate: "2026",
+};
+
+const softwareJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Chatsio",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  description:
+    "쇼핑몰 URL만 연결하면 JSON-LD + llms.txt를 자동 생성하고 AI 검색엔진 인용을 추적하는 SaaS",
+  offers: [
+    { "@type": "Offer", name: "Starter", price: "99000", priceCurrency: "KRW", description: "월 50회 최적화" },
+    { "@type": "Offer", name: "Growth", price: "199000", priceCurrency: "KRW", description: "월 120회 최적화" },
+    { "@type": "Offer", name: "Pro", price: "349000", priceCurrency: "KRW", description: "무제한 최적화" },
+  ],
+  url: SITE_URL,
+};
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "정말 URL만 넣으면 분석이 되나요?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "네, 상품 페이지 URL을 입력하면 AI가 자동으로 페이지를 방문하여 텍스트와 메타데이터를 분석합니다. 별도의 코드 작성이나 수작업 없이 구조화된 데이터를 생성합니다.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "SEO에 어떤 영향을 주나요?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "JSON-LD Schema.org 마크업을 적용하면 Google Rich Results에 노출될 수 있으며, llms.txt를 통해 ChatGPT, Perplexity 등 AI 검색엔진이 상품 정보를 정확하게 이해하고 추천할 수 있습니다.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "데이터 보안은 안전한가요?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "모든 데이터는 암호화되어 안전하게 보관되며, 고객의 쇼핑몰 정보는 최적화 목적 외에 사용되지 않습니다. Row Level Security로 계정 간 데이터가 철저히 분리됩니다.",
+      },
+    },
+  ],
+};
+
+/* ------------------------------------------------------------------ */
+
 export default function LandingPage(): ReactElement {
   return (
     <div className="relative min-h-screen bg-background font-sans text-on-surface">
+      {/* 구조화 데이터 (SEO + GEO) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+
       {/* 배경 도트 패턴 — globals.css body::before에서 처리 */}
 
       {/* ── Nav ─────────────────────────────────────────────────── */}
@@ -221,9 +325,9 @@ export default function LandingPage(): ReactElement {
                       <p.icon className="h-4 w-4 text-red-400" />
                     </div>
                     <div>
-                      <h4 className="text-lg font-bold text-white">
+                      <h3 className="text-lg font-bold text-white">
                         {p.title}
-                      </h4>
+                      </h3>
                       <p className="mt-1.5 text-sm leading-relaxed text-white/60">
                         {p.desc}
                       </p>
@@ -569,7 +673,7 @@ export default function LandingPage(): ReactElement {
               </div>
             </div>
             <div>
-              <h4 className="mb-6 font-bold text-on-surface">제품</h4>
+              <p className="mb-6 font-bold text-on-surface">제품</p>
               <ul className="space-y-4 text-sm text-on-surface-variant">
                 <li><a href="#features" className="transition-colors hover:text-primary">AI 속성 추출</a></li>
                 <li><a href="#features" className="transition-colors hover:text-primary">JSON-LD 빌더</a></li>
@@ -577,14 +681,14 @@ export default function LandingPage(): ReactElement {
               </ul>
             </div>
             <div>
-              <h4 className="mb-6 font-bold text-on-surface">리소스</h4>
+              <p className="mb-6 font-bold text-on-surface">리소스</p>
               <ul className="space-y-4 text-sm text-on-surface-variant">
                 <li><a href="#faq" className="transition-colors hover:text-primary">자주 묻는 질문</a></li>
                 <li><a href="#pricing" className="transition-colors hover:text-primary">요금 안내</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="mb-6 font-bold text-on-surface">문의</h4>
+              <p className="mb-6 font-bold text-on-surface">문의</p>
               <ul className="space-y-4 text-sm text-on-surface-variant">
                 <li>contact@chatsio.io</li>
               </ul>

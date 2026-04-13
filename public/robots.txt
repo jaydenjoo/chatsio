@@ -1,0 +1,30 @@
+# Chatsio — 상품 데이터 인프라 SaaS
+# https://chatsio-topaz.vercel.app
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /onboarding
+Disallow: /products
+Disallow: /optimize
+Disallow: /deploy
+Disallow: /settings
+Disallow: /citations
+Disallow: /api/
+
+# AI 크롤러 허용
+User-agent: GPTBot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://chatsio-topaz.vercel.app/sitemap.xml

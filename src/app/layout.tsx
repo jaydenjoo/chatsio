@@ -17,10 +17,39 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const SITE_URL = "https://chatsio-topaz.vercel.app";
+
 export const metadata: Metadata = {
-  title: "Chatsio — 상품 데이터 인프라",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Chatsio — 상품 데이터 인프라",
+    template: "%s | Chatsio",
+  },
   description:
     "AI가 상품정보를 자동 구조화하고, AI 검색엔진 인용을 추적하는 SaaS",
+  openGraph: {
+    type: "website",
+    siteName: "Chatsio",
+    locale: "ko_KR",
+    url: SITE_URL,
+    title: "Chatsio — 쇼핑몰 상품 데이터 인프라",
+    description:
+      "URL만 연결하면 JSON-LD + llms.txt를 자동 생성하고 AI 검색엔진이 당신의 상품을 추천하는지 추적합니다.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Chatsio — 쇼핑몰 상품 데이터 인프라",
+    description:
+      "URL만 연결하면 JSON-LD + llms.txt를 자동 생성하고 AI 검색엔진이 당신의 상품을 추천하는지 추적합니다.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
