@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import {
   ArrowRight,
-  AtSign,
   BadgeCheck,
   Ban,
   BarChart3,
@@ -14,11 +13,11 @@ import {
   FileCode,
   FileText,
   Link2,
-  Share2,
   Sparkles,
   Timer,
 } from "lucide-react";
-import { Logo } from "@/components/brand/logo";
+import { PublicNav } from "@/components/layouts/public-nav";
+import { PublicFooter } from "@/components/layouts/public-footer";
 import { FaqAccordion, PricingCards } from "@/features/landing";
 import {
   SITE_URL,
@@ -235,34 +234,7 @@ export default function LandingPage(): ReactElement {
       {/* 배경 도트 패턴 — globals.css body::before에서 처리 */}
 
       {/* ── Nav ─────────────────────────────────────────────────── */}
-      <nav className="fixed top-0 z-50 w-full bg-white/80 shadow-sm backdrop-blur-xl dark:bg-[#0e1419]/80">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2.5">
-              <Logo size={32} />
-              <span className="font-display text-xl font-bold tracking-tight">
-                Chatsio
-              </span>
-            </Link>
-            <div className="hidden items-center gap-6 md:flex">
-              <Link href="/features" className="text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary">기능</Link>
-              <Link href="/pricing" className="text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary">요금</Link>
-              <a href="#faq" className="text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary">FAQ</a>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="hidden text-sm font-semibold text-on-surface-variant hover:text-primary sm:inline-block">
-              로그인
-            </Link>
-            <Link
-              href="/signup"
-              className="rounded-full bg-linear-to-br from-[#006195] to-[#007aba] px-6 py-2.5 text-sm font-bold text-white shadow-[var(--shadow-md)] transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              무료로 시작하기
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <PublicNav variant="landing" />
 
       <main className="overflow-hidden pt-24">
         {/* ── Hero ──────────────────────────────────────────────── */}
@@ -692,70 +664,7 @@ export default function LandingPage(): ReactElement {
       </main>
 
       {/* ── Footer ──────────────────────────────────────────────── */}
-      <footer className="border-t border-outline-variant/10 bg-surface-container-low px-6 py-16">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-12 grid gap-12 md:grid-cols-4">
-            <div className="space-y-6">
-              <Link href="/" className="flex items-center gap-2.5">
-                <Logo size={28} />
-                <span className="font-display text-xl font-bold tracking-tight">
-                  Chatsio
-                </span>
-              </Link>
-              <p className="text-sm leading-relaxed text-on-surface-variant">
-                모든 쇼핑몰의 정보를 AI가 이해할 수 있는 언어로 변환합니다.
-                차세대 AI 커머스 데이터 솔루션.
-              </p>
-              <div className="flex gap-3">
-                <a
-                  href="mailto:contact@chatsio.io"
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant transition-colors hover:bg-[#006195] hover:text-white"
-                  aria-label="이메일"
-                >
-                  <AtSign className="h-4 w-4" />
-                </a>
-                <a
-                  href="#"
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant transition-colors hover:bg-[#006195] hover:text-white"
-                  aria-label="공유"
-                >
-                  <Share2 className="h-4 w-4" />
-                </a>
-              </div>
-            </div>
-            <div>
-              <p className="mb-6 font-bold text-on-surface">제품</p>
-              <ul className="space-y-4 text-sm text-on-surface-variant">
-                <li><Link href="/features" className="transition-colors hover:text-primary">AI 속성 추출</Link></li>
-                <li><Link href="/features" className="transition-colors hover:text-primary">JSON-LD 빌더</Link></li>
-                <li><Link href="/features" className="transition-colors hover:text-primary">llms.txt 생성</Link></li>
-              </ul>
-            </div>
-            <div>
-              <p className="mb-6 font-bold text-on-surface">리소스</p>
-              <ul className="space-y-4 text-sm text-on-surface-variant">
-                <li><Link href="/pricing" className="transition-colors hover:text-primary">요금 안내</Link></li>
-                <li><Link href="/about" className="transition-colors hover:text-primary">서비스 소개</Link></li>
-              </ul>
-            </div>
-            <div>
-              <p className="mb-6 font-bold text-on-surface">문의</p>
-              <ul className="space-y-4 text-sm text-on-surface-variant">
-                <li>contact@chatsio.io</li>
-              </ul>
-            </div>
-          </div>
-          <div className="flex flex-col items-center justify-between gap-4 border-t border-outline-variant/10 pt-8 md:flex-row">
-            <p className="text-xs text-on-surface-variant">
-              © 2026 Chatsio. All rights reserved.
-            </p>
-            <div className="flex gap-4 text-xs text-on-surface-variant">
-              <Link href="/privacy" className="transition-colors hover:text-primary">개인정보처리방침</Link>
-              <Link href="/terms" className="transition-colors hover:text-primary">이용약관</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

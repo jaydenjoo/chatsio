@@ -14,8 +14,8 @@ export default function PublicLayout({
 }
 
 /**
- * 서브페이지용 래퍼 — Nav + Footer 포함.
- * 랜딩 페이지(/)는 자체 Nav/Footer를 사용하므로 이 래퍼를 쓰지 않는다.
+ * 서브페이지용 래퍼 — Nav(subpage variant) + Footer 포함.
+ * 랜딩 페이지(/)는 PublicNav(landing variant) + PublicFooter를 직접 사용.
  */
 export function SubPageShell({
   children,

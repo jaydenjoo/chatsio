@@ -74,6 +74,45 @@ const breadcrumbJsonLd = {
   ],
 };
 
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "무료 체험이 가능한가요?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "네, 파일럿 프로그램을 통해 3개월 무료 체험이 가능합니다. 카드 등록 없이 바로 시작할 수 있습니다.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "플랜을 중간에 변경할 수 있나요?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "네, 언제든지 상위 또는 하위 플랜으로 변경할 수 있습니다. 변경 시점에 차액이 정산됩니다.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "분석 횟수가 초과되면 어떻게 되나요?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "월 분석 횟수 초과 시 추가 분석이 일시 중단됩니다. 상위 플랜으로 업그레이드하거나 다음 달을 기다리시면 됩니다.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "환불 정책은 어떻게 되나요?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "결제 후 7일 이내에 서비스를 이용하지 않은 경우 전액 환불이 가능합니다.",
+      },
+    },
+  ],
+};
+
 const FAQ_ITEMS = [
   {
     q: "무료 체험이 가능한가요?",
@@ -103,6 +142,10 @@ export default function PricingPage(): ReactElement {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
 
       {/* Hero */}
