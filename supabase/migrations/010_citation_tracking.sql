@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS public.citation_questions (
   product_id    uuid NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
   shop_id       uuid NOT NULL REFERENCES public.shops(id) ON DELETE CASCADE,
   questions     jsonb NOT NULL,
-  generated_by  text NOT NULL DEFAULT 'claude-3-5-haiku-20241022',
+  generated_by  text NOT NULL DEFAULT 'claude-haiku-4-5-20251001',
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );

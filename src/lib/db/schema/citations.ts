@@ -29,7 +29,7 @@ export const citationQuestions = pgTable(
     questions: jsonb("questions").notNull(),
     generatedBy: text("generated_by")
       .notNull()
-      .default("claude-3-5-haiku-20241022"),
+      .default("claude-haiku-4-5-20251001"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
