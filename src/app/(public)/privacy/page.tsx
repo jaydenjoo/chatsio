@@ -1,8 +1,7 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
-import { Logo } from "@/components/brand/logo";
 import { SITE_URL, SITE_NAME } from "@/constants/site";
+import { SubPageShell } from "../layout";
 
 export const metadata: Metadata = {
   title: "개인정보처리방침",
@@ -14,17 +13,7 @@ const LAST_UPDATED = "2026년 4월 13일";
 
 export default function PrivacyPage(): ReactElement {
   return (
-    <div className="min-h-screen bg-background font-sans text-on-surface">
-      {/* Nav */}
-      <nav className="border-b border-outline-variant/10 bg-white/80 backdrop-blur-xl dark:bg-[#0e1419]/80">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Logo size={28} />
-            <span className="font-display text-lg font-bold tracking-tight">{SITE_NAME}</span>
-          </Link>
-        </div>
-      </nav>
-
+    <SubPageShell>
       <article className="mx-auto max-w-3xl px-6 py-16">
         <h1
           className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl"
@@ -120,6 +109,6 @@ export default function PrivacyPage(): ReactElement {
           </section>
         </div>
       </article>
-    </div>
+    </SubPageShell>
   );
 }

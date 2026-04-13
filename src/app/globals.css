@@ -1,7 +1,5 @@
-/* CSS 스펙상 @import는 파일 최상단에 연속 배치되어야 한다.
-   Tailwind v4 `@import "tailwindcss"`가 확장되면 중간 @import가 뒤로 밀려
-   Turbopack dev 파서가 거부하므로, CDN 폰트 @import를 맨 앞으로 둔다. */
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+/* Pretendard 폰트는 layout.tsx에서 <link rel="stylesheet"> + preconnect로 로드.
+   CDN @import 방식은 렌더 차단 리소스이므로 제거. */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";

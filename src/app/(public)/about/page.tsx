@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import { ArrowRight, Shield, Target, Zap } from "lucide-react";
-import { Logo } from "@/components/brand/logo";
 import { SITE_URL, SITE_NAME } from "@/constants/site";
+import { SubPageShell } from "../layout";
 
 export const metadata: Metadata = {
   title: "소개 — 상품 데이터 인프라",
@@ -68,7 +68,7 @@ const orgJsonLd = {
 
 export default function AboutPage(): ReactElement {
   return (
-    <div className="min-h-screen bg-background font-sans text-on-surface">
+    <SubPageShell>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
@@ -77,21 +77,6 @@ export default function AboutPage(): ReactElement {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
       />
-      {/* Nav */}
-      <nav className="border-b border-outline-variant/10 bg-white/80 backdrop-blur-xl dark:bg-[#0e1419]/80">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Logo size={28} />
-            <span className="font-display text-lg font-bold tracking-tight">Chatsio</span>
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition-all hover:-translate-y-0.5 hover:shadow-lg"
-          >
-            무료로 시작하기
-          </Link>
-        </div>
-      </nav>
 
       {/* Hero */}
       <section className="mx-auto max-w-3xl px-6 py-20 text-center">
@@ -152,6 +137,6 @@ export default function AboutPage(): ReactElement {
           무료로 시작하기 <ArrowRight className="h-4 w-4" />
         </Link>
       </section>
-    </div>
+    </SubPageShell>
   );
 }

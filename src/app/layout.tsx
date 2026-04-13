@@ -73,6 +73,14 @@ export default function RootLayout({
       className={cn("h-full antialiased", dmSans.variable, jetbrainsMono.variable, "font-sans")}
       suppressHydrationWarning
     >
+      <head>
+        {/* Pretendard: preconnect + 비차단 stylesheet (CDN dynamic subset) */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-surface text-on-surface">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
