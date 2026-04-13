@@ -192,18 +192,27 @@ export async function completeOnboarding(): Promise<ActionResult> {
     return { success: false, error: "인증이 필요합니다" };
   }
 
+  // UPSERT: user_profiles 행이 없는 유저(트리거 이전 가입)도 안전하게 처리.
+  // UPDATE만 쓰면 행이 없을 때 0행 업데이트 → 성공처럼 보이지만 실제 반영 안 됨.
   const { error } = await supabase
     .from("user_profiles")
-    .update({ onboarding_completed: true })
-    .eq("id", user.id);
+    .upsert(
+      {
+        id: user.id,
+        onboarding_completed: true,
+        full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? null,
+        avatar_url: user.user_metadata?.avatar_url ?? null,
+      },
+      { onConflict: "id" },
+    );
 
   if (error) {
     void logEvent({
       service: "next-app",
       level: "error",
-      step: "onboarding_complete_update",
+      step: "onboarding_complete_upsert",
       contextType: "onboarding",
-      message: `completeOnboarding UPDATE 실패: ${error.message}`,
+      message: `completeOnboarding UPSERT 실패: ${error.message}`,
       userId: user.id,
     });
     return { success: false, error: "온보딩 완료 처리에 실패했습니다" };
