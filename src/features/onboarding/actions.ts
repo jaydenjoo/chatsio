@@ -63,15 +63,28 @@ export async function createShop(input: ShopInfoInput): Promise<ActionResult> {
     return { success: false, error: "인증이 필요합니다" };
   }
 
-  // 이미 같은 URL로 등록된 자신의 shop이 있으면 재사용 (온보딩 재진입 대응)
+  // 이미 자신의 shop이 있으면 재사용 (온보딩 재진입 / 계정 이전 대응)
+  // URL 무관 — 유저당 shop 1개 원칙. URL이 다르면 기존 shop 정보를 업데이트.
   const { data: existing } = await supabase
     .from("shops")
-    .select("id")
+    .select("id, url")
     .eq("user_id", user.id)
-    .eq("url", parsed.data.url)
+    .limit(1)
     .maybeSingle();
 
   if (existing) {
+    // URL이나 다른 정보가 변경되었으면 업데이트
+    if (existing.url !== parsed.data.url) {
+      await supabase
+        .from("shops")
+        .update({
+          name: parsed.data.name,
+          url: parsed.data.url,
+          platform: parsed.data.platform,
+          industry: parsed.data.industry,
+        })
+        .eq("id", existing.id);
+    }
     return { success: true, error: null, shopId: existing.id };
   }
 
