@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod/v4";
 import { createClient } from "@/lib/supabase/server";
 import { computeProductScore } from "@/lib/citations/parser";
 
@@ -93,20 +94,26 @@ export async function getMyCitationSummary(): Promise<
 
   const productIds = products.map((p: Record<string, unknown>) => p.id as string);
 
-  // 최적화 결과 (최신 completed만)
+  // 최적화 결과 (최신 completed만, 상품 수 × 2 상한)
   const { data: optimizations } = await supabase
     .from("optimizations")
     .select("product_id, score, jsonld, created_at")
     .in("product_id", productIds)
     .eq("status", "completed")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(productIds.length * 2);
 
-  // 인용 추적 결과
+  // 인용 추적 결과 (최근 30일, 상품 수 × 10 상한)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
+
   const { data: citations } = await supabase
     .from("citation_tracking")
     .select("product_id, citation_score, is_cited, created_at, run_id")
     .in("product_id", productIds)
-    .order("created_at", { ascending: false });
+    .gte("created_at", thirtyDaysAgo.toISOString())
+    .order("created_at", { ascending: false })
+    .limit(productIds.length * 10);
 
   // 상품별 집계
   const result: CitationProductSummary[] = products.map((p: Record<string, unknown>) => {
@@ -165,6 +172,11 @@ export async function getMyCitationSummary(): Promise<
 export async function getMyCitationDetail(
   productId: string,
 ): Promise<ActionResult<readonly CitationDetailRow[]>> {
+  const parsed = z.string().uuid().safeParse(productId);
+  if (!parsed.success) {
+    return { success: false, error: "잘못된 상품 ID입니다." };
+  }
+
   const auth = await getAuthenticatedShop();
   if (!auth.success || !auth.data) {
     return { success: false, error: auth.error };
@@ -176,7 +188,7 @@ export async function getMyCitationDetail(
   const { data: product } = await supabase
     .from("products")
     .select("id")
-    .eq("id", productId)
+    .eq("id", parsed.data)
     .eq("shop_id", shopId)
     .maybeSingle();
 
@@ -184,13 +196,24 @@ export async function getMyCitationDetail(
     return { success: false, error: "상품을 찾을 수 없습니다." };
   }
 
-  // 최신 run 결과
+  // 최신 run_id 조회 후 해당 run 결과만 가져오기
+  const { data: latestRow } = await supabase
+    .from("citation_tracking")
+    .select("run_id")
+    .eq("product_id", parsed.data)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!latestRow) {
+    return { success: true, data: [] };
+  }
+
   const { data, error } = await supabase
     .from("citation_tracking")
     .select("question_text, ai_response, is_cited, matched_name, matched_url, citation_score, created_at")
-    .eq("product_id", productId)
-    .order("created_at", { ascending: false })
-    .limit(10);
+    .eq("run_id", (latestRow as Record<string, unknown>).run_id as string)
+    .order("created_at", { ascending: true });
 
   if (error) {
     return { success: false, error: "결과를 불러올 수 없습니다." };

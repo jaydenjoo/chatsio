@@ -39,6 +39,8 @@ export function Cafe24Guide(): ReactElement {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        aria-controls="cafe24-guide-content"
         className="flex w-full items-center justify-between text-left"
       >
         <div>
@@ -57,7 +59,7 @@ export function Cafe24Guide(): ReactElement {
       </button>
 
       {isOpen && (
-        <div className="mt-6 space-y-4">
+        <div id="cafe24-guide-content" className="mt-6 space-y-4">
           {STEPS.map((step, i) => (
             <div
               key={step.title}

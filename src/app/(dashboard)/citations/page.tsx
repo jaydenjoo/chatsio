@@ -148,7 +148,7 @@ export default async function CitationsPage(): Promise<ReactElement> {
       {products.length > 0 && <BeforeAfterCard products={products} />}
 
       {/* 상품별 인용 현황 */}
-      {products.length > 0 ? (
+      {result.success && products.length > 0 ? (
         <div className="rounded-2xl bg-[var(--surface-container-lowest)] shadow-[var(--shadow-sm)]">
           <div className="border-b border-[var(--outline-variant)]/10 px-6 py-4">
             <h3 className="font-display text-lg font-bold text-[var(--on-surface)]">
@@ -227,7 +227,7 @@ export default async function CitationsPage(): Promise<ReactElement> {
             </tbody>
           </table>
         </div>
-      ) : (
+      ) : result.success && products.length === 0 ? (
         <div className="rounded-2xl bg-[var(--surface-container-lowest)] px-6 py-12 text-center shadow-[var(--shadow-sm)]">
           <Search className="mx-auto h-10 w-10 text-[var(--outline)]/40" />
           <h3 className="mt-3 font-display text-lg font-bold text-[var(--on-surface)]">
@@ -237,7 +237,7 @@ export default async function CitationsPage(): Promise<ReactElement> {
             상품을 등록하고 AI 최적화를 실행하면 인용 추적 결과를 확인할 수 있습니다.
           </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
