@@ -3,6 +3,12 @@ import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import {
+  SITE_URL,
+  SITE_NAME,
+  SITE_DESCRIPTION,
+  SITE_DESCRIPTION_LONG,
+} from "@/constants/site";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -17,30 +23,34 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-const SITE_URL = "https://chatsio-topaz.vercel.app";
-
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Chatsio — 상품 데이터 인프라",
-    template: "%s | Chatsio",
+    default: `${SITE_NAME} — 상품 데이터 인프라`,
+    template: `%s | ${SITE_NAME}`,
   },
-  description:
-    "AI가 상품정보를 자동 구조화하고, AI 검색엔진 인용을 추적하는 SaaS",
+  description: SITE_DESCRIPTION,
   openGraph: {
     type: "website",
-    siteName: "Chatsio",
+    siteName: SITE_NAME,
     locale: "ko_KR",
     url: SITE_URL,
-    title: "Chatsio — 쇼핑몰 상품 데이터 인프라",
-    description:
-      "URL만 연결하면 JSON-LD + llms.txt를 자동 생성하고 AI 검색엔진이 당신의 상품을 추천하는지 추적합니다.",
+    title: `${SITE_NAME} — 쇼핑몰 상품 데이터 인프라`,
+    description: SITE_DESCRIPTION_LONG,
+    images: [
+      {
+        url: `${SITE_URL}/opengraph-image`,
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} — 쇼핑몰 상품 데이터 인프라`,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Chatsio — 쇼핑몰 상품 데이터 인프라",
-    description:
-      "URL만 연결하면 JSON-LD + llms.txt를 자동 생성하고 AI 검색엔진이 당신의 상품을 추천하는지 추적합니다.",
+    title: `${SITE_NAME} — 쇼핑몰 상품 데이터 인프라`,
+    description: SITE_DESCRIPTION_LONG,
+    images: [`${SITE_URL}/opengraph-image`],
   },
   robots: {
     index: true,

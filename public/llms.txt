@@ -34,6 +34,12 @@ Chatsio는 한국 중소 쇼핑몰의 상품 이미지와 텍스트를 AI로 자
 
 Next.js, TypeScript, Supabase, Drizzle ORM, n8n, Claude AI, Tailwind CSS
 
+## 상세 정보
+
+- [전체 기능 및 FAQ 상세](https://chatsio-topaz.vercel.app/llms-full.txt)
+- [기능 소개](https://chatsio-topaz.vercel.app/features)
+- [서비스 소개](https://chatsio-topaz.vercel.app/about)
+
 ## URL
 
 https://chatsio-topaz.vercel.app

@@ -11,20 +11,44 @@ Disallow: /deploy
 Disallow: /settings
 Disallow: /citations
 Disallow: /api/
+Disallow: /login
+Disallow: /signup
 
-# AI 크롤러 허용
+# ── AI 검색 크롤러 (Allow — 인용에 필수) ──────────────
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# ── AI 학습 크롤러 (Allow — 제품 특성상 허용) ─────────
 User-agent: GPTBot
 Allow: /
 Disallow: /admin
 Disallow: /api/
 
-User-agent: PerplexityBot
-Allow: /
-
 User-agent: ClaudeBot
 Allow: /
 
 User-agent: Google-Extended
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: CCBot
 Allow: /
 
 Sitemap: https://chatsio-topaz.vercel.app/sitemap.xml

@@ -1,38 +1,25 @@
 import type { MetadataRoute } from "next";
-
-const BASE_URL = "https://chatsio-topaz.vercel.app";
+import { SITE_URL } from "@/constants/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: BASE_URL,
-      lastModified: new Date(),
+      url: SITE_URL,
+      lastModified: new Date("2026-04-13"),
       changeFrequency: "weekly",
       priority: 1.0,
     },
     {
-      url: `${BASE_URL}/about`,
-      lastModified: new Date(),
+      url: `${SITE_URL}/about`,
+      lastModified: new Date("2026-04-13"),
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: `${BASE_URL}/features`,
-      lastModified: new Date(),
+      url: `${SITE_URL}/features`,
+      lastModified: new Date("2026-04-13"),
       changeFrequency: "monthly",
       priority: 0.7,
-    },
-    {
-      url: `${BASE_URL}/login`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.3,
-    },
-    {
-      url: `${BASE_URL}/signup`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.3,
     },
   ];
 }

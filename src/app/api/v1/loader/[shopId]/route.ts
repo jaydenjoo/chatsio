@@ -10,8 +10,7 @@ import { NextResponse } from "next/server";
  * PRD 요구사항: < 10KB (gzip)
  */
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://chatsio-topaz.vercel.app";
+import { SITE_URL } from "@/constants/site";
 
 function buildLoaderScript(shopId: string): string {
   // 즉시 실행 함수로 전역 오염 방지. 압축 시 < 1KB.

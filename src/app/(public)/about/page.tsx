@@ -3,16 +3,18 @@ import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import { ArrowRight, Shield, Target, Zap } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { SITE_URL, SITE_NAME } from "@/constants/site";
 
 export const metadata: Metadata = {
-  title: "Chatsio 소개 — 상품 데이터 인프라",
+  title: "소개 — 상품 데이터 인프라",
   description:
     "Chatsio는 한국 중소 쇼핑몰의 상품 데이터를 AI로 구조화하여 검색엔진과 AI 검색에서 발견되도록 돕는 SaaS입니다.",
-  alternates: { canonical: "https://chatsio-topaz.vercel.app/about" },
+  alternates: { canonical: `${SITE_URL}/about` },
   openGraph: {
     title: "Chatsio 소개 — 상품 데이터 인프라",
     description: "한국 중소 쇼핑몰의 상품 데이터를 AI로 구조화하여 검색엔진과 AI 검색에서 발견되도록 돕습니다.",
-    url: "https://chatsio-topaz.vercel.app/about",
+    url: `${SITE_URL}/about`,
+    images: [{ url: `${SITE_URL}/opengraph-image`, width: 1200, height: 630 }],
   },
 };
 
@@ -37,9 +39,44 @@ const VALUES = [
   },
 ] as const;
 
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "홈", item: SITE_URL },
+    { "@type": "ListItem", position: 2, name: "소개", item: `${SITE_URL}/about` },
+  ],
+};
+
+const orgJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": `${SITE_URL}/#organization`,
+  name: SITE_NAME,
+  url: SITE_URL,
+  logo: `${SITE_URL}/icon-512.png`,
+  description: "AI가 상품정보를 자동 구조화하는 상품 데이터 인프라 SaaS",
+  foundingDate: "2026",
+  knowsAbout: [
+    "상품 데이터 구조화",
+    "JSON-LD",
+    "llms.txt",
+    "AI 검색 최적화",
+    "GEO",
+  ],
+};
+
 export default function AboutPage(): ReactElement {
   return (
     <div className="min-h-screen bg-background font-sans text-on-surface">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+      />
       {/* Nav */}
       <nav className="border-b border-outline-variant/10 bg-white/80 backdrop-blur-xl dark:bg-[#0e1419]/80">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">

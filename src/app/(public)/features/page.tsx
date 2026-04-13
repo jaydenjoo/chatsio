@@ -11,16 +11,18 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { SITE_URL, SITE_NAME } from "@/constants/site";
 
 export const metadata: Metadata = {
-  title: "기능 소개 — Chatsio",
+  title: "기능 소개",
   description:
     "AI 상품 속성 추출, JSON-LD 자동 생성, llms.txt, AI 인용 추적까지. Chatsio의 핵심 기능을 알아보세요.",
-  alternates: { canonical: "https://chatsio-topaz.vercel.app/features" },
+  alternates: { canonical: `${SITE_URL}/features` },
   openGraph: {
     title: "기능 소개 — Chatsio",
     description: "AI 상품 속성 추출, JSON-LD 자동 생성, llms.txt, AI 인용 추적까지.",
-    url: "https://chatsio-topaz.vercel.app/features",
+    url: `${SITE_URL}/features`,
+    images: [{ url: `${SITE_URL}/opengraph-image`, width: 1200, height: 630 }],
   },
 };
 
@@ -99,9 +101,46 @@ const FEATURES = [
   },
 ] as const;
 
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "홈", item: SITE_URL },
+    { "@type": "ListItem", position: 2, name: "기능", item: `${SITE_URL}/features` },
+  ],
+};
+
+const softwareJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "@id": `${SITE_URL}/#software`,
+  name: SITE_NAME,
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  description:
+    "AI 상품 속성 추출, JSON-LD 자동 생성, llms.txt, AI 인용 추적까지. 쇼핑몰 상품 데이터를 자동 구조화하는 SaaS.",
+  featureList: [
+    "AI 상품 속성 자동 추출 (정확도 97.3%)",
+    "JSON-LD Schema.org Product 자동 생성",
+    "llms.txt SKU 단위 자동 생성",
+    "AI 인용 추적 (Citation Score 0~100)",
+    "Loader JS 원클릭 설치",
+    "대시보드 모니터링",
+  ],
+  url: `${SITE_URL}/features`,
+};
+
 export default function FeaturesPage(): ReactElement {
   return (
     <div className="min-h-screen bg-background font-sans text-on-surface">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }}
+      />
       {/* Nav */}
       <nav className="border-b border-outline-variant/10 bg-white/80 backdrop-blur-xl dark:bg-[#0e1419]/80">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">

@@ -20,11 +20,15 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { FaqAccordion, PricingCards } from "@/features/landing";
+import {
+  SITE_URL,
+  SITE_NAME,
+  SITE_DESCRIPTION_LONG,
+} from "@/constants/site";
 
 export const metadata: Metadata = {
-  title: "Chatsio — 쇼핑몰 상품 데이터 인프라",
-  description:
-    "URL만 연결하면 JSON-LD + llms.txt를 자동 생성하고 AI 검색엔진이 당신의 상품을 추천하는지 추적합니다.",
+  title: "쇼핑몰 상품 데이터 인프라",
+  description: SITE_DESCRIPTION_LONG,
   keywords: [
     "상품 데이터 구조화",
     "JSON-LD 자동 생성",
@@ -38,18 +42,18 @@ export const metadata: Metadata = {
     "상품 구조화 데이터",
   ],
   alternates: {
-    canonical: "https://chatsio-topaz.vercel.app",
+    canonical: SITE_URL,
   },
   openGraph: {
-    title: "Chatsio — 쇼핑몰 상품 데이터 인프라",
-    description:
-      "URL만 연결하면 JSON-LD + llms.txt를 자동 생성하고 AI 검색엔진이 당신의 상품을 추천하는지 추적합니다.",
-    url: "https://chatsio-topaz.vercel.app",
+    title: `${SITE_NAME} — 쇼핑몰 상품 데이터 인프라`,
+    description: SITE_DESCRIPTION_LONG,
+    url: SITE_URL,
     type: "website",
+    images: [{ url: `${SITE_URL}/opengraph-image`, width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Chatsio — 쇼핑몰 상품 데이터 인프라",
+    title: `${SITE_NAME} — 쇼핑몰 상품 데이터 인프라`,
     description:
       "URL만 연결하면 JSON-LD + llms.txt를 자동 생성. AI 검색엔진 인용 추적.",
   },
@@ -104,21 +108,38 @@ const STEPS = [
 
 /* ── JSON-LD 구조화 데이터 ────────────────────────────────── */
 
-const SITE_URL = "https://chatsio-topaz.vercel.app";
-
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "Chatsio",
+  "@id": `${SITE_URL}/#organization`,
+  name: SITE_NAME,
   url: SITE_URL,
+  logo: `${SITE_URL}/icon-512.png`,
   description: "AI가 상품정보를 자동 구조화하는 상품 데이터 인프라 SaaS",
   foundingDate: "2026",
+  contactPoint: {
+    "@type": "ContactPoint",
+    email: "contact@chatsio.io",
+    contactType: "customer service",
+    availableLanguage: "Korean",
+  },
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": `${SITE_URL}/#website`,
+  name: SITE_NAME,
+  url: SITE_URL,
+  publisher: { "@id": `${SITE_URL}/#organization` },
+  inLanguage: "ko-KR",
 };
 
 const softwareJsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "Chatsio",
+  "@id": `${SITE_URL}/#software`,
+  name: SITE_NAME,
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   description:
@@ -197,6 +218,10 @@ export default function LandingPage(): ReactElement {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
       />
       <script
         type="application/ld+json"

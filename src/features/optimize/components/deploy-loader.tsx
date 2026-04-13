@@ -3,6 +3,7 @@
 import { useState, useCallback, type ReactElement } from "react";
 import { Check, Copy, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SITE_URL } from "@/constants/site";
 
 interface DeployLoaderProps {
   readonly shopId: string | undefined;
@@ -14,7 +15,7 @@ export function DeployLoader({ shopId }: DeployLoaderProps): ReactElement {
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
 
   const loaderScript = shopId
-    ? `<!-- Chatsio JSON-LD Loader -->\n<script src="${process.env.NEXT_PUBLIC_SITE_URL ?? "https://chatsio-topaz.vercel.app"}/api/v1/loader/${shopId}" defer></script>`
+    ? `<!-- Chatsio JSON-LD Loader -->\n<script src="${SITE_URL}/api/v1/loader/${shopId}" defer></script>`
     : "";
 
   const handleCopy = useCallback(async () => {
