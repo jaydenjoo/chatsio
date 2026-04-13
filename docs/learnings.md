@@ -20,6 +20,18 @@
 
 ---
 
+### 2026-04-13 — [Bug] Supabase UPDATE 0행은 에러가 아니다 — user_profiles 미존재 silent failure
+- **증상**: 온보딩 완료 후 대시보드 접속 시 다시 온보딩 페이지로 리다이렉트. 배포 후에도 반복. `completeOnboarding`은 `{ success: true }` 반환.
+- **원인**: Jayden 계정이 `handle_new_user` 트리거 **이전에** 가입 → `user_profiles` 행 없음. `UPDATE user_profiles SET onboarding_completed = true WHERE id = user.id` → 매칭 행 0개 → Postgres/Supabase는 **에러 없이 성공 반환** → 쿠키만 설정 → 1시간 후 쿠키 만료 → 미들웨어 DB 재확인 → `onboarding_completed` 여전히 false → 무한 루프.
+- **해결**: (1) UPDATE → UPSERT 전환 (행 없으면 생성), (2) auth.users에서 user_profiles 누락 9건 백필.
+- **규칙**: **Supabase `.update().eq()` 결과가 success여도 실제 반영 보장 아님**. 0행 매칭 시 에러 없이 빈 결과 반환. 중요한 상태 변경은 UPSERT를 쓰거나, UPDATE 후 반환된 `data` 배열 길이를 확인해야 한다. 특히 auth 트리거로 생성되는 테이블은 **트리거 이전 기존 유저**를 항상 고려.
+
+### 2026-04-13 — [Bug] Claude 모델 ID는 세대마다 네이밍 규칙이 다르다
+- **증상**: 인용 추적 질문 생성 시 "질문 생성에 실패했습니다" 에러. Vercel 환경변수 정상 설정 확인 완료.
+- **원인**: `claude-3-5-haiku-20241022` 모델 ID가 API에서 404 반환. Claude 3.x 세대 모델이 폐기되어 접근 불가.
+- **해결**: `claude-haiku-4-5-20251001`로 교체. `curl` 직접 테스트로 모델 ID 유효성 확인 후 반영.
+- **규칙**: **AI 모델 ID는 하드코딩 전 `curl`로 실제 호출 테스트 필수**. Claude 네이밍: 3.x = `claude-3-5-{tier}-YYYYMMDD`, 4.x = `claude-{tier}-4-5-YYYYMMDD`. 프로젝트에서 사용 중인 모델 ID는 `env.ts`나 상수 파일에서 한 곳에서만 정의하고, Anthropic 릴리스 노트 확인 후 교체.
+
 ### 2026-04-12 — [Architecture] 랜딩 페이지에서 theme 토큰 대신 브랜드 색상 하드코딩 필수
 - **증상**: 다크모드에서 CTA 그라데이션(`from-primary to-primary-container`)이 밝은 파란색으로 반전, Hero 뱃지 텍스트 안 보임, JSON-LD 벤토 카드 배경이 밝아져 텍스트 대비 실패. 동일 유형 수정 3회 반복.
 - **원인**: Material 3 토큰은 다크모드에서 의도적으로 색상을 반전시킴(`inverse-surface` → 밝은 색, `primary` → 밝은 파란). 대시보드/앱 UI에서는 맞지만, **랜딩 페이지 그라데이션/CTA는 브랜드 고정색이 필요**한데 theme 토큰을 그대로 사용.
