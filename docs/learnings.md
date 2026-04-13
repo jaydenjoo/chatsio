@@ -1018,6 +1018,24 @@
   4. **Vercel serverless 가정 재검증**: 2025년 Fluid Compute default 활성화로 Hobby 300s / Pro 800s로 확장됨. 이전의 "Hobby 10s / 60s" 가정은 이제 무효. 하지만 **timeout이 UX 이유의 전부가 아님** — 2분 이상 사용자가 빈 화면 보는 건 timeout과 무관하게 UX 실패.
   5. **딥리서치 ROI**: 단 하나의 리서치(12 출처)가 Plan의 근본 방향을 바꿨다. 비유 — "같은 건물을 두 번 짓지 않는 최선의 방법은 짓기 전에 레퍼런스 건물들을 돌아보는 것". "리서치 후 Plan 변경 비용 < 잘못된 Plan으로 구현 후 리팩토링 비용"이 거의 항상 성립.
 
+### 2026-04-13 — [Bug] Next.js 미들웨어가 icon/opengraph-image/manifest를 차단함
+- **증상**: `curl -sL /opengraph-image` → 200 text/html (이미지가 아닌 로그인 페이지 반환). Favicon, manifest도 동일.
+- **원인**: 미들웨어의 `publicRoutes` 배열에 `/icon`, `/opengraph-image`, `/manifest.webmanifest` 등 Next.js 컨벤션 파일이 포함되지 않아서, 미인증 요청 시 `/login`으로 리다이렉트됨.
+- **해결**: `isNextConventionFile` 조건 추가 — `pathname.startsWith("/icon") || pathname.startsWith("/apple-icon") || pathname.startsWith("/opengraph-image") || pathname === "/manifest.webmanifest" || pathname === "/sitemap.xml"`
+- **규칙**: Next.js App Router에서 `icon.tsx`, `opengraph-image.tsx`, `manifest.ts` 등 컨벤션 파일을 추가할 때는 **반드시 미들웨어 publicRoutes에도 추가**할 것. 그렇지 않으면 크롤러/소셜 미리보기가 로그인 페이지를 받게 됨.
+
+### 2026-04-13 — [Bug] Next.js metadata template과 페이지 title 중복
+- **증상**: 홈페이지 `<title>` = `Chatsio — 쇼핑몰 상품 데이터 인프라 | Chatsio` — "Chatsio"가 2번 출현.
+- **원인**: 루트 레이아웃 `title.template: "%s | Chatsio"` + 페이지 `title: "Chatsio — ..."` → template이 페이지 title에 브랜드명을 추가하므로 중복.
+- **해결**: 페이지 레벨 title에서 브랜드명 제거 → `"쇼핑몰 상품 데이터 인프라"` → template 적용 후 `"쇼핑몰 상품 데이터 인프라 | Chatsio"`.
+- **규칙**: `title.template`을 사용할 때 **페이지 title에 브랜드명을 넣지 말 것**. Template이 자동 추가함. OG title은 template 미적용이므로 별도로 브랜드명 포함 가능.
+
+### 2026-04-13 — [Architecture] Next.js openGraph.images는 페이지 레벨에서 명시해야 함
+- **증상**: `opengraph-image.tsx` 파일이 존재하고 이미지 엔드포인트는 200 OK인데, `og:image` 메타태그가 HTML에 삽입되지 않음.
+- **원인**: 페이지 metadata에서 `openGraph` 객체를 명시적으로 정의하면, 루트 레이아웃의 `openGraph.images`를 **완전히 덮어씀** (deep merge가 아닌 replace). `opengraph-image.tsx` 컨벤션 파일도 명시적 openGraph가 있으면 auto-inject 안 됨.
+- **해결**: 페이지 레벨 `openGraph`에도 `images: [{ url: \`\${SITE_URL}/opengraph-image\`, width: 1200, height: 630 }]` 명시.
+- **규칙**: 페이지별 openGraph를 오버라이드할 때는 **반드시 images도 함께 지정**할 것. 루트 레이아웃 images에 의존하면 안 됨.
+
 ### 2026-04-07 — [Architecture] Chatsio 사용자 FK는 `user_profiles` (auth.users 아님) + Findably는 `profiles` — 2 프로젝트 분리 주의
 - **증상**: Task 2-1b DB 시드 생성 시 `INSERT INTO shops(user_id, ...) VALUES ((SELECT id FROM auth.users LIMIT 1), ...)` 실행 → `ERROR: insert or update on table "shops" violates foreign key constraint "shops_user_id_fkey". Key (user_id)=... is not present in table "user_profiles"`. 첫 시도부터 FK 위반.
 - **원인**: Chatsio는 `auth.users`를 직접 참조하지 않고 **중간 테이블 `user_profiles`**를 둠 (RLS 정책 + 역할 관리 + onboarding 상태 등을 확장). `shops.user_id → user_profiles.id → auth.users.id` 3단계 체인. 한편 Findably는 동일 공유 DB에서 **`profiles`** 테이블을 사용 (`user_profiles`와 이름 다름). 두 프로젝트가 같은 `auth.users`를 공유하지만 각자의 middle 테이블 이름이 다름 → 헷갈리기 쉬움.

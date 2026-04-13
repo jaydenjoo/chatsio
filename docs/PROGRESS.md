@@ -4,32 +4,47 @@
 > **프로젝트 경로**: `/Users/jayden/projects/chatsio/` (Session #10에서 `/Volumes/jayden-ssd/chatsio`에서 이동 — 아래 "프로젝트 이동" 섹션 참조)
 
 ## 현재 위치
-- Epic: **Phase 5 완료 + 파일럿 준비 + SEO/GEO 최적화 완료**
-- Task: **Session #37 — Phase 5 + 파일럿 기능 + SEO/GEO Phase A+B**
-- 커밋: `01526a2` (Session #36) → Session #37 커밋 10개 (`cee21ba` ~ `960636f`)
+- Epic: **SEO/GEO Phase C+D 완료 + Phase E 대기**
+- Task: **Session #38 — SEO/GEO Phase C (Quick Wins) + Phase D (인프라 강화)**
+- 커밋: `60dea4d` (Session #37) → Session #38 커밋 4개 (`84ed6c5` ~ `561cc91`)
 - 상태:
-  - ✅ **Phase 5 AI 인용 추적 PoC** — 구현 + 프로덕션 테스트 통과
-  - ✅ **온보딩 버그 수정 3건** — UPSERT, shop 재사용, DB 백필
-  - ✅ **Claude 모델 ID 수정** — `claude-haiku-4-5-20251001`
-  - ✅ **파일럿용 기능 3개**
-    - 고객용 `/citations` 인용 리포트 (Before/After + 상품별 Score)
-    - `/deploy` Cafe24 설치 5단계 가이드
-    - 고객용 Server Actions (RLS 기반)
-  - ✅ **SEO/GEO Phase A** — CRITICAL 6개 해결
-    - robots.txt, sitemap.xml, OG/Twitter Card, metadataBase
-    - 자체 JSON-LD (Organization + SoftwareApplication + FAQPage 11항목)
-    - llms.txt, 404 페이지, heading 수정, noindex
-  - ✅ **SEO/GEO Phase B** — GEO 강화
-    - FAQ 3개 → 11개 확장 + JSON-LD 동기화
-    - `/about` 서비스 소개 + `/features` 기능 상세 페이지
-    - sitemap 5개 URL
+  - ✅ **SEO/GEO Phase C — Quick Wins** (커밋 `84ed6c5`)
+    - SITE_URL 상수 통합 (16곳 하드코딩 → `constants/site.ts` 단일 출처)
+    - Favicon + Apple Icon 동적 생성 (`icon.tsx`, `apple-icon.tsx`)
+    - OG 이미지 동적 생성 (`opengraph-image.tsx`, 1200×630)
+    - Web App Manifest (`manifest.ts`)
+    - 보안 헤더 6개 (HSTS, X-Frame, X-Content-Type, Referrer, Permissions, XSS)
+    - Sitemap 수정 (고정 날짜, login/signup 제거)
+    - JSON-LD 보강 (@id, logo, WebSite, BreadcrumbList, contactPoint)
+    - robots.txt AI 크롤러 12종 확장 (검색용/학습용 구분)
+    - llms-full.txt 신규 (전체 기능+가격+FAQ 상세)
+    - Login/Signup noindex
+    - 미들웨어: Next.js 컨벤션 파일(icon, opengraph-image, manifest 등) 공개 허용
+  - ✅ **SEO/GEO Phase D-1** — 개인정보처리방침 + 서비스이용약관 (커밋 `7bc0b53`)
+    - `/privacy`, `/terms` 페이지 신규 (한국 법률 기반 SaaS 약관)
+    - sitemap, Footer, llms.txt에 링크 추가
+  - ✅ **SEO/GEO Phase D-2** — 독립 /pricing 페이지 (커밋 `bfb198e`)
+    - `/pricing` 독립 페이지 + PriceSpecification JSON-LD + BreadcrumbList + FAQ 4개
+    - Nav/Footer 해시 링크 → 실제 페이지 링크 전환 (`#features` → `/features`)
+  - ✅ **SEO/GEO Phase D-5,6** — 폰트 최적화 + Nav/Footer 통합 (커밋 `561cc91`)
+    - Pretendard CDN `@import`(렌더차단) → `<link>` + preconnect
+    - `PublicNav` + `PublicFooter` 공통 컴포넌트 → `SubPageShell`
+    - 서브페이지 5개 인라인 Nav 제거, 일관된 사이트 구조
 - 다음:
-  1. **파일럿 고객 모집** — 화이트글러브 서비스 시작 가능
-  2. (선택) **S8 AI Readiness Score** — 무료 진단 도구 (고객 모집 퍼널)
-  3. (backlog) Phase 5 PoC 검증 — 파일럿 업체 확보 후 의류 10건 실행
-  4. (backlog) Phase 6 — Cafe24 OAuth (CTO 합류 후)
-  5. (backlog) Task 4-7 프롬프트 테스트 — n8n 프롬프트 구조 결정 후
-  6. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리
+  1. **SEO/GEO Phase E — 콘텐츠 마케팅 기반** (다음 세션)
+     - E-1: 블로그 인프라 (`/blog`, MDX 기반, Article JSON-LD)
+     - E-2: 초기 콘텐츠 5편 (Hub-and-Spoke 구조)
+     - E-3: 사례 연구 페이지 (파일럿 완료 후)
+     - E-4: Naver Search Advisor 등록 (Jayden 수동)
+  2. **SEO/GEO Phase F — Advanced GEO** (Phase E 이후)
+     - F-1: 콘텐츠 구조 GEO 최적화 (첫 40~60단어 직접 답변, HowTo 스키마)
+     - F-2: Google Search Console AI Overview 모니터링
+     - F-3: 경쟁 키워드 페이지 ("Chatsio vs Profound" 등)
+  3. **파일럿 고객 모집** — 화이트글러브 서비스 시작 가능
+  4. (backlog) Phase 5 PoC 검증 — 파일럿 업체 확보 후 의류 10건 실행
+  5. (backlog) Phase 6 — Cafe24 OAuth (CTO 합류 후)
+  6. (backlog) Task 4-7 프롬프트 테스트 — n8n 프롬프트 구조 결정 후
+  7. (backlog) Supabase Redirect URLs `electric.app` 잔재 정리
 
 > **Session #23 말미 판정**: Session #22부터 이월됐던 "`.env.example`에 INTERNAL_LOG_EVENT_SECRET 블록 추가" 항목은 **취소** (단일 출처 원칙).
 > **Session #26 판정**: "Vercel 프로젝트 신규 등록" 항목은 **폐기** — 이미 등록 + 배포 중 확인. Session #24 AI 오판단이 원인.
@@ -41,6 +56,40 @@
 > **Session #32 판정**: **Session #31의 "Basic 경로 최종 노드 누락/끊김" 진단이 완전히 틀림**. Session #31은 Jayden 구두 확인을 확정 근거로 써서 오진. Session #32에서 Jayden이 "네가 작성해준 workflow JSON을 네가 확인해도 되는거 아닌가?" 지적 → Claude가 `docs/n8n-workflows/Chatsio V8*.json` 파일 정적 분석 → `B3. DB 저장` 노드와 `Basic Step3 → B3. DB 저장` 연결 모두 **완벽히 존재**함을 확인. 진짜 원인은 `autoMapInputData` + 직전 노드가 DB UPDATE 노드라는 구조적 결함 — `$input`이 P7/B2 결과가 아닌 DB row를 가리켜서 P8/B3이 "DB row를 그대로 다시 UPDATE"하고 있었음. 개선안 A 전체 적용한 **V9 workflow JSON 생성** (30 nodes, 버그 A/B 수정 + defineBelow + id 기반 매칭 + UPDATE 검증 IF + Mark Failed 방어선). 재임포트는 Jayden 수동. learnings 3건 기록 (AI-Pitfall + Bug + AI-Pitfall).
 
 > **Session #33 판정**: Session #32에서 남긴 V9 재임포트 + 실데이터 테스트를 **완수**. (1) Webhook URL 통일 — Elestio가 `chagtsio`로 생성한 도메인이 원천, `.env.local`+Vercel 모두 수정. (2) V9 재임포트 성공, webhook dry run 통과. (3) `optimization_id` PK 전달 코드 커밋+배포로 V9 `1. 데이터 정규화` 에러 해결. (4) Google Rich Results Test에서 image/price/brand 누락 발견 → V10 JSON-LD 품질 개선 (빈 값 생략, category fallback). (5) **근본 원인**: payload 필드명 불일치(`image_urls` vs `images`, `original_price` vs `product_price`) — V8 `autoMapInputData` 버그에 가려져 있다가 V9 `defineBelow` 전환 후 드러남. (6) Firecrawl 크롤링 통합 — Next.js에서 best-effort 크롤링, metadata 객체 1차+HTML regex 2차. (7) **Google Rich Results Test 초록 통과** — image, price, category 모두 정상 반영. learnings 3건 (Bug 1 + Architecture 1 + AI-Pitfall 1).
+
+## 이번 세션 상태 (Session #38, 2026-04-13) — SEO/GEO Phase C+D 전체 완료 ✅
+
+**목표**: CMO+CTO 관점 SEO/GEO/기술 전방위 감사 → Phase C Quick Wins + Phase D 인프라 강화 구현
+
+### 1. 감사 리포트 작성
+- 2026 최신 SEO/GEO 트렌드 딥리서치 (서브에이전트 활용)
+- 마케팅 관점 12개 + 기술 관점 16개 항목 식별
+- 4개 Phase (C/D/E/F) 22개 Task 실행 계획 수립 → Jayden 승인
+
+### 2. Phase C — Quick Wins (커밋 `84ed6c5`)
+- SITE_URL 상수 통합: 8파일 16곳 하드코딩 → `constants/site.ts` 단일 출처
+- Favicon/Apple Icon: `icon.tsx`, `apple-icon.tsx` 동적 생성
+- OG 이미지: `opengraph-image.tsx` (1200×630, Azure 그라데이션)
+- Web App Manifest: `manifest.ts`
+- 보안 헤더 6개: `next.config.ts` `headers()` 추가
+- Sitemap: 고정 날짜, login/signup 제거
+- JSON-LD: @id, logo, WebSite, BreadcrumbList, contactPoint 보강
+- robots.txt: AI 크롤러 12종 (검색용 Allow / 학습용 Allow 구분)
+- llms-full.txt: 전체 기능+가격+FAQ 상세
+- Login/Signup: noindex 추가
+- 미들웨어: Next.js 컨벤션 파일 공개 허용 (검증 중 발견한 버그)
+- OG 이미지 메타태그: 페이지 레벨 openGraph.images 명시 (검증 중 발견)
+
+### 3. Phase D — SEO 인프라 강화 (커밋 3개)
+- D-1: `/privacy`, `/terms` 페이지 (한국 법률 SaaS 약관)
+- D-2: `/pricing` 독립 페이지 (JSON-LD + BreadcrumbList + FAQ 4개)
+- D-2 부가: Nav/Footer 해시 링크 → 실제 페이지 링크 전환
+- D-5: Pretendard CDN `@import` → `<link>` + preconnect (렌더차단 해소)
+- D-6: `PublicNav` + `PublicFooter` → `SubPageShell` 통합 (5개 서브페이지)
+
+### 검증 중 발견한 이슈 2건
+1. **미들웨어 리다이렉트**: `/icon`, `/opengraph-image`, `/manifest.webmanifest`가 publicRoutes에 없어서 미인증 시 `/login`으로 리다이렉트됨 → `isNextConventionFile` 조건 추가로 해결
+2. **타이틀 중복**: 페이지 title에 "Chatsio"를 포함하면 template `%s | Chatsio`와 합쳐져 "Chatsio — ... | Chatsio"가 됨 → 페이지 title에서 브랜드명 제거
 
 ## ⚠️ 프로젝트 이동 (Session #10) — CRITICAL
 
